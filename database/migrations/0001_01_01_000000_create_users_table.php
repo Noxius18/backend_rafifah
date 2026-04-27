@@ -11,13 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
+        // Schema::create('users', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->string('name');
+        //     $table->string('email')->unique();
+        //     $table->timestamp('email_verified_at')->nullable();
+        //     $table->string('password');
+        //     $table->rememberToken();
+        //     $table->timestamps();
+        // });
+
+        Schema::create("mahasantri", function (Blueprint $table) {
+            $table->char("id_mahasantri", 5)->primary();
+            $table->string("nama_lengkap", 35);
+            $table->string("email", 50)->unique();
+            $table->string("no_hp", 13)->unique();
+            $table->char("password", 60)->comment("Hashing menggunakan Bcrypt");
+            $table->text("alamat_lengkap");
+            $table->char("nik", 16)->comment("Nomor Induk Keluarga");
+            $table->enum("jenis_kelamin", ["Laki - laki", "Perempuan"]);
+            $table->date("tanggal_lahir");
+            $table->string("tempat_lahir", 50);
             $table->timestamps();
         });
 
