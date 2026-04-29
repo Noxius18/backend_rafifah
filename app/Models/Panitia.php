@@ -13,6 +13,7 @@ class Panitia extends Authenticatable
     protected $primaryKey = 'id_panitia';
     public $incrementing = false;
     protected $keyType = 'string';
+    public $timestamps = false;
 
     protected $fillable = [
         'id_panitia',

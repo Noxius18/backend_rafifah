@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->foreign('id_jadwal')
                   ->references('id_jadwal')
-                  ->on('jadwal')
+                  ->on('jadwal_tes')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');
         });

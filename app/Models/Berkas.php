@@ -11,6 +11,7 @@ class Berkas extends Model
     protected $primaryKey = "id_berkas";
     protected $keyType = "string";
     public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
         'jenis_berkas',
         'path_berkas',

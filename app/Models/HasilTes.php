@@ -11,6 +11,7 @@ class HasilTes extends Model
     protected $primaryKey = "id_hasil";
     protected $keyType = "string";
     public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
         'status',
         'catatan_penguji',

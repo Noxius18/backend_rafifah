@@ -11,6 +11,7 @@ class JadwalTes extends Model
     protected $primaryKey = "id_jadwal";
     protected $keyType = "string";
     public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
         'nama_tes',
         'keterangan',

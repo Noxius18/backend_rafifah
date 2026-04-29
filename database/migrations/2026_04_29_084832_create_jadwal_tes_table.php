@@ -20,8 +20,8 @@ return new class extends Migration
             $table->string('link_zoom');
 
             $table->foreign('penguji')
-                  ->references('id_penguji')
-                  ->on('penguji')
+                  ->references('id_panitia')
+                  ->on('panitia')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');
         });

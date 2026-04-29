@@ -11,6 +11,7 @@ class Orangtua extends Model
     protected $primaryKey = "id_orangtua";
     protected $keyType = "string";
     public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
         'nama_lengkap',
         'pekerjaan',
