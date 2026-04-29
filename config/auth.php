@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'panitia' => [
+            'driver' => 'session',
+            'provider' => 'panitia',
+        ],
     ],
 
     /*
@@ -65,6 +69,10 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+        'panitia' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Panitia::class,
         ],
 
         // 'users' => [

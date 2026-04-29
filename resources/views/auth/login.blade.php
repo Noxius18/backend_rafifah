@@ -12,25 +12,42 @@
                 <h1 class="text-2xl font-bold text-center">Login</h1>
             </div>
 
-            <form method="POST" action="#" @submit="isLoading = true" x-data="{ showPassword: false, isLoading: false }">
+            @if ($errors->any())
+                <div class="alert alert-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l-2-2m0 0l-2-2m2 2l2-2m-2 2l-2 2m2-2l2 2m-2-2l-2-2m2 2l2 2" /></svg>
+                    <div>
+                        @foreach ($errors->all() as $error)
+                            <p>{{ $error }}</p>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('login') }}" @submit="isLoading = true" x-data="{ showPassword: false, isLoading: false }">
                 @csrf
                 <div class="card-body space-y-4">
                     <div class="form-control">
-                        <label for="username" class="input input-bordered flex items-center gap-2">
+                        <label for="username" class="input input-bordered flex items-center gap-2 @error('username') input-error @enderror">
                             <x-heroicon-o-user class="w-5 h-5 text-gray-400" />
-                            <x-form.input type="text" name="username" placeholder="Username" class="grow border-0 focus:outline-none" />
+                            <input type="text" name="username" placeholder="Username" class="grow border-0 focus:outline-none" value="{{ old('username') }}" />
                         </label>
+                        @error('username')
+                            <span class="text-error text-sm mt-1">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div class="form-control">
-                        <label for="password" class="input input-bordered flex items-center gap-2">
+                        <label for="password" class="input input-bordered flex items-center gap-2 @error('password') input-error @enderror">
                             <x-heroicon-o-lock-closed class="w-5 h-5 text-gray-400" />
-                            <x-form.input x-bind:type="showPassword ? 'text' : 'password'" name="password" placeholder="Password" class="grow border-0 focus:outline-none" />
+                            <input x-bind:type="showPassword ? 'text' : 'password'" name="password" placeholder="Password" class="grow border-0 focus:outline-none" />
                             <button type="button" @click="showPassword = !showPassword" class="text-gray-400 hover:text-gray-600 transition">
                                 <x-heroicon-o-eye x-show="!showPassword" class="w-5 h-5" />
                                 <x-heroicon-o-eye-slash x-show="showPassword" class="w-5 h-5" />
                             </button>
                         </label>
+                        @error('password')
+                            <span class="text-error text-sm mt-1">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div class="card-action pt-2">
