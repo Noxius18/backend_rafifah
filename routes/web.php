@@ -7,5 +7,5 @@ Route::get('/', function () {
 });
 
 Route::get('/preview', function () {
-    return view('test');
+    return view('auth.login');
 });
