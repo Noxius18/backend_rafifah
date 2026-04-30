@@ -13,13 +13,10 @@
             </div>
 
             @if ($errors->any())
-                <div class="alert alert-error mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l-2-2m0 0l-2-2m2 2l2-2m-2 2l-2 2m2-2l2 2m-2-2l-2-2m2 2l2 2" /></svg>
-                    <div>
-                        @foreach ($errors->all() as $error)
-                            <p>{{ $error }}</p>
-                        @endforeach
-                    </div>
+                <div x-data="{ show: true }" x-show="show" x-transition.opacity x-init="setTimeout(() => show = false, 3000)" class="mb-4">
+                    @foreach ($errors->all() as $error)
+                        <x-ui.alert.error :alert="$error" class="mb-2" />
+                    @endforeach
                 </div>
             @endif
 
@@ -31,9 +28,6 @@
                             <x-heroicon-o-user class="w-5 h-5 text-gray-400" />
                             <input type="text" name="username" placeholder="Username" class="grow border-0 focus:outline-none" value="{{ old('username') }}" />
                         </label>
-                        @error('username')
-                            <span class="text-error text-sm mt-1">{{ $message }}</span>
-                        @enderror
                     </div>
 
                     <div class="form-control">
@@ -45,15 +39,12 @@
                                 <x-heroicon-o-eye-slash x-show="showPassword" class="w-5 h-5" />
                             </button>
                         </label>
-                        @error('password')
-                            <span class="text-error text-sm mt-1">{{ $message }}</span>
-                        @enderror
                     </div>
 
                     <div class="card-action pt-2">
-                        <x-ui.button class="btn bg-green-500 hover:bg-green-600 text-white w-full" x-bind:disabled="isLoading" x-bind:class="{ 'loading': isLoading }">
+                        <x-ui.button class="btn bg-green-500 hover:bg-green-600 text-white w-full" x-bind:disabled="isLoading">
                             <span x-show="!isLoading">Login</span>
-                            <span x-show="isLoading" class="loading loading-spinner"></span>
+                            <x-heroicon-o-arrow-path x-show="isLoading" class="w-5 h-5 animate-spin" />
                         </x-ui.button>
                     </div>
                 </div>
