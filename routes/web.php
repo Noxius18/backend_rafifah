@@ -15,7 +15,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth:panitia')->group(function () {
     Route::post('/logout', [PanitiaAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', function () {
-        return view('test');
+        return view('dashboard.dashboard');
     })->name('dashboard');
 });
 
