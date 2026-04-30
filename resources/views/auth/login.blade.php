@@ -13,10 +13,14 @@
             </div>
 
             @if ($errors->any())
-                <div x-data="{ show: true }" x-show="show" x-transition.opacity x-init="setTimeout(() => show = false, 3000)" class="mb-4">
-                    @foreach ($errors->all() as $error)
-                        <x-ui.alert.error :alert="$error" class="mb-2" />
-                    @endforeach
+                <div x-data="{ show: true }" x-show="show" x-transition.opacity x-init="setTimeout(() => show = false, 5000)" class="mb-4">
+                    @if ($errors->has('username') && $errors->has('password') && count($errors->all()) === 2)
+                        <x-ui.alert.error :alert="__('Username dan password tidak boleh kosong')" />
+                    @else
+                        @foreach ($errors->all() as $error)
+                            <x-ui.alert.error :alert="$error" class="mb-2" />
+                        @endforeach
+                    @endif
                 </div>
             @endif
 
