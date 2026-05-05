@@ -14,7 +14,7 @@ class PanitiaController extends Controller
     {
         $panitias = Panitia::all();
         
-        return view('menu.panitia', [
+        return view('menu.panitia.index', [
             'panitias' => $panitias
         ]);
     }
@@ -61,6 +61,10 @@ class PanitiaController extends Controller
 
         Panitia::create($validated);
 
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Panitia berhasil ditambahkan'], 201);
+        }
+
         return redirect()->route('panitia.index')->with('success', 'Panitia berhasil ditambahkan');
     }
 
@@ -79,6 +83,10 @@ class PanitiaController extends Controller
      */
     public function edit(Panitia $panitia)
     {
+        if (request()->wantsJson()) {
+            return response()->json($panitia);
+        }
+
         return view('menu.panitia.edit', [
             'panitia' => $panitia
         ]);
@@ -97,6 +105,10 @@ class PanitiaController extends Controller
         ]);
 
         $panitia->update($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Panitia berhasil diperbarui']);
+        }
 
         return redirect()->route('panitia.index')->with('success', 'Panitia berhasil diperbarui');
     }
