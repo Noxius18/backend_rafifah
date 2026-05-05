@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PanitiaAuthController;
+use App\Http\Controllers\PanitiaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -17,8 +18,11 @@ Route::middleware('auth:panitia')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard.dashboard');
     })->name('dashboard');
+    
+    // Panitia Management Routes
+    Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
 });
 
 Route::get('/preview', function () {
-    return view('auth.login');
+    return view('menu.panitia');
 });

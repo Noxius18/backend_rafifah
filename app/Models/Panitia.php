@@ -19,6 +19,7 @@ class Panitia extends Authenticatable
         'id_panitia',
         'nama_lengkap',
         'username',
+        'no_hp',
         'password',
         'jabatan'
     ];
