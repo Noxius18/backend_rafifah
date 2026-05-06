@@ -102,7 +102,15 @@ class PanitiaController extends Controller
             'username' => 'required|string|max:10|unique:panitia,username,' . $panitia->id_panitia . ',id_panitia',
             'no_hp' => 'required|string|max:13|unique:panitia,no_hp,' . $panitia->id_panitia . ',id_panitia',
             'jabatan' => 'required|in:Pengawas,Panitia,Penguji',
+            'password' => 'nullable|string|min:8',
         ]);
+
+        // Only hash password if provided
+        if ($validated['password']) {
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
 
         $panitia->update($validated);
 
@@ -116,9 +124,13 @@ class PanitiaController extends Controller
     /**
      * Remove the specified panitia from storage
      */
-    public function destroy(Panitia $panitia)
+    public function destroy(Request $request, Panitia $panitia)
     {
         $panitia->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Panitia berhasil dihapus']);
+        }
 
         return redirect()->route('panitia.index')->with('success', 'Panitia berhasil dihapus');
     }
