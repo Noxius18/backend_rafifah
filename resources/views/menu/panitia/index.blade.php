@@ -79,7 +79,7 @@ x-init="
     <x-ui.toast />
 
     <x-ui.sidebar>
-        <section class="space-y-6 px-1 py-2">
+        <section class="space-y-6 px-4 py-4">
 
             {{-- Header --}}
             <div class="flex items-center justify-between">
@@ -113,9 +113,9 @@ x-init="
     </x-ui.sidebar>
 
     {{-- ── Modal: Tambah ──────────────────────────────────────────────── --}}
-    <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus">
+    <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus" size="md">
         <x-slot name="body">
-            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-4">
+            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5">
                 @csrf
                 <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
                 <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" required />
@@ -136,9 +136,9 @@ x-init="
     </x-ui.modal-form>
 
     {{-- ── Modal: Edit ────────────────────────────────────────────────── --}}
-    <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit">
+    <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit" size="md">
         <x-slot name="body">
-            <form id="editModal-form" action="" method="POST" class="space-y-4">
+            <form id="editModal-form" action="" method="POST" class="space-y-5">
                 @csrf
                 @method('PUT')
 
