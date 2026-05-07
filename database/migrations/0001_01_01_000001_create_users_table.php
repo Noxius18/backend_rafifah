@@ -14,16 +14,21 @@ return new class extends Migration
         Schema::create('mahasantri', function (Blueprint $table) {
             $table->char("id_mahasantri", 5)->primary();
             $table->string("nama_lengkap", 35);
-            $table->string("email", 50)->unique();
-            $table->string("no_hp", 13)->unique();
-            $table->char("password", 60)->comment("Hashing menggunakan Bcrypt");
-            $table->text("alamat_lengkap");
-            $table->char("nik", 16)->comment("Nomor Induk Keluarga");
-            $table->enum("jenis_kelamin", ["Laki - laki", "Perempuan"]);
-            $table->date("tanggal_lahir");
-            $table->string("tempat_lahir", 50);
+            // $table->string("email", 50)->unique(); #TODO: Mungkin email tidak wajib, karena banyak mahasantri yang tidak punya email, jadi bisa diganti dengan nomor hp yang lebih umum dimiliki
+            // $table->string("no_hp", 13)->unique(); #TODO: Mungkin nomor hp tidak wajib, karena banyak mahasantri yang tidak punya nomor hp, jadi bisa diganti dengan email yang lebih umum dimiliki
+
+            // Data tambahan saat daftar ulang
+            $table->char("nik", 16)->comment("Nomor Induk Keluarga")->nullable();
+            $table->char('nisn', 10)->comment('Nomor Induk Siswa Nasional')->nullable();
+            $table->enum("jenis_kelamin", ["L", "P"])->nullable();
+            $table->string("tempat_lahir", 50)->nullable();
+            $table->date("tanggal_lahir")->nullable();
+
+            // Status pendaftaran
+            $table->enum('status', ['Pendaftar Baru', 'Terverifikasi', 'Lulus', 'Tidak Lulus'])->default('Pendaftar Baru');
+            $table->timestamp('tanggal_daftar')->nullable();
+            
             # TODO: Mungkin tambah Panitia yang mengelola mahasantri ini, jadi tau mahasantri ini dikelola oleh panitia siapa
-            $table->timestamps();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

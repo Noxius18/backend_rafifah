@@ -7,7 +7,9 @@
   {{-- Main Content --}}
   <div class="drawer-content flex flex-col min-h-screen bg-emerald-50">
     <x-ui.navbar logo="{{ asset('assets/Logo_1_transparent.png') }}"
-                 drawer-id="sidebar-drawer" />
+                 drawer-id="sidebar-drawer"
+                 userName="{{ auth()->user()->nama_lengkap }}"
+                 role="{{ auth()->user()->jabatan }}" />
     <main class="p-6 flex-1">
       {{ $slot }}
     </main>
