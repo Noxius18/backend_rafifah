@@ -113,51 +113,68 @@ x-init="
     </x-ui.sidebar>
 
     {{-- ── Modal: Tambah ──────────────────────────────────────────────── --}}
-    <x-ui.modal-form id="addModal" title="Tambah Panitia Baru">
+    <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus">
         <x-slot name="body">
-            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-3">
+            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-4">
                 @csrf
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" required />
-                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" required />
-                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" required />
-                <x-ui.form-input name="password"     label="Password"     placeholder="Minimal 6 karakter"    type="password" required />
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" required />
+                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
+                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" required />
+                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" icon="phone" required />
+                <x-ui.form-input name="password"     label="Password"     placeholder="Minimal 6 karakter"    type="password" icon="lock" required />
+                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" required />
             </form>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="addModal.close()">Batal</button>
-            <button type="submit" form="addModal-form" class="btn btn-success btn-sm">Simpan</button>
+            <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="addModal.close()">Batal</button>
+            <button type="submit" form="addModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Simpan
+            </button>
         </x-slot>
     </x-ui.modal-form>
 
     {{-- ── Modal: Edit ────────────────────────────────────────────────── --}}
-    <x-ui.modal-form id="editModal" title="Edit Panitia">
+    <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit">
         <x-slot name="body">
-            <form id="editModal-form" action="" method="POST" class="space-y-3">
+            <form id="editModal-form" action="" method="POST" class="space-y-4">
                 @csrf
                 @method('PUT')
 
                 {{-- ID readonly --}}
                 <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-semibold text-sm">ID Panitia</span>
+                    <label class="label pb-1.5">
+                        <span class="label-text font-medium text-slate-700">ID Panitia</span>
                     </label>
-                    <input type="text" id="editModal-id-display" class="input input-bordered input-sm bg-base-200" disabled />
-                    <label class="label">
-                        <span class="label-text-alt text-base-content/50">ID tidak dapat diubah</span>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                            </svg>
+                        </span>
+                        <input type="text" id="editModal-id-display" class="input input-bordered w-full input-sm pl-9 bg-slate-50 text-slate-500 cursor-not-allowed" disabled />
+                    </div>
+                    <label class="label pt-1 pb-0">
+                        <span class="label-text-alt text-slate-400">ID tidak dapat diubah</span>
                     </label>
                 </div>
 
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" required />
-                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" required />
-                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" required />
-                <x-ui.form-input name="password"     label="Password"     placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" />
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" required />
+                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
+                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" required />
+                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" icon="phone" required />
+                <x-ui.form-input name="password"     label="Password"     placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" />
+                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" required />
             </form>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="editModal.close()">Batal</button>
-            <button type="submit" form="editModal-form" class="btn btn-success btn-sm">Perbarui</button>
+            <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="editModal.close()">Batal</button>
+            <button type="submit" form="editModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                </svg>
+                Perbarui
+            </button>
         </x-slot>
     </x-ui.modal-form>
 
