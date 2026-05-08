@@ -13,13 +13,16 @@
 
     // ── HTML renderers untuk kolom tabel ───────────────────────────────────
     $columns = [
-        ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html'],
+        ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html',       'class' => 'hidden md:table-cell'],
         ['label' => 'Nama',         'field' => 'nama_lengkap',  'html' => 'nama_html'],
-        ['label' => 'NIK',          'field' => 'nik'],
-        ['label' => 'Jenis Kelamin','field' => 'jenis_kelamin', 'html' => 'jk_html'],
-        ['label' => 'Status',       'field' => 'status',        'html' => 'status_html'],
-        ['label' => 'Tgl Daftar',   'field' => 'tanggal_daftar','html' => 'tgl_html'],
-        ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html', 'class' => 'text-right'],
+        ['label' => 'NIK',          'field' => 'nik',                                       'class' => 'hidden lg:table-cell'],
+        ['label' => 'NISN',         'field' => 'nisn',                                      'class' => 'hidden lg:table-cell'],
+        ['label' => 'Jenis Kelamin','field' => 'jenis_kelamin', 'html' => 'jk_html',        'class' => 'hidden md:table-cell'],
+        ['label' => 'Tempat Lahir', 'field' => 'tempat_lahir',                              'class' => 'hidden xl:table-cell'],
+        ['label' => 'Tgl Lahir',    'field' => 'tanggal_lahir', 'html' => 'tgl_lahir_html', 'class' => 'hidden xl:table-cell'],
+        ['label' => 'Status',       'field' => 'status',        'html' => 'status_html',    'class' => 'hidden sm:table-cell'],
+        ['label' => 'Tgl Daftar',   'field' => 'tanggal_daftar','html' => 'tgl_html',       'class' => 'hidden sm:table-cell'],
+        ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html',      'class' => 'text-right'],
     ];
 
     $rows = $mahasantris->map(fn($m) => [
@@ -27,7 +30,10 @@
         'id_mahasantri'  => $m->id_mahasantri,
         'nama_lengkap'   => $m->nama_lengkap,
         'nik'            => $m->nik ?? '-',
+        'nisn'           => $m->nisn ?? '-',
         'jenis_kelamin'  => $m->jenis_kelamin ?? '-',
+        'tempat_lahir'   => $m->tempat_lahir ?? '-',
+        'tanggal_lahir'  => $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) : '-',
         'status'         => $m->status,
         'tanggal_daftar' => $m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-',
 
@@ -42,6 +48,9 @@
             'P' => "<span class='rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200'>Perempuan</span>",
             default => "<span class='text-slate-400'>-</span>",
         },
+        'tgl_lahir_html' => $m->tanggal_lahir
+            ? "<span class='text-xs text-slate-500'>" . (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) . "</span>"
+            : "<span class='text-slate-400'>-</span>",
         'status_html' => match($m->status) {
             'Pendaftar Baru' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Pendaftar Baru</span>",
             'Terverifikasi'  => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Terverifikasi</span>",
@@ -74,7 +83,7 @@
                         </div>",
 
         // Search index
-        'search' => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->status}"),
+        'search' => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->nisn} {$m->tempat_lahir} {$m->status}"),
     ])->toArray();
 @endphp
 
@@ -126,7 +135,7 @@ x-init="
                         Import CSV
                     </button>
                     <button type="button" onclick="addModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
                         <x-heroicon-s-user-plus class="h-4 w-4" />
                         Tambah
                     </button>
