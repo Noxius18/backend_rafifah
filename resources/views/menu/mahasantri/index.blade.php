@@ -29,7 +29,7 @@
         'nik'            => $m->nik ?? '-',
         'jenis_kelamin'  => $m->jenis_kelamin ?? '-',
         'status'         => $m->status,
-        'tanggal_daftar' => $m->tanggal_daftar ? $m->tanggal_daftar->format('d/m/Y') : '-',
+        'tanggal_daftar' => $m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-',
 
         // HTML — untuk render
         'id_html'   => "<code class='rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500'>{$m->id_mahasantri}</code>",
@@ -49,7 +49,7 @@
             'Tidak Lulus'    => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>Tidak Lulus</span>",
             default          => "<span class='text-slate-400'>" . e($m->status) . "</span>",
         },
-        'tgl_html'  => "<span class='text-xs text-slate-500'>" . ($m->tanggal_daftar ? $m->tanggal_daftar->format('d/m/Y') : '-') . "</span>",
+        'tgl_html'  => "<span class='text-xs text-slate-500'>" . ($m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-') . "</span>",
         'aksi_html' => "<div class='flex items-center justify-end gap-1'>
                             <button type='button'
                                 onclick=\"openDetailModal('{$m->id_mahasantri}')\"
@@ -63,7 +63,7 @@
                                     nisn:         '" . e($m->nisn ?? '') . "',
                                     jk:           '" . e($m->jenis_kelamin ?? '') . "',
                                     tempat_lahir: '" . e($m->tempat_lahir ?? '') . "',
-                                    tgl_lahir:    '" . ($m->tanggal_lahir ? $m->tanggal_lahir->format('Y-m-d') : '') . "',
+                                    tgl_lahir:    '" . ($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') . "',
                                     status:       '" . e($m->status) . "'
                                 })\"
                                 class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Edit</button>
@@ -113,7 +113,7 @@ x-init="
             {{-- Header --}}
             <div class="flex items-center justify-between">
                 <div class="flex items-start gap-3">
-                    <div class="mt-1 h-7 w-1 rounded-full bg-indigo-500"></div>
+                    <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
                         <h1 class="text-xl font-semibold text-slate-800">Kelola Data Mahasantri</h1>
                         <p class="text-sm text-slate-400">Kelola data pendaftaran mahasantri.</p>
@@ -126,7 +126,7 @@ x-init="
                         Import CSV
                     </button>
                     <button type="button" onclick="addModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95">
                         <x-heroicon-s-user-plus class="h-4 w-4" />
                         Tambah
                     </button>
