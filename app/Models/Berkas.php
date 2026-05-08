@@ -13,10 +13,12 @@ class Berkas extends Model
     public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
-        'jenis_berkas',
-        'path_berkas',
-        'tanggal_upload',
+        'id_berkas',
         'id_mahasantri',
+        'tipe_dokumen',
+        'url',
+        'is_valid',
+        'tanggal_upload',
     ];
 
     public function mahasantri() {

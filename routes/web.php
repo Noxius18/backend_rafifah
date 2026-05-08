@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PanitiaAuthController;
 use App\Http\Controllers\PanitiaController;
+use App\Http\Controllers\MahasantriController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -21,6 +22,11 @@ Route::middleware('auth:panitia')->group(function () {
     
     // Panitia Management Routes
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
+
+    // Mahasantri Management Routes
+    Route::resource('mahasantri', MahasantriController::class);
+    Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
+    Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
 });
 
 Route::get('/preview', function () {

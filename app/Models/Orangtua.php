@@ -13,14 +13,15 @@ class Orangtua extends Model
     public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
+        'id_orangtua',
+        'id_mahasantri',
+        'tipe_hubungan',
         'nama_lengkap',
         'pekerjaan',
-        'no_hp',
-        'tipe_hubungan',
-        'id_mahasantri',
+        'no_wa',
     ];
 
     public function mahasantri() {
-        return $this->belongsTo( Mahasantri::class,'id_mahasantri', 'id_mahasantri' );
+        return $this->belongsTo(Mahasantri::class, 'id_mahasantri', 'id_mahasantri');
     }
 }
