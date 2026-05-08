@@ -74,6 +74,7 @@
 x-init="
     @if(session('success')) showToast('{{ session('success') }}') @endif
     @if(session('error'))   showToast('{{ session('error') }}', 'error') @endif
+    @if($errors->any()) $nextTick(() => document.getElementById('addModal')?.showModal()) @endif
 ">
 
     <x-ui.toast />
@@ -115,13 +116,44 @@ x-init="
     {{-- ── Modal: Tambah ──────────────────────────────────────────────── --}}
     <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus" size="md">
         <x-slot name="body">
-            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5">
+            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5"
+                  x-data="{ password: '', confirm: '' }"
+                  @submit.prevent="if(password !== confirm) { alert('Password dan konfirmasi tidak cocok.'); return false; } $el.submit();"
+                  novalidate>
                 @csrf
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
-                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" required />
-                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" icon="phone" required />
-                <x-ui.form-input name="password"     label="Password"     placeholder="Minimal 6 karakter"    type="password" icon="lock" required />
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" required />
+
+                {{-- Nama Lengkap --}}
+                <div>
+                    <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
+                </div>
+
+                {{-- Username --}}
+                <div>
+                    <x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" required />
+                </div>
+
+                {{-- No HP --}}
+                <div>
+                    <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" required />
+                </div>
+
+                {{-- Password --}}
+                <div>
+                    <x-ui.form-input name="password" label="Password" placeholder="Minimal 8 karakter" type="password" icon="lock-closed" required x-model="password" />
+                </div>
+
+                {{-- Konfirmasi Password (muncul hanya jika password diisi) --}}
+                <div x-show="password && password.length > 0" x-cloak>
+                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" x-model="confirm" />
+                    <div x-show="confirm && password !== confirm" class="text-xs text-red-600 mt-0.5">
+                        Password dan konfirmasi tidak cocok.
+                    </div>
+                </div>
+
+                {{-- Jabatan --}}
+                <div>
+                    <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="user" required />
+                </div>
             </form>
         </x-slot>
         <x-slot name="footer">
@@ -136,9 +168,13 @@ x-init="
     </x-ui.modal-form>
 
     {{-- ── Modal: Edit ────────────────────────────────────────────────── --}}
-    <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit" size="md">
+    <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit" size="lg">
         <x-slot name="body">
-            <form id="editModal-form" action="" method="POST" class="space-y-5">
+            <div x-data="{ open: true }" class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
+            <form id="editModal-form" action="" method="POST" class="space-y-5"
+                  x-data="{ password: '', confirm: '' }"
+                  @submit.prevent="if(password !== confirm) { alert('Password dan konfirmasi tidak cocok.'); return false; } $el.submit();"
+                  novalidate>
                 @csrf
                 @method('PUT')
 
@@ -159,13 +195,27 @@ x-init="
                         <span class="label-text-alt text-slate-400">ID tidak dapat diubah</span>
                     </label>
                 </div>
-
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required />
-                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" required />
-                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" icon="phone" required />
-                <x-ui.form-input name="password"     label="Password"     placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" />
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" required />
+            
+                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" disabled />
+                <x-ui.form-input name="username"     label="Username"     placeholder="Masukkan username"     maxlength="10" icon="user" disabled />
+                <x-ui.form-input name="no_hp"        label="No. HP"       placeholder="Contoh: 081234567890"  maxlength="13" type="tel" icon="phone" />
+            
+                {{-- Password field --}}
+                <x-ui.form-input name="password" label="Password" placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" x-model="password" />
+            
+                {{-- Konfirmasi password - muncul hanya jika password diisi --}}
+                <div x-show="password && password.length > 0" x-cloak>
+                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" x-model="confirm" />
+                </div>
+            
+                {{-- Pesan error jika password & konfirmasi tidak cocok --}}
+                <div x-show="password && confirm && password !== confirm" class="text-sm text-red-600 mt-1">
+                    Password dan konfirmasi tidak cocok.
+                </div>
+            
+                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" disabled />
             </form>
+            </div>
         </x-slot>
         <x-slot name="footer">
             <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="editModal.close()">Batal</button>
