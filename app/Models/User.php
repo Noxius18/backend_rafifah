@@ -17,17 +17,17 @@ class User extends Authenticatable
     protected $primaryKey = 'id_mahasantri';
     protected $keyType = 'string';
     public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
         'id_mahasantri',
         'nama_lengkap',
-        'email',
-        'no_hp',
-        'password',
-        'alamat_lengkap',
         'nik',
+        'nisn',
         'jenis_kelamin',
-        'tanggal_lahir',
         'tempat_lahir',
+        'tanggal_lahir',
+        'status',
+        'tanggal_daftar',
     ];
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -45,16 +45,16 @@ class User extends Authenticatable
         ];
     }
 
-    public function orangtua() {
-        return $this->hasMany(Orangtua::class, 'id_orangtua');
+    public function orangtuas() {
+        return $this->hasMany(Orangtua::class, 'id_mahasantri', 'id_mahasantri');
     }
 
     public function berkas() {
-        return $this->hasMany(Berkas::class, 'id_berkas');
+        return $this->hasMany(Berkas::class, 'id_mahasantri', 'id_mahasantri');
     }
 
     public function hasilTes() {
-        return $this->hasMany(Hasil::class, 'id_hasil');
+        return $this->hasMany(Hasil::class, 'id_mahasantri', 'id_mahasantri');
     }
 
     // TODO: Mungkin tambah relasi ke Panitia buat siapa panitia yang kelola salah satu data santri
