@@ -37,6 +37,29 @@
         document.getElementById('previewModal').showModal();
     },
 
+    // ── Retry Download ─────────────────────────────────────────────────
+    async retryDownload(berkasId) {
+        const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        try {
+            const res = await fetch(`/berkas/${berkasId}/retry-download`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                this.showToast(data.message || 'Proses unduh ulang dimulai');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                this.showToast(data.message || 'Gagal memulai unduh ulang', 'error');
+            }
+        } catch (e) {
+            this.showToast('Gagal menghubungi server', 'error');
+        }
+    },
+
     // ── Toggle di dalam modal (hanya ubah state lokal) ─────────────────
     togglePreviewStatus() {
         this.previewTempIsValid = !this.previewTempIsValid;
@@ -254,7 +277,8 @@ x-init="
                                 <thead class="bg-slate-50">
                                     <tr>
                                         <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Tipe Dokumen</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Unduh</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Verifikasi</th>
                                         <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Tanggal Upload</th>
                                         <th scope="col" class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Aksi</th>
                                     </tr>
@@ -269,6 +293,21 @@ x-init="
                                                 </div>
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3">
+                                                @switch($doc->download_status)
+                                                    @case('success')
+                                                        <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Berhasil</span>
+                                                        @break
+                                                    @case('processing')
+                                                        <span class="rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200">Mengunduh...</span>
+                                                        @break
+                                                    @case('failed')
+                                                        <span class="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200">Gagal</span>
+                                                        @break
+                                                    @default
+                                                        <span class="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">Menunggu</span>
+                                                @endswitch
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3">
                                                 @if($doc->is_valid)
                                                     <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Terverifikasi</span>
                                                 @else
@@ -279,12 +318,36 @@ x-init="
                                                 {{ $doc->tanggal_upload ? (is_string($doc->tanggal_upload) ? $doc->tanggal_upload : $doc->tanggal_upload->translatedFormat('d F Y')) : '-' }}
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3 text-right">
-                                                <button type="button"
-                                                    @click="openPreview({{ json_encode($doc->url) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
-                                                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50">
-                                                    <x-heroicon-s-eye class="h-3.5 w-3.5" />
-                                                    Lihat
-                                                </button>
+                                                <div class="flex items-center justify-end gap-1">
+                                                    @if($doc->download_status === 'success' && $doc->file_path)
+                                                        <a href="{{ route('berkas.download', $doc->id_berkas) }}"
+                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50">
+                                                            <x-heroicon-s-arrow-down-tray class="h-3.5 w-3.5" />
+                                                            Unduh
+                                                        </a>
+                                                    @endif
+                                                    @if($doc->download_status === 'failed')
+                                                        <button type="button"
+                                                            @click="retryDownload('{{ $doc->id_berkas }}')"
+                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-amber-600 transition hover:bg-amber-50">
+                                                            <x-heroicon-s-arrow-path class="h-3.5 w-3.5" />
+                                                            Ulangi
+                                                        </button>
+                                                    @endif
+                                                    @if($doc->download_status === 'success' && $doc->file_path)
+                                                        <button type="button"
+                                                            @click="openPreview({{ json_encode(route('berkas.download', $doc->id_berkas)) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
+                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50">
+                                                            <x-heroicon-s-eye class="h-3.5 w-3.5" />
+                                                            Lihat
+                                                        </button>
+                                                    @elseif($doc->download_status !== 'success')
+                                                        <span class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-slate-400">
+                                                            <x-heroicon-s-eye-slash class="h-3.5 w-3.5" />
+                                                            Preview
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach

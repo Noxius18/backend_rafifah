@@ -28,8 +28,10 @@ Route::middleware('auth:panitia')->group(function () {
     Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
     Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
 
-    // Berkas Management Routes (update status validasi)
+    // Berkas Management Routes
     Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
+    Route::post('/berkas/{berkas}/retry-download', [MahasantriController::class, 'retryDownload'])->name('berkas.retry-download');
+    Route::get('/berkas/{berkas}/download', [MahasantriController::class, 'downloadBerkas'])->name('berkas.download');
 });
 
 Route::get('/preview', function () {

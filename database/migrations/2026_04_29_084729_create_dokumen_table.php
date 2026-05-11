@@ -15,7 +15,10 @@ return new class extends Migration
             $table->char('id_berkas', 5)->primary();
             $table->char('id_mahasantri', 5);
             $table->enum('tipe_dokumen', ['KTP', 'KK', 'Ijazah', 'Surat Izin Orangtua']);
-            $table->text('url');
+            $table->text('original_url')->nullable();
+            $table->string('file_path')->nullable();
+            $table->enum('download_status', ['pending', 'processing', 'success', 'failed'])->default('pending');
+            $table->text('error_message')->nullable();
             $table->boolean('is_valid')->default(false);
             $table->timestamp('tanggal_upload')->useCurrent();
 

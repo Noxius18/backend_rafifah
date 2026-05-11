@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Orangtua;
 use App\Models\Berkas;
+use App\Jobs\DownloadGoogleDriveFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -143,6 +144,50 @@ class MahasantriController extends Controller
         }
 
         return redirect()->route('mahasantri.index')->with('success', 'Data mahasantri berhasil dihapus');
+    }
+
+    /**
+     * Download a specific berkas file.
+     */
+    public function downloadBerkas(Berkas $berkas)
+    {
+        if (!$berkas->file_path || !$berkas->file_exists) {
+            return redirect()->back()->with('error', 'File belum tersedia atau belum diunduh.');
+        }
+
+        $fullPath = $berkas->storage_path;
+
+        if (!file_exists($fullPath)) {
+            return redirect()->back()->with('error', 'File tidak ditemukan di penyimpanan.');
+        }
+
+        return response()->download($fullPath, $berkas->download_filename);
+    }
+
+    /**
+     * Retry download for a failed berkas.
+     */
+    public function retryDownload(Request $request, Berkas $berkas)
+    {
+        if ($berkas->download_status === 'success') {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Berkas ini sudah berhasil diunduh.'], 400);
+            }
+            return redirect()->back()->with('info', 'Berkas ini sudah berhasil diunduh.');
+        }
+
+        $berkas->update([
+            'download_status' => 'pending',
+            'error_message' => null,
+        ]);
+
+        DownloadGoogleDriveFile::dispatch($berkas);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Proses unduh ulang telah dimulai.']);
+        }
+
+        return redirect()->back()->with('success', 'Proses unduh ulang telah dimulai.');
     }
 
     /**
@@ -356,7 +401,8 @@ class MahasantriController extends Controller
                                 'id_berkas'      => $idDkm,
                                 'id_mahasantri'  => $idMahasantri,
                                 'tipe_dokumen'   => $tipeDokumen,
-                                'url'            => $urlValue,
+                                'original_url'   => $urlValue,
+                                'download_status'=> 'pending',
                                 'is_valid'       => false,
                                 'tanggal_upload' => now(),
                             ]);
@@ -370,6 +416,15 @@ class MahasantriController extends Controller
             }
 
             DB::commit();
+
+            // ── Dispatch download jobs for all pending berkas ────────────
+            $pendingBerkas = Berkas::where('download_status', 'pending')
+                ->whereNotNull('original_url')
+                ->get();
+
+            foreach ($pendingBerkas as $berkas) {
+                DownloadGoogleDriveFile::dispatch($berkas);
+            }
 
             $message = "Berhasil mengimpor {$imported} data mahasantri.";
             if (count($errors) > 0) {

@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        'berkas' => [
+            'driver' => 'local',
+            'root' => storage_path('app/berkas'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
