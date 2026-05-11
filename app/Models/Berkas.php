@@ -35,13 +35,14 @@ class Berkas extends Model
 
     /**
      * Get the full storage path for the downloaded file.
+     * Now uses private_berkas disk (storage/app/private/berkas/).
      */
     public function getStoragePathAttribute(): ?string
     {
         if (!$this->file_path) {
             return null;
         }
-        return Storage::disk('berkas')->path($this->file_path);
+        return Storage::disk('private_berkas')->path($this->file_path);
     }
 
     /**
@@ -52,7 +53,7 @@ class Berkas extends Model
         if (!$this->file_path) {
             return false;
         }
-        return Storage::disk('berkas')->exists($this->file_path);
+        return Storage::disk('private_berkas')->exists($this->file_path);
     }
 
     /**

@@ -38,9 +38,9 @@ return [
             'report' => false,
         ],
 
-        'berkas' => [
+        'private_berkas' => [
             'driver' => 'local',
-            'root' => storage_path('app/berkas'),
+            'root' => storage_path('app/private/berkas'),
             'throw' => false,
             'report' => false,
         ],

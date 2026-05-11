@@ -8,6 +8,7 @@ use App\Models\Berkas;
 use App\Jobs\DownloadGoogleDriveFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class MahasantriController extends Controller
@@ -147,7 +148,7 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Download a specific berkas file.
+     * Download a specific berkas file (force download).
      */
     public function downloadBerkas(Berkas $berkas)
     {
@@ -162,6 +163,27 @@ class MahasantriController extends Controller
         }
 
         return response()->download($fullPath, $berkas->download_filename);
+    }
+
+    /**
+     * Preview a specific berkas file inline (display in browser).
+     */
+    public function previewBerkas(Berkas $berkas)
+    {
+        if (!$berkas->file_path || !$berkas->file_exists) {
+            abort(404, 'File belum tersedia atau belum diunduh.');
+        }
+
+        $fullPath = $berkas->storage_path;
+
+        if (!file_exists($fullPath)) {
+            abort(404, 'File tidak ditemukan di penyimpanan.');
+        }
+
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $berkas->download_filename . '"',
+        ]);
     }
 
     /**

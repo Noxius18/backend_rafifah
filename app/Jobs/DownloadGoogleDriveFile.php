@@ -44,6 +44,14 @@ class DownloadGoogleDriveFile implements ShouldQueue
             return;
         }
 
+        // Load relasi mahasantri untuk mendapatkan id_mahasantri
+        $this->berkas->load('mahasantri');
+
+        if (!$this->berkas->relationLoaded('mahasantri') || !$this->berkas->mahasantri) {
+            $this->fail(new \RuntimeException('No mahasantri found for berkas: ' . $this->berkas->id_berkas));
+            return;
+        }
+
         // Mark as processing
         $this->berkas->update([
             'download_status' => 'processing',
@@ -54,7 +62,8 @@ class DownloadGoogleDriveFile implements ShouldQueue
             $filePath = $driveService->downloadAsPdf(
                 $this->berkas->original_url,
                 $this->berkas->id_berkas,
-                $this->berkas->tipe_dokumen
+                $this->berkas->tipe_dokumen,
+                $this->berkas->mahasantri->id_mahasantri
             );
 
             if ($filePath) {

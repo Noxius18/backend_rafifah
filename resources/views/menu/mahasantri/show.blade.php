@@ -336,7 +336,7 @@ x-init="
                                                     @endif
                                                     @if($doc->download_status === 'success' && $doc->file_path)
                                                         <button type="button"
-                                                            @click="openPreview({{ json_encode(route('berkas.download', $doc->id_berkas)) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
+                                                            @click="openPreview({{ json_encode(route('berkas.preview', $doc->id_berkas)) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
                                                             class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50">
                                                             <x-heroicon-s-eye class="h-3.5 w-3.5" />
                                                             Lihat
@@ -466,13 +466,8 @@ x-init="
                 allowfullscreen
             ></iframe>
 
-            {{-- Footer: Buka tab baru + Tombol Simpan --}}
-            <div class="mt-4 flex items-center justify-between">
-                <a :href="previewUrl" target="_blank"
-                    class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700">
-                    <x-heroicon-s-arrow-top-right-on-square class="h-3.5 w-3.5" />
-                    Buka di tab baru
-                </a>
+            {{-- Footer: Tombol Simpan --}}
+            <div class="mt-4 flex items-center justify-end">
                 <div class="flex items-center gap-2">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('previewModal').close()">
                         Tutup

@@ -130,9 +130,10 @@ class GoogleDriveService
      * @param string $url The Google Drive URL
      * @param string $idBerkas The berkas ID for filename
      * @param string $tipeDokumen The document type for filename
+     * @param string $idMahasantri The mahasantri ID for folder grouping
      * @return string|null The relative path of the saved file, or null on failure
      */
-    public function downloadAsPdf(string $url, string $idBerkas, string $tipeDokumen): ?string
+    public function downloadAsPdf(string $url, string $idBerkas, string $tipeDokumen, string $idMahasantri): ?string
     {
         $fileId = $this->extractFileId($url);
 
@@ -168,11 +169,11 @@ class GoogleDriveService
                 ])->getBody()->getContents();
             }
 
-            // Save to storage
-            $relativePath = $idBerkas . '/' . $filename;
-            Storage::disk('berkas')->put($relativePath, $content);
+            // Save to storage: private/berkas/{id_mahasantri}/{filename}
+            $relativePath = $idMahasantri . '/' . $filename;
+            Storage::disk('private_berkas')->put($relativePath, $content);
 
-            Log::info("Successfully downloaded file: {$filename} (ID: {$fileId})");
+            Log::info("Successfully downloaded file: {$filename} (ID: {$fileId}) for mahasantri: {$idMahasantri}");
 
             return $relativePath;
         } catch (\Google\Service\Exception $e) {
@@ -181,7 +182,7 @@ class GoogleDriveService
 
             // Fallback: try direct public download using the export link
             try {
-                return $this->fallbackDownload($fileId, $idBerkas, $tipeDokumen);
+                return $this->fallbackDownload($fileId, $idBerkas, $tipeDokumen, $idMahasantri);
             } catch (\Exception $fallbackEx) {
                 Log::error("Fallback download also failed: " . $fallbackEx->getMessage());
                 return null;
@@ -195,7 +196,7 @@ class GoogleDriveService
     /**
      * Fallback download using direct HTTP request with the export URL.
      */
-    private function fallbackDownload(string $fileId, string $idBerkas, string $tipeDokumen): ?string
+    private function fallbackDownload(string $fileId, string $idBerkas, string $tipeDokumen, string $idMahasantri): ?string
     {
         $client = $this->initClient();
 
@@ -218,8 +219,8 @@ class GoogleDriveService
 
         if ($response->successful()) {
             $filename = $idBerkas . '_' . $tipeDokumen . '.pdf';
-            $relativePath = $idBerkas . '/' . $filename;
-            Storage::disk('berkas')->put($relativePath, $response->body());
+            $relativePath = $idMahasantri . '/' . $filename;
+            Storage::disk('private_berkas')->put($relativePath, $response->body());
             return $relativePath;
         }
 
@@ -231,8 +232,8 @@ class GoogleDriveService
 
         if ($response->successful()) {
             $filename = $idBerkas . '_' . $tipeDokumen . '.pdf';
-            $relativePath = $idBerkas . '/' . $filename;
-            Storage::disk('berkas')->put($relativePath, $response->body());
+            $relativePath = $idMahasantri . '/' . $filename;
+            Storage::disk('private_berkas')->put($relativePath, $response->body());
             return $relativePath;
         }
 
