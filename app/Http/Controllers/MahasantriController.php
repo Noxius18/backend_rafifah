@@ -7,7 +7,7 @@ use App\Models\Orangtua;
 use App\Models\Berkas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use League\Csv\Reader;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class MahasantriController extends Controller
 {
@@ -146,7 +146,7 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Show the form for importing CSV
+     * Show the form for importing Excel
      */
     public function import()
     {
@@ -205,23 +205,32 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Process CSV import
+     * Process Excel import
      */
     public function processImport(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:10240',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ], [
-            'file.required' => 'File CSV wajib diupload.',
-            'file.mimes'    => 'File harus berformat CSV.',
+            'file.required' => 'File Excel wajib diupload.',
+            'file.mimes'    => 'File harus berformat Excel (xlsx, xls) atau CSV.',
             'file.max'      => 'Ukuran file maksimal 10MB.',
         ]);
 
         $file = $request->file('file');
-        $csv = Reader::createFromPath($file->getPathname(), 'r');
-        $csv->setHeaderOffset(0);
+        $spreadsheet = IOFactory::load($file->getPathname());
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = $worksheet->toArray();
 
-        $records = $csv->getRecords();
+        if (count($rows) < 2) {
+            return redirect()->route('mahasantri.import.form')
+                ->with('error', 'File Excel kosong atau tidak memiliki data.');
+        }
+
+        // ── Ambil header dari baris pertama ──────────────────────────────
+        $headers = array_map('trim', $rows[0]);
+        $dataRows = array_slice($rows, 1);
+
         $imported = 0;
         $errors = [];
 
@@ -232,18 +241,24 @@ class MahasantriController extends Controller
 
         DB::beginTransaction();
         try {
-            foreach ($records as $index => $row) {
+            foreach ($dataRows as $index => $row) {
                 $lineNumber = $index + 2; // +2 karena header baris 1, data mulai baris 2
+
+                // ── Buat associative array dari header ───────────────────
+                $data = [];
+                foreach ($headers as $colIdx => $header) {
+                    $data[$header] = $row[$colIdx] ?? '';
+                }
 
                 try {
                     // ── 1. Insert Mahasantri ──────────────────────────────
                     $idMahasantri = 'MHS' . str_pad($counterMhs, 2, '0', STR_PAD_LEFT);
 
-                    $tanggalDaftar = $this->parseTanggal($row['Cap waktu'] ?? null);
+                    $tanggalDaftar = $this->parseTanggal($data['Timestamp'] ?? $data['Cap waktu'] ?? null);
 
                     User::create([
                         'id_mahasantri'  => $idMahasantri,
-                        'nama_lengkap'   => $row['Nama Lengkap'] ?? 'Tidak Diketahui',
+                        'nama_lengkap'   => $data['Nama Lengkap'] ?? 'Tidak Diketahui',
                         'nik'            => null,
                         'nisn'           => null,
                         'jenis_kelamin'  => null,
@@ -258,30 +273,30 @@ class MahasantriController extends Controller
                     // ── 2. Insert Orangtua (Ayah, Ibu, [Wali]) ───────────
                     $orangtuaDefinitions = [];
 
-                    if (!empty(trim($row['Nama Ayah Kandung'] ?? ''))) {
+                    if (!empty(trim($data['Nama Ayah Kandung'] ?? ''))) {
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Ayah',
-                            'nama_lengkap'  => trim($row['Nama Ayah Kandung']),
-                            'pekerjaan'     => trim($row['Pekerjaan Ayah'] ?? ''),
-                            'no_wa'         => trim($row['No HP/Whatsap Ayah Yang Aktif'] ?? ''),
+                            'nama_lengkap'  => trim($data['Nama Ayah Kandung']),
+                            'pekerjaan'     => trim($data['Pekerjaan Ayah'] ?? ''),
+                            'no_wa'         => trim($data['No HP/Whatsap Ayah Yang Aktif'] ?? ''),
                         ];
                     }
 
-                    if (!empty(trim($row['Nama Ibu Kandung'] ?? ''))) {
+                    if (!empty(trim($data['Nama Ibu Kandung'] ?? ''))) {
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Ibu',
-                            'nama_lengkap'  => trim($row['Nama Ibu Kandung']),
-                            'pekerjaan'     => trim($row['Pekerjaan Ibu'] ?? ''),
-                            'no_wa'         => trim($row['No HP/Whatsap Ibu Yang Aktif'] ?? ''),
+                            'nama_lengkap'  => trim($data['Nama Ibu Kandung']),
+                            'pekerjaan'     => trim($data['Pekerjaan Ibu'] ?? ''),
+                            'no_wa'         => trim($data['No HP/Whatsap Ibu Yang Aktif'] ?? ''),
                         ];
                     }
 
-                    if (!empty(trim($row['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)'] ?? ''))) {
+                    if (!empty(trim($data['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)'] ?? ''))) {
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Wali',
-                            'nama_lengkap'  => trim($row['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)']),
-                            'pekerjaan'     => trim($row['Pekerjaan Wali'] ?? ''),
-                            'no_wa'         => trim($row['Nomer HP Wali'] ?? ''),
+                            'nama_lengkap'  => trim($data['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)']),
+                            'pekerjaan'     => trim($data['Pekerjaan Wali'] ?? ''),
+                            'no_wa'         => trim($data['Nomer HP Wali'] ?? ''),
                         ];
                     }
 
@@ -307,8 +322,8 @@ class MahasantriController extends Controller
                         'Surat izin Orang tua'                 => 'Surat Izin Orangtua',
                     ];
 
-                    foreach ($berkasMapping as $csvColumn => $tipeDokumen) {
-                        $urlValue = trim($row[$csvColumn] ?? '');
+                    foreach ($berkasMapping as $excelColumn => $tipeDokumen) {
+                        $urlValue = trim($data[$excelColumn] ?? '');
 
                         if (!empty($urlValue)) {
                             $idDkm = 'DKM' . str_pad($counterDkm, 2, '0', STR_PAD_LEFT);

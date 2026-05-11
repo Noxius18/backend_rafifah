@@ -15,7 +15,8 @@
         "blade-ui-kit/blade-icons": "*",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-        "league/csv": "*"
+        "league/csv": "*",
+        "phpoffice/phpspreadsheet": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
