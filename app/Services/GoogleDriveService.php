@@ -37,20 +37,22 @@ class GoogleDriveService
 
         // If not valid JSON, treat as file path
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $filePath = $credentialsEnv;
-            // Remove 'storage/' prefix if present since storage_path() already points to storage dir
-            if (str_starts_with($filePath, 'storage/')) {
-                $filePath = substr($filePath, 8);
-            }
-            if (!str_starts_with($filePath, '/')) {
-                $filePath = storage_path($filePath);
-            }
+            $filePath = $this->resolveCredentialsPath($credentialsEnv);
+
             if (!file_exists($filePath)) {
                 throw new \RuntimeException(
                     'Google Drive credentials file not found at: ' . $filePath
                 );
             }
-            $credentials = json_decode(file_get_contents($filePath), true);
+
+            $content = file_get_contents($filePath);
+            if ($content === false) {
+                throw new \RuntimeException(
+                    'Could not read Google Drive credentials file at: ' . $filePath
+                );
+            }
+
+            $credentials = json_decode($content, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \RuntimeException(
                     'Google Drive credentials file is not valid JSON: ' . $filePath
@@ -65,6 +67,49 @@ class GoogleDriveService
 
         $this->client = $client;
         return $client;
+    }
+
+    /**
+     * Resolve the credentials file path with multiple fallback strategies.
+     */
+    private function resolveCredentialsPath(string $path): string
+    {
+        // If it's already an absolute path, return as-is
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        // Remove 'storage/' prefix if present
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, 8);
+        }
+
+        // Try storage_path first (Laravel helper)
+        $resolved = storage_path($path);
+        if (file_exists($resolved)) {
+            return $resolved;
+        }
+
+        // Try base_path (project root)
+        $resolved = base_path($path);
+        if (file_exists($resolved)) {
+            return $resolved;
+        }
+
+        // Try with 'storage/' prefix
+        $resolved = base_path('storage/' . $path);
+        if (file_exists($resolved)) {
+            return $resolved;
+        }
+
+        // Try with 'storage/app/' prefix
+        $resolved = base_path('storage/app/' . $path);
+        if (file_exists($resolved)) {
+            return $resolved;
+        }
+
+        // Return the storage_path result as default (even if not found)
+        return storage_path($path);
     }
 
     /**

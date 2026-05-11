@@ -123,7 +123,7 @@ x-init="
                         Kembali
                     </a>
                     <button type="button" onclick="editModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
                         <x-heroicon-s-pencil-square class="h-4 w-4" />
                         Edit
                     </button>
@@ -361,27 +361,6 @@ x-init="
                             <p class="text-xs text-slate-400">Dokumen belum diunggah untuk mahasantri ini.</p>
                         </div>
                     @endif
-                </div>
-            </div>
-
-            {{-- ── Tombol Aksi Bawah ─────────────────────────────────────── --}}
-            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4">
-                <a href="{{ route('mahasantri.index') }}"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 active:scale-95">
-                    <x-heroicon-s-arrow-left class="h-4 w-4" />
-                    Kembali ke Daftar
-                </a>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="editModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 active:scale-95">
-                        <x-heroicon-s-pencil-square class="h-4 w-4" />
-                        Edit Data
-                    </button>
-                    <button type="button" onclick="openConfirmModal('/mahasantri/{{ $m->id_mahasantri }}', '{{ e($m->nama_lengkap) }}')"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95">
-                        <x-heroicon-s-trash class="h-4 w-4" />
-                        Hapus Data
-                    </button>
                 </div>
             </div>
 
