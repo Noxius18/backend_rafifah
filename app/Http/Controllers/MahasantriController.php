@@ -146,6 +146,29 @@ class MahasantriController extends Controller
     }
 
     /**
+     * Update the specified berkas (is_valid status)
+     */
+    public function updateBerkas(Request $request, Berkas $berkas)
+    {
+        $validated = $request->validate([
+            'is_valid' => 'required|boolean',
+        ]);
+
+        $berkas->update([
+            'is_valid' => $validated['is_valid'],
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Status dokumen berhasil diperbarui',
+                'is_valid' => (bool) $validated['is_valid'],
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Status dokumen berhasil diperbarui');
+    }
+
+    /**
      * Show the form for importing Excel
      */
     public function import()

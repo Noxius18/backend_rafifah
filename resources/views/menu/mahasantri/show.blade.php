@@ -19,6 +19,59 @@
         if (this.toast.timer) clearTimeout(this.toast.timer);
         Object.assign(this.toast, { message, type, show: true });
         this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
+    },
+
+    // ── Preview Dokumen (Iframe Modal) ─────────────────────────────────
+    previewUrl: '',
+    previewTitle: '',
+    previewBerkasId: null,
+    previewIsValid: false,
+    previewTempIsValid: false,
+    saving: false,
+    openPreview(url, title, berkasId, isValid) {
+        this.previewUrl = url;
+        this.previewTitle = title;
+        this.previewBerkasId = berkasId;
+        this.previewIsValid = isValid;
+        this.previewTempIsValid = isValid;
+        document.getElementById('previewModal').showModal();
+    },
+
+    // ── Toggle di dalam modal (hanya ubah state lokal) ─────────────────
+    togglePreviewStatus() {
+        this.previewTempIsValid = !this.previewTempIsValid;
+    },
+
+    // ── Simpan perubahan status via AJAX lalu reload ───────────────────
+    async saveBerkasStatus() {
+        this.saving = true;
+        const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+
+        try {
+            const res = await fetch(`/berkas/${this.previewBerkasId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ is_valid: this.previewTempIsValid }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                this.showToast(data.message || 'Status berhasil diperbarui');
+                // Reload halaman untuk refresh data
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                this.showToast(data.message || 'Gagal memperbarui status', 'error');
+                this.saving = false;
+            }
+        } catch (e) {
+            this.showToast('Gagal menghubungi server', 'error');
+            this.saving = false;
+        }
     }
 }"
 x-init="
@@ -208,7 +261,7 @@ x-init="
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 bg-white">
                                     @foreach($m->berkas as $doc)
-                                        <tr class="transition hover:bg-slate-50">
+                                        <tr class="transition hover:bg-slate-50" data-berkas-id="{{ $doc->id_berkas }}">
                                             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-700">
                                                 <div class="flex items-center gap-2">
                                                     <x-heroicon-s-document-text class="h-4 w-4 text-slate-400" />
@@ -226,11 +279,12 @@ x-init="
                                                 {{ $doc->tanggal_upload ? (is_string($doc->tanggal_upload) ? $doc->tanggal_upload : $doc->tanggal_upload->translatedFormat('d F Y')) : '-' }}
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3 text-right">
-                                                <a href="{{ $doc->url }}" target="_blank"
+                                                <button type="button"
+                                                    @click="openPreview({{ json_encode($doc->url) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
                                                     class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50">
                                                     <x-heroicon-s-eye class="h-3.5 w-3.5" />
                                                     Lihat
-                                                </a>
+                                                </button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -311,6 +365,68 @@ x-init="
         body-text="Apakah Anda yakin ingin menghapus data mahasantri"
         confirm-label="Hapus"
     />
+
+    {{-- ── Modal: Preview Dokumen (Iframe) ─────────────────────────────── --}}
+    <dialog id="previewModal" class="modal" onclick="if(event.target === this) this.close();">
+        <div class="modal-box max-w-5xl w-full">
+            {{-- Header: Judul + Toggle Status + Close --}}
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                <div class="flex items-center gap-4">
+                    <h3 class="text-lg font-semibold text-slate-800" x-text="previewTitle"></h3>
+                    <div class="flex items-center gap-2">
+                        {{-- Toggle Switch --}}
+                        <button type="button"
+                            @click="togglePreviewStatus()"
+                            :class="previewTempIsValid ? 'bg-emerald-500' : 'bg-gray-300'"
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                            <span :class="previewTempIsValid ? 'translate-x-5' : 'translate-x-0'"
+                                class="inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                        </button>
+                        {{-- Status Label --}}
+                        <span x-show="previewTempIsValid"
+                            class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Terverifikasi</span>
+                        <span x-show="!previewTempIsValid"
+                            class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">Belum Verifikasi</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm btn-square" onclick="document.getElementById('previewModal').close()">
+                    <x-heroicon-s-x-mark class="h-5 w-5" />
+                </button>
+            </div>
+
+            {{-- Iframe Preview --}}
+            <iframe
+                :src="previewUrl"
+                class="w-full rounded-lg border border-slate-200"
+                style="height: 60vh;"
+                frameborder="0"
+                allowfullscreen
+            ></iframe>
+
+            {{-- Footer: Buka tab baru + Tombol Simpan --}}
+            <div class="mt-4 flex items-center justify-between">
+                <a :href="previewUrl" target="_blank"
+                    class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700">
+                    <x-heroicon-s-arrow-top-right-on-square class="h-3.5 w-3.5" />
+                    Buka di tab baru
+                </a>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('previewModal').close()">
+                        Tutup
+                    </button>
+                    <button type="button" @click="saveBerkasStatus()"
+                        :disabled="saving"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span x-show="saving" class="loading loading-spinner loading-xs"></span>
+                        <span x-text="saving ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 
 </div>
 

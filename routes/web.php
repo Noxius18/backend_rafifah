@@ -27,6 +27,9 @@ Route::middleware('auth:panitia')->group(function () {
     Route::resource('mahasantri', MahasantriController::class);
     Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
     Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
+
+    // Berkas Management Routes (update status validasi)
+    Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
 });
 
 Route::get('/preview', function () {
