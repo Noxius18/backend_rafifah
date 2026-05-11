@@ -59,10 +59,9 @@
             default          => "<span class='text-slate-400'>" . e($m->status) . "</span>",
         },
         'tgl_html'  => "<span class='text-xs text-slate-500'>" . ($m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-') . "</span>",
-        'aksi_html' => "<div class='flex items-center justify-end gap-1'>
-                            <button type='button'
-                                onclick=\"openDetailModal('{$m->id_mahasantri}')\"
-                                class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Detail</button>
+                        'aksi_html' => "<div class='flex items-center justify-end gap-1'>
+                            <a href='/mahasantri/{$m->id_mahasantri}'
+                                class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Detail</a>
                             <span class='text-slate-200'>|</span>
                             <button type='button'
                                 onclick=\"openEditModal({
