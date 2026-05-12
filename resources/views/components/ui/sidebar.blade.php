@@ -56,10 +56,10 @@
       {{-- Navigation --}}
       <ul class="menu w-full grow gap-1 p-2">
 
-        {{-- Homepage --}}
+        {{-- Dashboard --}}
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('dashboard') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Dashboard' : ''"
             class="flex items-center gap-3 rounded-lg bg-emerald-800 text-emerald-100 hover:bg-emerald-700 px-3 py-2 min-h-[40px]"
@@ -81,7 +81,7 @@
         {{-- Data Mahasantri --}}
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('mahasantri.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Data Mahasantri' : ''"
             class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
@@ -144,10 +144,11 @@
           </a>
         </li>
 
-        {{-- Panitia --}}
+        {{-- Panitia - hanya untuk jabatan Pengawas --}}
+        @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('panitia.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Panitia' : ''"
             class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
@@ -165,6 +166,7 @@
             >Panitia</span>
           </a>
         </li>
+        @endif
 
         {{-- TODO: Pindahin Logout ke Navbar saja nanti --}}
         {{-- Logout --}}

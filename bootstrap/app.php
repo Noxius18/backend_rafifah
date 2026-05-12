@@ -14,7 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'cek_jabatan' => \App\Http\Middleware\CekJabatan::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
