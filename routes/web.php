@@ -9,62 +9,77 @@ use App\Http\Controllers\HasilTesController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\DashboardController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::middleware('guest')->group(function () {
+    // / redirect ke halaman login
+    Route::get('/', function () {
+        return redirect()->route('login');
+    });
+    
+    // Login routes
     Route::get('/login', [PanitiaAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [PanitiaAuthController::class, 'login']);
 });
 
-// Route untuk semua jabatan (Panitia dan Pengawas)
+// ──────────────────────────────────────────────
+// GRUP PANITIA – operasional (create, update, delete)
+// ──────────────────────────────────────────────
+Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
+    // Mahasantri – write ops
+    Route::post('/mahasantri', [MahasantriController::class, 'store'])->name('mahasantri.store');
+    Route::put('/mahasantri/{mahasantri}', [MahasantriController::class, 'update'])->name('mahasantri.update');
+    Route::delete('/mahasantri/{mahasantri}', [MahasantriController::class, 'destroy'])->name('mahasantri.destroy');
+    Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
+
+    // Jadwal Tes – write ops
+    Route::post('/jadwal-tes', [JadwalTesController::class, 'store'])->name('jadwal-tes.store');
+    Route::put('/jadwal-tes/{jadwalTes}', [JadwalTesController::class, 'update'])->name('jadwal-tes.update');
+    Route::delete('/jadwal-tes/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('jadwal-tes.destroy');
+
+    // Hasil Tes – input nilai (hanya Panitia)
+    Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
+});
+
+// ──────────────────────────────────────────────
+// GRUP BERSAMA – view-only (Panitia & Pengawas)
+// ──────────────────────────────────────────────
 Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(function () {
     Route::post('/logout', [PanitiaAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/refresh', [DashboardController::class, 'refresh'])->name('dashboard.refresh');
-    
-    // Mahasantri View (untuk Panitia dan Pengawas)
+
+    // Mahasantri – view & form
     Route::get('/mahasantri', [MahasantriController::class, 'index'])->name('mahasantri.index');
     Route::get('/mahasantri/{mahasantri}', [MahasantriController::class, 'show'])->name('mahasantri.show');
     Route::get('/mahasantri/{mahasantri}/edit', [MahasantriController::class, 'edit'])->name('mahasantri.edit');
+    Route::get('/mahasantri/create', [MahasantriController::class, 'create'])->name('mahasantri.create');
+    Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
 
-    // Berkas View (untuk Panitia dan Pengawas)
+    // Berkas
     Route::get('/berkas/{berkas}/download', [MahasantriController::class, 'downloadBerkas'])->name('berkas.download');
     Route::get('/berkas/{berkas}/preview', [MahasantriController::class, 'previewBerkas'])->name('berkas.preview');
-
-    // Cetak PDF per mahasantri (Panitia & Pengawas)
     Route::get('/mahasantri/{mahasantri}/cetak-pdf', [MahasantriController::class, 'cetakPdf'])->name('mahasantri.cetak-pdf');
 
-    // Jadwal Tes Routes - hanya method yang tersedia di controller
-    Route::resource('jadwal-tes', JadwalTesController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+    // Jadwal Tes – view only
+    Route::get('/jadwal-tes', [JadwalTesController::class, 'index'])->name('jadwal-tes.index');
+    Route::get('/jadwal-tes/{jadwalTes}/edit', [JadwalTesController::class, 'edit'])->name('jadwal-tes.edit');
+
+    // Hasil Tes – view nilai per jadwal
+    Route::get('/jadwal-tes/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('jadwal-tes.nilai');
 });
 
-// Route khusus Pengawas (manajemen panitia, create, update, delete)
+// ──────────────────────────────────────────────
+// GRUP PENGAWAS – supervisi & review
+// ──────────────────────────────────────────────
 Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
-    // Panitia Management Routes (hanya Pengawas)
+    // Panitia Management (full CRUD)
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
 
-    // Mahasantri Management (Create, Update, Delete, Import)
-    Route::get('/mahasantri/create', [MahasantriController::class, 'create'])->name('mahasantri.create');
-    Route::post('/mahasantri', [MahasantriController::class, 'store'])->name('mahasantri.store');
-    Route::put('/mahasantri/{mahasantri}', [MahasantriController::class, 'update'])->name('mahasantri.update');
-    Route::delete('/mahasantri/{mahasantri}', [MahasantriController::class, 'destroy'])->name('mahasantri.destroy');
-    Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
-    Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
-
-    // Hasil Tes Routes (input nilai)
-    Route::get('/jadwal-tes/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('jadwal-tes.nilai');
-    Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
+    // Hasil Tes – review pertimbangan
     Route::post('/hasil-tes/{hasilTes}/review', [HasilTesController::class, 'review'])->name('hasil-tes.review');
 
-    // Laporan Routes (hanya Pengawas)
+    // Laporan
     Route::prefix('laporan')->name('laporan.')->group(function () {
         Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
         Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
     });
-});
-
-Route::get('/preview', function () {
-    return view('menu.panitia');
 });
