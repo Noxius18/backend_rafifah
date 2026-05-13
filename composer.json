@@ -14,9 +14,11 @@
         "blade-ui-kit/blade-heroicons": "*",
         "blade-ui-kit/blade-icons": "*",
         "dompdf/dompdf": "*",
+        "google/apiclient": "^2.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-        "league/csv": "*"
+        "league/csv": "*",
+        "phpoffice/phpspreadsheet": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

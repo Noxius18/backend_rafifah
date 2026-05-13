@@ -60,12 +60,18 @@
                                 title='Cetak PDF'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z'/></svg>
                             </a>
+                            <a href='/mahasantri/{$m->id_mahasantri}'
+                                class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Detail</a>
                             <button type='button'
                                 onclick=\"openDetailModal('{$m->id_mahasantri}')\"
                                 class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600'
                                 title='Detail'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
                             </button>
+                            <a href='/mahasantri/{$m->id_mahasantri}'
+                                class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Detail</a>
+                            <a href='/mahasantri/{$m->id_mahasantri}'
+                                class='rounded-md px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700'>Detail</a>
                             " . (auth()->user()->jabatan === 'Panitia' ? "
                             <button type='button'
                                 onclick=\"openEditModal({
@@ -142,7 +148,7 @@ x-init="
                     <button type="button" onclick="importModal.showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 active:scale-95">
                         <x-heroicon-s-arrow-up-tray class="h-4 w-4" />
-                        Import CSV
+                        Upload Excel
                     </button>
                     <button type="button" onclick="addModal.showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
@@ -160,7 +166,7 @@ x-init="
                     :columns="$columns"
                     :total="$mahasantris->count()"
                     empty-message="Belum ada data mahasantri"
-                    empty-sub="Mulai dengan menambahkan mahasantri pertama atau import CSV."
+                    empty-sub="Mulai dengan menambahkan mahasantri pertama atau import Excel."
                     add-label="Tambah Mahasantri"
                 />
             </div>
@@ -345,14 +351,14 @@ x-init="
         </x-slot>
     </x-ui.modal-form>
 
-    {{-- ── Modal: Import CSV ──────────────────────────────────────────── --}}
-    <x-ui.modal-form id="importModal" title="Import Data Mahasantri dari CSV">
+    {{-- ── Modal: Import Excel ──────────────────────────────────────────── --}}
+    <x-ui.modal-form id="importModal" title="Import Data Mahasantri dari Excel">
         <x-slot name="body">
             <div class="space-y-4">
                 <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     <p class="font-medium">Petunjuk:</p>
                     <ul class="mt-1 list-inside list-disc space-y-0.5 text-amber-700">
-                        <li>File harus berformat <strong>.csv</strong></li>
+                        <li>File harus berformat <strong>.xlsx</strong>, <strong>.xls</strong>, atau <strong>.csv</strong></li>
                         <li>Header file harus sesuai dengan template yang disediakan</li>
                         <li>Data akan diimpor ke 3 tabel: Mahasantri, Orangtua, dan Dokumen</li>
                         <li>Maksimal ukuran file 10MB</li>
@@ -363,22 +369,22 @@ x-init="
                     @csrf
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-semibold text-sm">Pilih File CSV</span>
+                            <span class="label-text font-semibold text-sm">Pilih File Excel</span>
                         </label>
-                        <input type="file" name="file" accept=".csv,.txt" class="file-input file-input-bordered file-input-sm w-full" required />
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required />
                         <label class="label">
-                            <span class="label-text-alt text-base-content/50">Format: .csv (comma separated values)</span>
+                            <span class="label-text-alt text-base-content/50">Format: .xlsx, .xls, atau .csv</span>
                         </label>
                     </div>
                 </form>
 
                 {{-- Template Preview --}}
                 <details class="rounded-lg border border-slate-200">
-                    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Lihat template CSV</summary>
+                    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Lihat template header</summary>
                     <div class="border-t border-slate-200 p-3">
-                        <p class="mb-2 text-xs text-slate-500">Header CSV yang didukung:</p>
+                        <p class="mb-2 text-xs text-slate-500">Header yang didukung:</p>
                         <code class="block whitespace-pre-wrap rounded bg-slate-50 p-2 text-[10px] leading-relaxed text-slate-600">
-Cap waktu,Nama Lengkap,Nama Ayah Kandung,Pekerjaan Ayah,No HP/Whatsap Ayah Yang Aktif,Nama Ibu Kandung,Pekerjaan Ibu,No HP/Whatsap Ibu Yang Aktif,Nama Wali (jika peserta di tanggung oleh selain orang tua kandung),Pekerjaan Wali,Nomer HP Wali,Scan KTP asli,Scan Kartu Keluarga asli,Scan Ijazah terakhir,Surat izin Orang tua
+Timestamp, Nama Lengkap, Nama Ayah Kandung, Pekerjaan Ayah, No HP/Whatsap Ayah Yang Aktif, Nama Ibu Kandung, Pekerjaan Ibu, No HP/Whatsap Ibu Yang Aktif, Nama Wali (jika peserta di tanggung oleh selain orang tua kandung), Pekerjaan Wali, Nomer HP Wali, Scan KTP asli, Scan Kartu Keluarga asli, Scan Ijazah terakhir, Surat izin Orang tua
                         </code>
                     </div>
                 </details>
@@ -386,7 +392,7 @@ Cap waktu,Nama Lengkap,Nama Ayah Kandung,Pekerjaan Ayah,No HP/Whatsap Ayah Yang 
         </x-slot>
         <x-slot name="footer">
             <button type="button" class="btn btn-ghost btn-sm" onclick="importModal.close()">Batal</button>
-            <button type="submit" form="importModal-form" class="btn btn-success btn-sm">Import</button>
+            <button type="submit" form="importModal-form" class="btn btn-success btn-sm">Upload</button>
         </x-slot>
     </x-ui.modal-form>
 

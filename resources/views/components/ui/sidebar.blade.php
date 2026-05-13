@@ -126,6 +126,8 @@
         </li>
 
         {{-- Panitia — hanya untuk Pengawas --}}
+        {{-- Panitia — hanya untuk Pengawas --}}
+        {{-- Panitia — hanya untuk Pengawas --}}
         @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">
           <a
@@ -174,6 +176,8 @@
         </li>
         @endif
 
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
         {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
         <li class="w-full">
           <a
