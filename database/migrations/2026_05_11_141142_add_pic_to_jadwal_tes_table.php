@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('jadwal_tes', function (Blueprint $table) {
-            $table->char('id_jadwal', 5)->primary();
-            $table->string('nama_tes', 20);
-            $table->string('keterangan', 50);
-            $table->date('tanggal');
-            $table->string('link_zoom')->nullable();
-            $table->char('pic', 5)->nullable()->comment('Penanggung jawab (panitia)');
+        Schema::table('jadwal_tes', function (Blueprint $table) {
+            $table->char('pic', 5)->nullable()->after('link_zoom')->comment('Penanggung jawab (panitia)');
 
             $table->foreign('pic')
                   ->references('id_panitia')
@@ -32,6 +27,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('jadwal_tes');
+        Schema::table('jadwal_tes', function (Blueprint $table) {
+            $table->dropForeign(['pic']);
+            $table->dropColumn('pic');
+        });
     }
 };

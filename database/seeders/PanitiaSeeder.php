@@ -30,14 +30,6 @@ class PanitiaSeeder extends Seeder
                 'password' => bcrypt('password'),
                 'jabatan' => 'Panitia',
             ],
-            [
-                'id_panitia' => 'PNJ01',
-                'nama_lengkap' => 'Penguji Satu',
-                'username' => 'penguji',
-                'no_hp' => '081234567890',
-                'password' => bcrypt('password'),
-                'jabatan' => 'Penguji',
-            ],
         ];
 
         foreach ($data as $item) {

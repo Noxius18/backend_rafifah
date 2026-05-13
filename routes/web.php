@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PanitiaAuthController;
 use App\Http\Controllers\PanitiaController;
 use App\Http\Controllers\MahasantriController;
+use App\Http\Controllers\JadwalTesController;
+use App\Http\Controllers\HasilTesController;
+use App\Http\Controllers\LaporanController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -44,7 +47,24 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
     Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
     Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
 
-    // Berkas Management
-    Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
-    Route::post('/berkas/{berkas}/retry-download', [MahasantriController::class, 'retryDownload'])->name('berkas.retry-download');
+    // Jadwal Tes Routes
+    Route::resource('jadwal-tes', JadwalTesController::class);
+
+    // Hasil Tes Routes (input nilai)
+    Route::get('/jadwal-tes/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('jadwal-tes.nilai');
+    Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
+    Route::post('/hasil-tes/{hasilTes}/review', [HasilTesController::class, 'review'])->name('hasil-tes.review');
+
+    // Laporan Routes (hanya Pengawas)
+    Route::middleware('role:pengawas')->prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
+        Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
+    });
+
+    // Cetak PDF per mahasantri (Panitia & Pengawas)
+    Route::get('/mahasantri/{mahasantri}/cetak-pdf', [MahasantriController::class, 'cetakPdf'])->name('mahasantri.cetak-pdf');
+});
+
+Route::get('/preview', function () {
+    return view('menu.panitia');
 });
