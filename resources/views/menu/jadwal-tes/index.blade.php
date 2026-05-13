@@ -107,11 +107,13 @@ x-init="
                         <p class="text-sm text-slate-400">Kelola jadwal tes seleksi mahasantri.</p>
                     </div>
                 </div>
+                @if(auth()->user()->jabatan === 'Panitia')
                 <button type="button" onclick="addModal.showModal()"
                     class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
                     <x-heroicon-s-plus class="h-4 w-4" />
                     Tambah Jadwal
                 </button>
+                @endif
             </div>
 
             {{-- Table --}}
