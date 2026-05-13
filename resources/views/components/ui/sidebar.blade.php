@@ -54,15 +54,18 @@
       </div>
 
       {{-- Navigation --}}
+      @php
+        $currentRoute = request()->route()->getName();
+      @endphp
       <ul class="menu w-full grow gap-1 p-2">
 
-        {{-- Homepage --}}
+        {{-- Dashboard --}}
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('dashboard') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Dashboard' : ''"
-            class="flex items-center gap-3 rounded-lg bg-emerald-800 text-emerald-100 hover:bg-emerald-700 px-3 py-2 min-h-[40px]"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ $currentRoute === 'dashboard' ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
           >
             <x-ri-dashboard-fill class="h-5 w-5 shrink-0" />
             <span
@@ -81,10 +84,10 @@
         {{-- Data Mahasantri --}}
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('mahasantri.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Data Mahasantri' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('mahasantri.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
           >
             <x-heroicon-s-academic-cap class="h-5 w-5 shrink-0" />
             <span
@@ -100,35 +103,13 @@
           </a>
         </li>
 
-        {{-- Data Berkas --}}
-        <li class="w-full">
-          <a
-            href="#"
-            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
-            x-bind:title="collapsed ? 'Data Berkas' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
-          >
-            <x-heroicon-s-document class="h-5 w-5 shrink-0" />
-            <span
-              x-show="!collapsed"
-              x-transition:enter="transition-opacity duration-200 delay-100"
-              x-transition:enter-start="opacity-0"
-              x-transition:enter-end="opacity-100"
-              x-transition:leave="transition-opacity duration-100"
-              x-transition:leave-start="opacity-100"
-              x-transition:leave-end="opacity-0"
-              class="whitespace-nowrap text-sm"
-            >Data Berkas</span>
-          </a>
-        </li>
-
         {{-- Jadwal Tes --}}
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('jadwal-tes.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Jadwal Tes' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('jadwal-tes.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
           >
             <x-heroicon-s-pencil class="h-5 w-5 shrink-0" />
             <span
@@ -144,13 +125,16 @@
           </a>
         </li>
 
-        {{-- Panitia --}}
+        {{-- Panitia — hanya untuk Pengawas --}}
+        {{-- Panitia — hanya untuk Pengawas --}}
+        {{-- Panitia — hanya untuk Pengawas --}}
+        @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">
           <a
-            href="#"
+            href="{{ route('panitia.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Panitia' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('panitia.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
           >
             <x-heroicon-s-users class="h-5 w-5 shrink-0" />
             <span
@@ -165,15 +149,43 @@
             >Panitia</span>
           </a>
         </li>
+        @endif
 
-        {{-- TODO: Pindahin Logout ke Navbar saja nanti --}}
-        {{-- Logout --}}
+        {{-- Cetak Laporan — hanya untuk Pengawas, buka di tab baru --}}
+        @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">
           <a
-            href="{{ route('logout') }}"
+            href="{{ route('laporan.cetak-overall') }}"
+            target="_blank"
+            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
+            x-bind:title="collapsed ? 'Cetak Laporan' : ''"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] text-emerald-100 hover:bg-emerald-800"
+          >
+            <x-heroicon-s-document-arrow-down class="h-5 w-5 shrink-0" />
+            <span
+              x-show="!collapsed"
+              x-transition:enter="transition-opacity duration-200 delay-100"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              x-transition:leave="transition-opacity duration-100"
+              x-transition:leave-start="opacity-100"
+              x-transition:leave-end="opacity-0"
+              class="whitespace-nowrap text-sm"
+            >Cetak Laporan</span>
+          </a>
+        </li>
+        @endif
+
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
+        <li class="w-full">
+          <a
+            href="#"
+            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
             x-bind:title="collapsed ? 'Logout' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] text-emerald-100 hover:bg-emerald-800"
           >
             <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
             <span
@@ -187,6 +199,9 @@
               class="whitespace-nowrap text-sm"
             >Logout</span>
           </a>
+          <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
+            @csrf
+          </form>
         </li>
 
       </ul>

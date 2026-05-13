@@ -28,13 +28,7 @@ class Panitia extends Authenticatable
         'password'
     ];
 
-    public function jadwalPenguji() {
-        return $this->hasMany(Jadwal::class, 'penguji');
+    public function tugasPenguji() {
+        return $this->hasMany(Penguji::class, 'id_panitia', 'id_panitia');
     }
-    
-    /* TODO: Mungkin nanti tambah relasi ke tabel Mahasantri untuk siapa yang mengelola salah satu pendaftar
-             dan relasi juga ke tabel Jadwal tes untuk pengujinya
-    */
-
-    
 }

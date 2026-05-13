@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use League\Csv\Reader;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use App\Models\HasilTes;
 
 class MahasantriController extends Controller
 {
@@ -38,6 +42,10 @@ class MahasantriController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa menambah data mahasantri');
+        }
+
         $validated = $request->validate([
             'nama_lengkap'  => 'required|string|max:35',
             'nik'           => 'nullable|size:16|unique:mahasantri,nik',
@@ -80,8 +88,36 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Display the specified mahasantri with relations
+     * Cetak PDF — nilai per mahasantri
      */
+    public function cetakPdf(User $mahasantri)
+    {
+        $hasilTes = HasilTes::where('id_mahasantri', $mahasantri->id_mahasantri)
+            ->with('jadwalTes')
+            ->get();
+
+        $html = view('menu.laporan.pdf-nilai-single', [
+            'mahasantri' => $mahasantri,
+            'hasilTes'   => $hasilTes,
+            'date'       => now()->format('d/m/Y H:i'),
+        ])->render();
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'nilai-' . str_replace(' ', '-', $mahasantri->nama_lengkap) . '.pdf';
+
+        return response($dompdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
     public function show(User $mahasantri)
     {
         $mahasantri->load(['orangtuas', 'berkas']);
@@ -114,6 +150,10 @@ class MahasantriController extends Controller
      */
     public function update(Request $request, User $mahasantri)
     {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa mengubah data mahasantri');
+        }
+
         $validated = $request->validate([
             'nama_lengkap'  => 'required|string|max:35',
             'nik'           => 'nullable|size:16|unique:mahasantri,nik,' . $mahasantri->id_mahasantri . ',id_mahasantri',
@@ -138,6 +178,10 @@ class MahasantriController extends Controller
      */
     public function destroy(Request $request, User $mahasantri)
     {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa menghapus data mahasantri');
+        }
+
         $mahasantri->delete();
 
         if ($request->wantsJson()) {
@@ -299,6 +343,10 @@ class MahasantriController extends Controller
      */
     public function processImport(Request $request)
     {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa import data mahasantri');
+        }
+
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ], [

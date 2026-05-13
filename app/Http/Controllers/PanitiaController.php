@@ -37,7 +37,7 @@ class PanitiaController extends Controller
             'username' => 'required|string|max:10|unique:panitia',
             'no_hp' => 'required|string|max:13|unique:panitia',
             'password' => 'required|string|min:8|confirmed',
-            'jabatan' => 'required|in:Pengawas,Panitia,Penguji',
+            'jabatan' => 'required|in:Pengawas,Panitia',
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nama_lengkap.max' => 'Nama lengkap maksimal 30 karakter.',
@@ -51,9 +51,8 @@ class PanitiaController extends Controller
         ]);
 
         $kodeJabatan = [
-            'Panitia' => 'PNT',
             'Pengawas' => 'PNG',
-            'Penguji' => 'PNJ',
+            'Panitia' => 'PNT',
         ];
 
         $prefix = $kodeJabatan[$validated['jabatan']];
@@ -111,7 +110,7 @@ class PanitiaController extends Controller
             'nama_lengkap' => 'required|string|max:30',
             'username' => 'required|string|max:10|unique:panitia,username,' . $panitia->id_panitia . ',id_panitia',
             'no_hp' => 'required|string|max:13|unique:panitia,no_hp,' . $panitia->id_panitia . ',id_panitia',
-            'jabatan' => 'required|in:Pengawas,Panitia,Penguji',
+            'jabatan' => 'required|in:Pengawas,Panitia',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 

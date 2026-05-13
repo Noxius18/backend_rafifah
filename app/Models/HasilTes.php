@@ -13,11 +13,16 @@ class HasilTes extends Model
     public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
+        'id_hasil',
         'status',
         'catatan_penguji',
+        'nilai_tajwid',
+        'nilai_tahsin',
+        'nilai_kelancaran',
+        'nilai_wawancara',
+        'total_nilai',
         'id_mahasantri',
         'id_jadwal',
-        # TODO: Mungkin tambah field nilai kali ya
     ];
 
     public function jadwalTes() {
