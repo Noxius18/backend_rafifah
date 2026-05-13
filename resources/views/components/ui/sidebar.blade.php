@@ -174,27 +174,29 @@
         </li>
         @endif
 
-        {{-- Logout — pakai form POST biar gak error --}}
+        {{-- Logout — trigger form hidden via JS, biar styling <a> sama persis --}}
         <li class="w-full">
-          <form method="POST" action="{{ route('logout') }}" class="w-full">
+          <a
+            href="#"
+            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
+            x-bind:title="collapsed ? 'Logout' : ''"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] text-emerald-100 hover:bg-emerald-800"
+          >
+            <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
+            <span
+              x-show="!collapsed"
+              x-transition:enter="transition-opacity duration-200 delay-100"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              x-transition:leave="transition-opacity duration-100"
+              x-transition:leave-start="opacity-100"
+              x-transition:leave-end="opacity-0"
+              class="whitespace-nowrap text-sm"
+            >Logout</span>
+          </a>
+          <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
             @csrf
-            <button type="submit"
-              x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
-              x-bind:title="collapsed ? 'Logout' : ''"
-              class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px] w-full bg-transparent border-none shadow-none cursor-pointer transition-colors text-sm font-normal"
-            >
-              <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
-              <span
-                x-show="!collapsed"
-                x-transition:enter="transition-opacity duration-200 delay-100"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="transition-opacity duration-100"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-                class="whitespace-nowrap text-sm"
-              >Logout</span>
-            </button>
           </form>
         </li>
 
