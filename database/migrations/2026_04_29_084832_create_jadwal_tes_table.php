@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('jadwal_tes', function (Blueprint $table) {
             $table->char('id_jadwal', 5)->primary();
-            $table->string('nama_tes', 20);
+            $table->string('periode', 20);
             $table->string('keterangan', 50);
             $table->date('tanggal');
             $table->string('link_zoom')->nullable();
