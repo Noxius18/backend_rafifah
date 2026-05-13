@@ -16,9 +16,8 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth:panitia')->group(function () {
     Route::post('/logout', [PanitiaAuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboard', function () {
-        return view('dashboard.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/refresh', [\App\Http\Controllers\DashboardController::class, 'refresh'])->name('dashboard.refresh');
     
     // Panitia Management Routes
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
