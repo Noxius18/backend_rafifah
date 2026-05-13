@@ -18,7 +18,7 @@ return new class extends Migration
             # TODO: Mungkin tambah field no hp nanti
             $table->string('no_hp', 13)->unique();
             $table->char('password', 60)->comment('Hashing menggunakan Bcrypt');
-            $table->enum('jabatan', ['Pengawas', 'Panitia', 'Penguji']);
+            $table->enum('jabatan', ['Pengawas', 'Panitia']);
             // $table->timestamps();
 
             /* TODO: Mungkin tambah panitia berelasi ke Mahasantri jadi tau mahasantri ini dikelola oleh panitia siapa

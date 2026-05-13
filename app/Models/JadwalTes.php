@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\JadwalTes as Jadwal;
+use App\Models\HasilTes as Hasil;
 
 class JadwalTes extends Model
 {
@@ -13,21 +13,23 @@ class JadwalTes extends Model
     public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
-        'nama_tes',
+        'id_jadwal',
+        'periode',
         'keterangan',
         'tanggal',
         'link_zoom',
-        'penguji',
+        'pic',
     ];
 
     public function hasilTes() {
-        return $this->hasMany(Jadwal::class,'id_jadwal');
+        return $this->hasMany(Hasil::class, 'id_jadwal', 'id_jadwal');
     }
 
-    /*
-    TODO: Tambah relasi ke Panitia untuk penguji
-    */
-    public function penguji() {
-        return $this->belongsTo(Panitia::class, 'penguji', 'id_panitia');
+    public function pengujiList() {
+        return $this->hasMany(Penguji::class, 'id_jadwal', 'id_jadwal');
+    }
+
+    public function picPanitia() {
+        return $this->belongsTo(Panitia::class, 'pic', 'id_panitia');
     }
 }
