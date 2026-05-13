@@ -23,11 +23,6 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(funct
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/refresh', [\App\Http\Controllers\DashboardController::class, 'refresh'])->name('dashboard.refresh');
     
-    // Panitia Management Routes
-    Route::get('/dashboard', function () {
-        return view('dashboard.dashboard');
-    })->name('dashboard');
-
     // Mahasantri View (untuk Panitia dan Pengawas)
     Route::get('/mahasantri', [MahasantriController::class, 'index'])->name('mahasantri.index');
     Route::get('/mahasantri/{mahasantri}', [MahasantriController::class, 'show'])->name('mahasantri.show');

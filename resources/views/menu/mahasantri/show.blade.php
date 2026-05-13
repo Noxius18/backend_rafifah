@@ -321,30 +321,30 @@ x-init="
                                                 <div class="flex items-center justify-end gap-1">
                                                     @if($doc->download_status === 'success' && $doc->file_path)
                                                         <a href="{{ route('berkas.download', $doc->id_berkas) }}"
-                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50">
-                                                            <x-heroicon-s-arrow-down-tray class="h-3.5 w-3.5" />
-                                                            Unduh
+                                                            class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
+                                                            title="Unduh">
+                                                            <x-heroicon-s-arrow-down-tray class="h-4 w-4" />
                                                         </a>
                                                     @endif
                                                     @if($doc->download_status === 'failed')
                                                         <button type="button"
                                                             @click="retryDownload('{{ $doc->id_berkas }}')"
-                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-amber-600 transition hover:bg-amber-50">
-                                                            <x-heroicon-s-arrow-path class="h-3.5 w-3.5" />
-                                                            Ulangi
+                                                            class="inline-flex items-center justify-center rounded-md p-2 text-amber-600 transition hover:bg-amber-50"
+                                                            title="Ulangi">
+                                                            <x-heroicon-s-arrow-path class="h-4 w-4" />
                                                         </button>
                                                     @endif
                                                     @if($doc->download_status === 'success' && $doc->file_path)
                                                         <button type="button"
                                                             @click="openPreview({{ json_encode(route('berkas.preview', $doc->id_berkas)) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
-                                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50">
-                                                            <x-heroicon-s-eye class="h-3.5 w-3.5" />
-                                                            Lihat
+                                                            class="inline-flex items-center justify-center rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50"
+                                                            title="Lihat">
+                                                            <x-heroicon-s-eye class="h-4 w-4" />
                                                         </button>
                                                     @elseif($doc->download_status !== 'success')
-                                                        <span class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-slate-400">
-                                                            <x-heroicon-s-eye-slash class="h-3.5 w-3.5" />
-                                                            Preview
+                                                        <span class="inline-flex items-center justify-center rounded-md p-2 text-slate-400"
+                                                            title="Preview tidak tersedia">
+                                                            <x-heroicon-s-eye-slash class="h-4 w-4" />
                                                         </span>
                                                     @endif
                                                 </div>
