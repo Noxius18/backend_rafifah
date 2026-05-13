@@ -20,6 +20,10 @@ Route::middleware('guest')->group(function () {
 // Route untuk semua jabatan (Panitia dan Pengawas)
 Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(function () {
     Route::post('/logout', [PanitiaAuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/refresh', [\App\Http\Controllers\DashboardController::class, 'refresh'])->name('dashboard.refresh');
+    
+    // Panitia Management Routes
     Route::get('/dashboard', function () {
         return view('dashboard.dashboard');
     })->name('dashboard');
