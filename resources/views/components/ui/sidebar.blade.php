@@ -176,6 +176,7 @@
         </li>
         @endif
 
+        {{-- Logout — pakai form POST biar gak error --}}
         {{-- Cetak Laporan — hanya untuk Pengawas, buka di tab baru --}}
         @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">
@@ -201,52 +202,29 @@
         </li>
         @endif
 
-        {{-- Cetak Laporan — hanya untuk Pengawas, buka di tab baru --}}
-        @if(auth()->user()->jabatan === 'Pengawas')
+        {{-- Logout — pakai form POST biar gak error --}}
+        {{-- Logout — pakai form POST biar gak error --}}
         <li class="w-full">
-          <a
-            href="{{ route('laporan.cetak-overall') }}"
-            target="_blank"
-            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
-            x-bind:title="collapsed ? 'Cetak Laporan' : ''"
-            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] text-emerald-100 hover:bg-emerald-800"
-          >
-            <x-heroicon-s-document-arrow-down class="h-5 w-5 shrink-0" />
-            <span
-              x-show="!collapsed"
-              x-transition:enter="transition-opacity duration-200 delay-100"
-              x-transition:enter-start="opacity-0"
-              x-transition:enter-end="opacity-100"
-              x-transition:leave="transition-opacity duration-100"
-              x-transition:leave-start="opacity-100"
-              x-transition:leave-end="opacity-0"
-              class="whitespace-nowrap text-sm"
-            >Cetak Laporan</span>
-          </a>
-        </li>
-        @endif
-
-        {{-- TODO: Pindahin Logout ke Navbar saja nanti --}}
-        {{-- Logout --}}
-        <li class="w-full">
-          <a
-            href="{{ route('logout') }}"
-            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
-            x-bind:title="collapsed ? 'Logout' : ''"
-            class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px]"
-          >
-            <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
-            <span
-              x-show="!collapsed"
-              x-transition:enter="transition-opacity duration-200 delay-100"
-              x-transition:enter-start="opacity-0"
-              x-transition:enter-end="opacity-100"
-              x-transition:leave="transition-opacity duration-100"
-              x-transition:leave-start="opacity-100"
-              x-transition:leave-end="opacity-0"
-              class="whitespace-nowrap text-sm"
-            >Logout</span>
-          </a>
+          <form method="POST" action="{{ route('logout') }}" class="w-full">
+            @csrf
+            <button type="submit"
+              x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
+              x-bind:title="collapsed ? 'Logout' : ''"
+              class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px] w-full"
+            >
+              <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
+              <span
+                x-show="!collapsed"
+                x-transition:enter="transition-opacity duration-200 delay-100"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity duration-100"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="whitespace-nowrap text-sm"
+              >Logout</span>
+            </button>
+          </form>
         </li>
 
       </ul>
