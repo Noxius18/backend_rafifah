@@ -118,7 +118,7 @@ x-init="
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
-                        <h1 class="text-xl font-semibold text-slate-800">Input Nilai — {{ $jadwalTes->periode }}</h1>
+                        <h1 class="text-xl font-semibold text-slate-800">Nilai — {{ $jadwalTes->periode }}</h1>
                         <p class="text-sm text-slate-400">{{ $jadwalTes->keterangan }} • {{ \Carbon\Carbon::parse($jadwalTes->tanggal)->format('d F Y') }}</p>
                     </div>
                 </div>
@@ -142,6 +142,13 @@ x-init="
                         @endforeach
                     </div>
                 @endif
+                <p class="mt-2 text-xs text-indigo-400">
+                    @if(auth()->user()->jabatan === 'Panitia')
+                        Anda dapat menginput dan mengedit nilai.
+                    @elseif(auth()->user()->jabatan === 'Pengawas')
+                        Anda dapat melihat nilai dan mereview status Pertimbangan.
+                    @endif
+                </p>
             </div>
 
             {{-- Tabel Mahasantri --}}
@@ -191,13 +198,16 @@ x-init="
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex items-center justify-end gap-0.5">
-                                            @if ($hasil && $hasil->status === 'Pertimbangan')
-                                                <button type="button"
-                                                    @click="openNilaiModal('{{ $m->id_mahasantri }}', '{{ $m->nama_lengkap }}', @js($hasil))"
-                                                    class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
-                                                    title="Lihat">
-                                                    <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
-                                                </button>
+                                            {{-- Tombol Lihat/Detail (semua role bisa) --}}
+                                            <button type="button"
+                                                @click="openNilaiModal('{{ $m->id_mahasantri }}', '{{ $m->nama_lengkap }}', @js($hasil))"
+                                                class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
+                                                title="Lihat Nilai">
+                                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
+                                            </button>
+
+                                            {{-- Review Pertimbangan — hanya Pengawas --}}
+                                            @if(auth()->user()->jabatan === 'Pengawas' && $hasil && $hasil->status === 'Pertimbangan')
                                                 <button type="button"
                                                     @click="openReviewModal('{{ $hasil->id_hasil }}', 'Lulus')"
                                                     class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
@@ -210,13 +220,19 @@ x-init="
                                                     title="Tolak">
                                                     <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>
                                                 </button>
-                                            @else
-                                                <button type="button"
-                                                    @click="openNilaiModal('{{ $m->id_mahasantri }}', '{{ $m->nama_lengkap }}', @js($hasil))"
-                                                    class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
-                                                    title="{{ $hasil ? 'Edit Nilai' : 'Input Nilai' }}">
-                                                    <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/></svg>
-                                                </button>
+                                            @endif
+
+                                            {{-- Input/Edit Nilai — hanya Panitia --}}
+                                            @if(auth()->user()->jabatan === 'Panitia')
+                                                @if (!$hasil || $hasil->status !== 'Pertimbangan')
+                                                    <button type="button"
+                                                        @click="openNilaiModal('{{ $m->id_mahasantri }}', '{{ $m->nama_lengkap }}', @js($hasil))"
+                                                        class="inline-flex items-center justify-center rounded-md p-2 transition hover:bg-emerald-50"
+                                                        :class="'{{ $hasil ? 'text-sky-600' : 'text-emerald-600' }}'"
+                                                        title="{{ $hasil ? 'Edit Nilai' : 'Input Nilai' }}">
+                                                        <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/></svg>
+                                                    </button>
+                                                @endif
                                             @endif
                                         </div>
                                     </td>
@@ -248,7 +264,7 @@ x-init="
                     <x-heroicon-s-pencil class="h-5 w-5 text-emerald-600" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-slate-800" x-text="'Form Penilaian'"></h3>
+                    <h3 class="text-lg font-semibold text-slate-800" x-text="'Detail Nilai'"></h3>
                     <p class="text-xs text-slate-500 mt-0.5">
                         Mahasantri: <span class="font-medium" x-text="selectedMhsNama"></span>
                     </p>
@@ -275,7 +291,8 @@ x-init="
                                 <td class="py-2 font-medium text-slate-700">Tajwid</td>
                                 <td class="py-2 text-center">
                                     <input type="number" min="0" max="100" x-model="formData.nilai_tajwid"
-                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none">
+                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                        {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
                                 <td class="py-2 text-xs text-slate-400">Nilai ilmu tajwid</td>
                             </tr>
@@ -284,7 +301,8 @@ x-init="
                                 <td class="py-2 font-medium text-slate-700">Tahsin</td>
                                 <td class="py-2 text-center">
                                     <input type="number" min="0" max="100" x-model="formData.nilai_tahsin"
-                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none">
+                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                        {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
                                 <td class="py-2 text-xs text-slate-400">Nilai tahsin bacaan</td>
                             </tr>
@@ -293,7 +311,8 @@ x-init="
                                 <td class="py-2 font-medium text-slate-700">Kelancaran Bacaan</td>
                                 <td class="py-2 text-center">
                                     <input type="number" min="0" max="100" x-model="formData.nilai_kelancaran"
-                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none">
+                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                        {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
                                 <td class="py-2 text-xs text-slate-400">Nilai kelancaran membaca</td>
                             </tr>
@@ -302,7 +321,8 @@ x-init="
                                 <td class="py-2 font-medium text-slate-700">Wawancara</td>
                                 <td class="py-2 text-center">
                                     <input type="number" min="0" max="100" x-model="formData.nilai_wawancara"
-                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none">
+                                        class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                        {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
                                 <td class="py-2 text-xs text-slate-400">Nilai hasil wawancara</td>
                             </tr>
@@ -331,24 +351,27 @@ x-init="
                     </label>
                     <textarea x-model="formData.catatan_penguji" rows="3"
                         class="textarea textarea-bordered text-sm w-full focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        placeholder="Catatan untuk mahasantri ini..."></textarea>
+                        placeholder="Catatan untuk mahasantri ini..."
+                        {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></textarea>
                 </div>
 
                 {{-- Kriteria Nilai --}}
                 <div class="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
                     <p class="font-medium">Kriteria Nilai:</p>
                     <p>90-100: Sangat Baik • 80-89: Baik • 70-79: Cukup • <70: Tidak Lulus</p>
-                    <p class="mt-1">Jika ada nilai aspek <strong>≥ 70</strong>, status akan menjadi <strong>"Pertimbangan"</strong> dan perlu direview Pengawas.</p>
+                    <p class="mt-1">Jika ada nilai aspek <strong>70</strong>, status akan menjadi <strong>"Pertimbangan"</strong> dan perlu direview Pengawas.</p>
                 </div>
             </div>
         </x-slot>
 
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="nilaiModal.close()">Batal</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="nilaiModal.close()">Tutup</button>
+            @if(auth()->user()->jabatan === 'Panitia')
             <button type="button" @click="submitNilai()" :disabled="saving" class="btn btn-success btn-sm gap-1.5">
                 <span x-show="saving" class="loading loading-spinner loading-xs"></span>
                 <span x-text="saving ? 'Menyimpan...' : 'Simpan Nilai'"></span>
             </button>
+            @endif
         </x-slot>
     </x-ui.modal>
 
@@ -374,7 +397,7 @@ x-init="
                     <p>Apakah Anda yakin ingin mengubah status mahasantri ini menjadi:</p>
                     <p class="mt-2 text-center text-lg font-bold" x-text="reviewPertimbanganAction === 'Lulus' ? '✅ LULUS' : '❌ TIDAK LULUS'"></p>
                 </div>
-                <p class="text-xs text-slate-400">Keputusan ini dapat diubah nanti melalui form penilaian.</p>
+                <p class="text-xs text-slate-400">Keputusan ini hanya dapat dilakukan oleh Pengawas.</p>
             </div>
         </x-slot>
 
@@ -382,8 +405,7 @@ x-init="
             <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="reviewModal.close()">Batal</button>
             <button type="button" @click="confirmReview()"
                 class="btn btn-sm gap-1.5"
-                :class="reviewPertimbanganAction === 'Lulus' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'"
-                :class="reviewPertimbanganAction === 'Lulus' ? 'border-emerald-600' : 'border-rose-600'">
+                :class="reviewPertimbanganAction === 'Lulus' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'">
                 <span x-text="reviewPertimbanganAction === 'Lulus' ? '✅ Setujui' : '❌ Tolak'"></span>
             </button>
         </x-slot>

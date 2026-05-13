@@ -33,9 +33,15 @@ class HasilTesController extends Controller
 
     /**
      * Store/update hasil tes for a mahasantri
+     * Hanya Panitia & Penguji yang bisa input/edit nilai
      */
     public function store(Request $request)
     {
+        // Cek role: hanya Panitia yang bisa input nilai
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa input nilai');
+        }
+
         $validated = $request->validate([
             'id_mahasantri'   => 'required|exists:mahasantri,id_mahasantri',
             'id_jadwal'       => 'required|exists:jadwal_tes,id_jadwal',
@@ -128,9 +134,15 @@ class HasilTesController extends Controller
 
     /**
      * Pengawas: review and update status (Lulus/Tidak Lulus) for pertimbangan
+     * Hanya Pengawas yang bisa review
      */
     public function review(Request $request, HasilTes $hasilTes)
     {
+        // Cek role: hanya Pengawas yang bisa review
+        if (auth()->user()->jabatan !== 'Pengawas') {
+            abort(403, 'Hanya pengawas yang bisa review pertimbangan');
+        }
+
         $validated = $request->validate([
             'status'       => 'required|in:Lulus,Tidak Lulus',
             'nilai_tajwid' => 'nullable|integer|min:0|max:100',
