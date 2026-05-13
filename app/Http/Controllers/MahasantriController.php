@@ -105,7 +105,7 @@ class MahasantriController extends Controller
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $filename = 'nilai-' . str_replace(' ', '-', $mahasantri->nama_lengkap) . '.pdf';

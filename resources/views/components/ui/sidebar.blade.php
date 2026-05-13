@@ -181,7 +181,7 @@
             <button type="submit"
               x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
               x-bind:title="collapsed ? 'Logout' : ''"
-              class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px] w-full"
+              class="flex items-center gap-3 rounded-lg text-emerald-100 hover:bg-emerald-800 px-3 py-2 min-h-[40px] w-full bg-transparent border-none shadow-none cursor-pointer transition-colors text-sm font-normal"
             >
               <x-heroicon-s-arrow-left-on-rectangle class="h-5 w-5 shrink-0" />
               <span
