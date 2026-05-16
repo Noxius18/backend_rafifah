@@ -68,7 +68,6 @@
                 {{ $bodyText }}
                 <strong class="text-slate-800 font-semibold" id="{{ $id }}-name"></strong>?
             </p>
-            <p class="text-xs text-slate-400">Data yang sudah dihapus tidak dapat dikembalikan.</p>
         </div>
     </x-slot>
 
