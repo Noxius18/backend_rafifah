@@ -12,7 +12,7 @@ class PanitiaController extends Controller
      */
     public function index()
     {
-        $panitias = Panitia::all();
+        $panitias = Panitia::paginate(10);
         
         return view('menu.panitia.index', [
             'panitias' => $panitias

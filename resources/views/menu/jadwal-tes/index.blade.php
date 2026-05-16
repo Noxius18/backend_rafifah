@@ -121,11 +121,12 @@ x-init="
                 <x-ui.data-table
                     :rows="$rows"
                     :columns="$columns"
-                    :total="$jadwals->count()"
+                    :total="$jadwals->total()"
                     empty-message="Belum ada jadwal tes"
                     empty-sub="Mulai dengan menambahkan jadwal tes pertama."
                     add-label="Tambah Jadwal"
                 />
+                <x-ui.pagination :paginator="$jadwals" alwaysShow="true" />
             </div>
 
         </section>

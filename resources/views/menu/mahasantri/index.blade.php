@@ -143,11 +143,12 @@ x-init="
                 <x-ui.data-table
                     :rows="$rows"
                     :columns="$columns"
-                    :total="$mahasantris->count()"
+                    :total="$mahasantris->total()"
                     empty-message="Belum ada data mahasantri"
                     empty-sub="Mulai dengan menambahkan mahasantri pertama atau import Excel."
                     add-label="Tambah Mahasantri"
                 />
+                <x-ui.pagination :paginator="$mahasantris" alwaysShow="true" />
             </div>
 
         </section>

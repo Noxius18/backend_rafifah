@@ -130,10 +130,10 @@
         </div>
 
         {{-- Footer --}}
-        <div class="border-t border-slate-100 px-4 py-2.5 text-xs text-slate-400">
+        {{-- <div class="border-t border-slate-100 px-4 py-2.5 text-xs text-slate-400">
             Menampilkan <span class="font-medium text-slate-600" x-text="filteredRows.length"></span>
             dari {{ $total }} data
-        </div>
+        </div> --}}
 
     </div>
 @endif

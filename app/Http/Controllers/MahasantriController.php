@@ -22,7 +22,7 @@ class MahasantriController extends Controller
      */
     public function index()
     {
-        $mahasantris = User::with(['orangtuas', 'berkas'])->get();
+        $mahasantris = User::with(['orangtuas', 'berkas'])->paginate(10);
 
         return view('menu.mahasantri.index', [
             'mahasantris' => $mahasantris

@@ -108,11 +108,12 @@ x-init="
                 <x-ui.data-table
                     :rows="$rows"
                     :columns="$columns"
-                    :total="$panitias->count()"
+                    :total="$panitias->total()"
                     empty-message="Belum ada data panitia"
                     empty-sub="Mulai dengan menambahkan panitia pertama."
                     add-label="Tambah Panitia"
                 />
+                <x-ui.pagination :paginator="$panitias" alwaysShow="true" />
             </div>
 
         </section>

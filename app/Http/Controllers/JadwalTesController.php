@@ -14,7 +14,7 @@ class JadwalTesController extends Controller
      */
     public function index()
     {
-        $jadwals = JadwalTes::with(['pengujiList.panitia', 'picPanitia'])->get();
+        $jadwals = JadwalTes::with(['pengujiList.panitia', 'picPanitia'])->paginate(10);
         $panitias = Panitia::where('jabatan', 'Panitia')->get();
 
         return view('menu.jadwal-tes.index', [
