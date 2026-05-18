@@ -28,12 +28,21 @@
     previewIsValid: false,
     previewTempIsValid: false,
     saving: false,
-    openPreview(url, title, berkasId, isValid) {
+    // Field data mahasantri untuk diisi di modal preview
+    previewNik: '',
+    previewNisn: '',
+    previewTempatLahir: '',
+    previewTanggalLahir: '',
+    openPreview(url, title, berkasId, isValid, nik, nisn, tempatLahir, tanggalLahir) {
         this.previewUrl = url;
         this.previewTitle = title;
         this.previewBerkasId = berkasId;
         this.previewIsValid = isValid;
         this.previewTempIsValid = isValid;
+        this.previewNik = nik || '';
+        this.previewNisn = nisn || '';
+        this.previewTempatLahir = tempatLahir || '';
+        this.previewTanggalLahir = tanggalLahir || '';
         document.getElementById('previewModal').showModal();
     },
 
@@ -78,7 +87,13 @@
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ is_valid: this.previewTempIsValid }),
+                body: JSON.stringify({
+                    is_valid: this.previewTempIsValid,
+                    nik: this.previewNik || null,
+                    nisn: this.previewNisn || null,
+                    tempat_lahir: this.previewTempatLahir || null,
+                    tanggal_lahir: this.previewTanggalLahir || null,
+                }),
             });
 
             const data = await res.json();
@@ -224,7 +239,7 @@ x-init="
                             @foreach($m->orangtuas as $ort)
                                 <div class="rounded-lg border border-slate-200 bg-white p-4">
                                     <div class="mb-3">
-                                        <span class="rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
+                                        <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                                             {{ $ort->tipe_hubungan }}
                                         </span>
                                     </div>
@@ -336,7 +351,16 @@ x-init="
                                                     @endif
                                                     @if($doc->download_status === 'success' && $doc->file_path)
                                                         <button type="button"
-                                                            @click="openPreview({{ json_encode(route('berkas.preview', $doc->id_berkas)) }}, {{ json_encode($doc->tipe_dokumen) }}, {{ json_encode($doc->id_berkas) }}, {{ $doc->is_valid ? 'true' : 'false' }})"
+                                                            @click="openPreview(
+                                                                {{ json_encode(route('berkas.preview', $doc->id_berkas)) }},
+                                                                {{ json_encode($doc->tipe_dokumen) }},
+                                                                {{ json_encode($doc->id_berkas) }},
+                                                                {{ $doc->is_valid ? 'true' : 'false' }},
+                                                                {{ json_encode($m->nik) }},
+                                                                {{ json_encode($m->nisn) }},
+                                                                {{ json_encode($m->tempat_lahir) }},
+                                                                {{ json_encode($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}
+                                                            )"
                                                             class="inline-flex items-center justify-center rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50"
                                                             title="Lihat">
                                                             <x-heroicon-s-eye class="h-4 w-4" />
@@ -445,6 +469,41 @@ x-init="
                 allowfullscreen
             ></iframe>
 
+            {{-- ── Form Data Mahasantri (Inline Edit) ───────────────────── --}}
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div class="mb-2 flex items-center gap-2">
+                    <x-heroicon-s-pencil class="h-4 w-4 text-slate-500" />
+                    <span class="text-sm font-semibold text-slate-700">Data Pribadi (edit langsung)</span>
+                    <span class="text-xs text-slate-400">Cocokkan dengan dokumen di atas</span>
+                </div>
+                <div class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {{-- NIK --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-0.5">NIK</label>
+                        <input type="text" x-model="previewNik" maxlength="16" placeholder="16 digit NIK"
+                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                    {{-- NISN --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-0.5">NISN</label>
+                        <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
+                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                    {{-- Tempat Lahir --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-0.5">Tempat Lahir</label>
+                        <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir"
+                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                    {{-- Tanggal Lahir --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-0.5">Tanggal Lahir</label>
+                        <input type="date" x-model="previewTanggalLahir"
+                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                </div>
+            </div>
+
             {{-- Footer: Tombol Simpan --}}
             <div class="mt-4 flex items-center justify-end">
                 <div class="flex items-center gap-2">
@@ -453,7 +512,7 @@ x-init="
                     </button>
                     <button type="button" @click="saveBerkasStatus()"
                         :disabled="saving"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span x-show="saving" class="loading loading-spinner loading-xs"></span>
                         <span x-text="saving ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
                     </button>

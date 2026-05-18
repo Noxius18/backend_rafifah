@@ -37,6 +37,10 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
 
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
+
+    // Berkas – update status, retry download & data mahasantri
+    Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
+    Route::post('/berkas/{berkas}/retry-download', [MahasantriController::class, 'retryDownload'])->name('berkas.retry-download');
 });
 
 // ──────────────────────────────────────────────

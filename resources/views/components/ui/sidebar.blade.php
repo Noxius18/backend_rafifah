@@ -99,7 +99,7 @@
               x-transition:leave-start="opacity-100"
               x-transition:leave-end="opacity-0"
               class="whitespace-nowrap text-sm"
-            >Data Mahasantri</span>
+            >Calon Mahasantri</span>
           </a>
         </li>
 

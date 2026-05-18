@@ -257,26 +257,48 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Update the specified berkas (is_valid status)
+     * Update the specified berkas (is_valid, NIK, NISN, dll)
      */
     public function updateBerkas(Request $request, Berkas $berkas)
     {
         $validated = $request->validate([
-            'is_valid' => 'required|boolean',
+            'is_valid'      => 'required|boolean',
+            'nik'           => 'nullable|size:16|unique:mahasantri,nik,' . $berkas->id_mahasantri . ',id_mahasantri',
+            'nisn'          => 'nullable|size:10|unique:mahasantri,nisn,' . $berkas->id_mahasantri . ',id_mahasantri',
+            'tempat_lahir'  => 'nullable|string|max:50',
+            'tanggal_lahir' => 'nullable|date',
+        ], [
+            'nik.size'              => 'NIK harus 16 karakter.',
+            'nik.unique'            => 'NIK sudah terdaftar.',
+            'nisn.size'             => 'NISN harus 10 karakter.',
+            'nisn.unique'           => 'NISN sudah terdaftar.',
+            'tempat_lahir.max'      => 'Tempat lahir maksimal 50 karakter.',
+            'tanggal_lahir.date'    => 'Format tanggal lahir tidak valid.',
         ]);
 
         $berkas->update([
             'is_valid' => $validated['is_valid'],
         ]);
 
+        // Update data mahasantri terkait jika ada field yg diisi
+        $mahasantriData = [];
+        if ($request->has('nik'))           $mahasantriData['nik']           = $validated['nik'];
+        if ($request->has('nisn'))          $mahasantriData['nisn']          = $validated['nisn'];
+        if ($request->has('tempat_lahir'))  $mahasantriData['tempat_lahir']  = $validated['tempat_lahir'];
+        if ($request->has('tanggal_lahir')) $mahasantriData['tanggal_lahir'] = $validated['tanggal_lahir'];
+
+        if (!empty($mahasantriData)) {
+            $berkas->mahasantri()->update($mahasantriData);
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Status dokumen berhasil diperbarui',
+                'message' => 'Data dokumen dan mahasantri berhasil diperbarui',
                 'is_valid' => (bool) $validated['is_valid'],
             ]);
         }
 
-        return redirect()->back()->with('success', 'Status dokumen berhasil diperbarui');
+        return redirect()->back()->with('success', 'Data dokumen dan mahasantri berhasil diperbarui');
     }
 
     /**

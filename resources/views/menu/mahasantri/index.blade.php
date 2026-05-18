@@ -118,8 +118,8 @@ x-init="
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
-                        <h1 class="text-xl font-semibold text-slate-800">Kelola Data Mahasantri</h1>
-                        <p class="text-sm text-slate-400">Kelola data pendaftaran mahasantri.</p>
+                        <h1 class="text-xl font-semibold text-slate-800">Kelola Calon Mahasantri</h1>
+                        <p class="text-sm text-slate-400">Kelola data pendaftaran calon mahasantri.</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
