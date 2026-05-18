@@ -11,6 +11,18 @@
         'Tidak Lulus' => 'Tidak Lulus',
     ];
     $m = $mahasantri;
+
+    // ── Data dokumen untuk carousel preview slider ────────────────────────────────────────
+    $previewDocs = $m->berkas
+        ->filter(fn($b) => $b->download_status === 'success' && $b->file_path)
+        ->values()
+        ->map(fn($b) => [
+            'url'     => route('berkas.preview', $b->id_berkas),
+            'title'   => $b->tipe_dokumen,
+            'id'      => $b->id_berkas,
+            'isValid' => $b->is_valid,
+        ])
+        ->toJson();
 @endphp
 
 <div x-data="{
@@ -22,8 +34,8 @@
     },
 
     // ── Preview Dokumen (Iframe Modal) ─────────────────────────────────
-    previewUrl: '',
-    previewTitle: '',
+    previewDocs: [],
+    previewDocIndex: 0,
     previewBerkasId: null,
     previewIsValid: false,
     previewTempIsValid: false,
@@ -33,17 +45,49 @@
     previewNisn: '',
     previewTempatLahir: '',
     previewTanggalLahir: '',
-    openPreview(url, title, berkasId, isValid, nik, nisn, tempatLahir, tanggalLahir) {
-        this.previewUrl = url;
-        this.previewTitle = title;
-        this.previewBerkasId = berkasId;
-        this.previewIsValid = isValid;
-        this.previewTempIsValid = isValid;
+    get previewDoc() {
+        return this.previewDocs[this.previewDocIndex] || {};
+    },
+    get previewUrl() {
+        return this.previewDoc.url || '';
+    },
+    get previewTitle() {
+        return this.previewDoc.title || '';
+    },
+    get previewTotal() {
+        return this.previewDocs.length;
+    },
+    openPreview(docs, index, nik, nisn, tempatLahir, tanggalLahir) {
+        this.previewDocs = docs;
+        this.previewDocIndex = index;
+        this.previewBerkasId = docs[index]?.id || null;
+        this.previewIsValid = docs[index]?.isValid || false;
+        this.previewTempIsValid = docs[index]?.isValid || false;
         this.previewNik = nik || '';
         this.previewNisn = nisn || '';
         this.previewTempatLahir = tempatLahir || '';
         this.previewTanggalLahir = tanggalLahir || '';
         document.getElementById('previewModal').showModal();
+    },
+    prevDoc() {
+        if (this.previewDocIndex > 0) {
+            this.previewDocIndex--;
+            this.syncCurrentDoc();
+        }
+    },
+    nextDoc() {
+        if (this.previewDocIndex < this.previewDocs.length - 1) {
+            this.previewDocIndex++;
+            this.syncCurrentDoc();
+        }
+    },
+    syncCurrentDoc() {
+        const doc = this.previewDocs[this.previewDocIndex];
+        if (doc) {
+            this.previewBerkasId = doc.id;
+            this.previewIsValid = doc.isValid;
+            this.previewTempIsValid = doc.isValid;
+        }
     },
 
     // ── Retry Download ─────────────────────────────────────────────────
@@ -350,12 +394,16 @@ x-init="
                                                         </button>
                                                     @endif
                                                     @if($doc->download_status === 'success' && $doc->file_path)
+                                                        @php
+                                                            $clickedIndex = $m->berkas
+                                                                ->filter(fn($b) => $b->download_status === 'success' && $b->file_path)
+                                                                ->values()
+                                                                ->search(fn($b) => $b->id_berkas === $doc->id_berkas);
+                                                        @endphp
                                                         <button type="button"
                                                             @click="openPreview(
-                                                                {{ json_encode(route('berkas.preview', $doc->id_berkas)) }},
-                                                                {{ json_encode($doc->tipe_dokumen) }},
-                                                                {{ json_encode($doc->id_berkas) }},
-                                                                {{ $doc->is_valid ? 'true' : 'false' }},
+                                                                {{ $previewDocs }},
+                                                                {{ $clickedIndex !== false ? $clickedIndex : 0 }},
                                                                 {{ json_encode($m->nik) }},
                                                                 {{ json_encode($m->nisn) }},
                                                                 {{ json_encode($m->tempat_lahir) }},
@@ -437,8 +485,26 @@ x-init="
         <div class="modal-box max-w-5xl w-full">
             {{-- Header: Judul + Toggle Status + Close --}}
             <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-                <div class="flex items-center gap-4">
-                    <h3 class="text-lg font-semibold text-slate-800" x-text="previewTitle"></h3>
+                <div class="flex items-center gap-3">
+                    {{-- Prev / Next Navigation --}}
+                    <template x-if="previewTotal > 1">
+                        <div class="flex items-center gap-1">
+                            <button type="button" @click="prevDoc" :disabled="previewDocIndex === 0"
+                                class="inline-flex items-center justify-center rounded-md p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                :class="previewDocIndex > 0 ? 'hover:bg-slate-100 text-slate-600' : 'text-slate-300'">
+                                <x-heroicon-s-chevron-left class="h-5 w-5" />
+                            </button>
+                            <span class="text-xs font-medium text-slate-500 min-w-[4rem] text-center" x-text="`(${(previewDocIndex + 1)}/${previewTotal})`"></span>
+                            <button type="button" @click="nextDoc" :disabled="previewDocIndex === previewTotal - 1"
+                                class="inline-flex items-center justify-center rounded-md p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                :class="previewDocIndex < previewTotal - 1 ? 'hover:bg-slate-100 text-slate-600' : 'text-slate-300'">
+                                <x-heroicon-s-chevron-right class="h-5 w-5" />
+                            </button>
+                        </div>
+                    </template>
+                    <template x-if="previewTotal <= 1">
+                        <h3 class="text-lg font-semibold text-slate-800" x-text="previewTitle"></h3>
+                    </template>
                     <div class="flex items-center gap-2">
                         @if(auth()->user()->jabatan === 'Panitia')
                         {{-- Toggle Switch (hanya Panitia) --}}
