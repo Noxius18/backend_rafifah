@@ -24,17 +24,17 @@
         'jabatan'       => $p->jabatan,
 
         // HTML — untuk render
-        'id_html'       => "<code class='rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500'>{$p->id_panitia}</code>",
+        'id_html'       => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$p->id_panitia}</code>",
         'nama_html'     => "<div class='flex items-center gap-2.5'>
                                 <div class='flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700'>" . strtoupper(substr($p->nama_lengkap, 0, 1)) . "</div>
-                                <span class='font-medium text-slate-700'>" . e($p->nama_lengkap) . "</span>
+                                <span class='font-medium text-black'>" . e($p->nama_lengkap) . "</span>
                             </div>",
-        'username_html' => "<span class='font-mono text-xs text-slate-500'>" . e($p->username) . "</span>",
+        'username_html' => "<span class='font-mono text-xs text-black'>" . e($p->username) . "</span>",
         'jabatan_html'  => match($p->jabatan) {
             'Penguji'  => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>Penguji</span>",
             'Panitia'  => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Panitia</span>",
             'Pengawas' => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Pengawas</span>",
-            default    => "<span class='text-slate-400'>" . e($p->jabatan) . "</span>",
+            default    => "<span class='text-black'>" . e($p->jabatan) . "</span>",
         },
         // Tombol edit membuka modal + isi form via data attribute & JS ringkas
         // Tombol hapus memanggil openConfirmModal() dari x-ui.modal-confirm
@@ -47,13 +47,13 @@
                                         no_hp:    '" . e($p->no_hp) . "',
                                         jabatan:  '" . e($p->jabatan) . "'
                                     })\"
-                                    class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700'
+                                    class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-black/[0.05] hover:text-black'
                                     title='Edit'>
                                     <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg>
                                 </button>
                                 <button type='button'
                                     onclick=\"openConfirmModal('/panitia/{$p->id_panitia}', '" . e($p->nama_lengkap) . "')\"
-                                    class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600'
+                                    class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-rose-50 hover:text-rose-600'
                                     title='Hapus'>
                                     <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg>
                                 </button>
@@ -92,8 +92,8 @@ x-init="
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
-                        <h1 class="text-xl font-semibold text-slate-800">Daftar Panitia</h1>
-                        <p class="text-sm text-slate-400">Kelola data panitia, pengawas, dan penguji.</p>
+                        <h1 class="text-xl font-semibold text-black">Daftar Panitia</h1>
+                        <p class="text-sm text-black">Kelola data panitia, pengawas, dan penguji.</p>
                     </div>
                 </div>
                 <button type="button" onclick="addModal.showModal()"
@@ -104,7 +104,7 @@ x-init="
             </div>
 
             {{-- Table --}}
-            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
                 <x-ui.data-table
                     :rows="$rows"
                     :columns="$columns"
@@ -163,7 +163,7 @@ x-init="
             </form>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="addModal.close()">Batal</button>
+            <button type="button" class="btn btn-ghost btn-sm text-black hover:text-black hover:bg-black/[0.05]" onclick="addModal.close()">Batal</button>
             <button type="submit" form="addModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -187,18 +187,18 @@ x-init="
                 {{-- ID readonly --}}
                 <div class="form-control">
                     <label class="label pb-1.5">
-                        <span class="label-text font-medium text-slate-700">ID Panitia</span>
+                        <span class="label-text font-medium text-black">ID Panitia</span>
                     </label>
                     <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-black">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
                             </svg>
                         </span>
-                        <input type="text" id="editModal-id-display" class="input input-bordered w-full input-sm pl-9 bg-slate-50 text-slate-500 cursor-not-allowed" disabled />
+                        <input type="text" id="editModal-id-display" class="input input-bordered w-full input-sm pl-9 bg-black/[0.03] text-black cursor-not-allowed" disabled />
                     </div>
                     <label class="label pt-1 pb-0">
-                        <span class="label-text-alt text-slate-400">ID tidak dapat diubah</span>
+                        <span class="label-text-alt text-black">ID tidak dapat diubah</span>
                     </label>
                 </div>
             
@@ -224,7 +224,7 @@ x-init="
             </div>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="editModal.close()">Batal</button>
+            <button type="button" class="btn btn-ghost btn-sm text-black hover:text-black hover:bg-black/[0.05]" onclick="editModal.close()">Batal</button>
             <button type="submit" form="editModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />

@@ -160,7 +160,7 @@ x-init="
                         <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">ID Mahasantri</dt>
                             <dd class="mt-1">
-                                <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">{{ $m->id_mahasantri }}</code>
+                                <code class="rounded bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium text-black">{{ $m->id_mahasantri }}</code>
                             </dd>
                         </div>
                         <div class="sm:col-span-2">
@@ -440,7 +440,8 @@ x-init="
                 <div class="flex items-center gap-4">
                     <h3 class="text-lg font-semibold text-slate-800" x-text="previewTitle"></h3>
                     <div class="flex items-center gap-2">
-                        {{-- Toggle Switch --}}
+                        @if(auth()->user()->jabatan === 'Panitia')
+                        {{-- Toggle Switch (hanya Panitia) --}}
                         <button type="button"
                             @click="togglePreviewStatus()"
                             :class="previewTempIsValid ? 'bg-emerald-500' : 'bg-gray-300'"
@@ -448,6 +449,7 @@ x-init="
                             <span :class="previewTempIsValid ? 'translate-x-5' : 'translate-x-0'"
                                 class="inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
                         </button>
+                        @endif
                         {{-- Status Label --}}
                         <span x-show="previewTempIsValid"
                             class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Terverifikasi</span>
@@ -469,7 +471,8 @@ x-init="
                 allowfullscreen
             ></iframe>
 
-            {{-- ── Form Data Mahasantri (Inline Edit) ───────────────────── --}}
+            @if(auth()->user()->jabatan === 'Panitia')
+            {{-- ── Form Data Mahasantri (Inline Edit) — hanya Panitia ───── --}}
             <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div class="mb-2 flex items-center gap-2">
                     <x-heroicon-s-pencil class="h-4 w-4 text-slate-500" />
@@ -504,7 +507,7 @@ x-init="
                 </div>
             </div>
 
-            {{-- Footer: Tombol Simpan --}}
+            {{-- Footer: Tombol Simpan (hanya Panitia) --}}
             <div class="mt-4 flex items-center justify-end">
                 <div class="flex items-center gap-2">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('previewModal').close()">
@@ -518,6 +521,7 @@ x-init="
                     </button>
                 </div>
             </div>
+            @endif
         </div>
         <form method="dialog" class="modal-backdrop">
             <button>close</button>

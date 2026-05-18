@@ -32,36 +32,36 @@
         'tanggal_daftar' => $m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-',
 
         // HTML — untuk render
-        'id_html'   => "<code class='rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500'>{$m->id_mahasantri}</code>",
+        'id_html'   => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$m->id_mahasantri}</code>",
         'nama_html' => "<div class='flex items-center gap-2.5'>
                             <div class='flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700'>" . strtoupper(substr($m->nama_lengkap, 0, 1)) . "</div>
-                            <span class='font-medium text-slate-700'>" . e($m->nama_lengkap) . "</span>
+                            <span class='font-medium text-black'>" . e($m->nama_lengkap) . "</span>
                         </div>",
         'jk_html'   => match($m->jenis_kelamin) {
             'L' => "<span class='rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200'>Laki-laki</span>",
             'P' => "<span class='rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200'>Perempuan</span>",
-            default => "<span class='text-slate-400'>-</span>",
+            default => "<span class='text-black'>-</span>",
         },
         'tgl_lahir_html' => $m->tanggal_lahir
-            ? "<span class='text-xs text-slate-500'>" . (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) . "</span>"
-            : "<span class='text-slate-400'>-</span>",
+            ? "<span class='text-xs text-black'>" . (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) . "</span>"
+            : "<span class='text-black'>-</span>",
         'status_html' => match($m->status) {
             'Pendaftar Baru' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Pendaftar Baru</span>",
             'Terverifikasi'  => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Terverifikasi</span>",
             'Lulus'          => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>Lulus</span>",
             'Tidak Lulus'    => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>Tidak Lulus</span>",
-            default          => "<span class='text-slate-400'>" . e($m->status) . "</span>",
+            default          => "<span class='text-black'>" . e($m->status) . "</span>",
         },
-        'tgl_html'  => "<span class='text-xs text-slate-500'>" . ($m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-') . "</span>",
+        'tgl_html'  => "<span class='text-xs text-black'>" . ($m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-') . "</span>",
                         'aksi_html' => "<div class='flex items-center justify-end gap-0.5'>
                             <a href='" . route('mahasantri.cetak-pdf', $m->id_mahasantri) . "'
                                 target='_blank'
-                                class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600'
+                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-amber-50 hover:text-amber-600'
                                 title='Cetak PDF'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z'/></svg>
                             </a>
                             <a href='" . route('mahasantri.show', $m->id_mahasantri) . "'
-                                class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600'
+                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-indigo-50 hover:text-indigo-600'
                                 title='Detail'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
                             </a>
@@ -77,13 +77,13 @@
                                     tgl_lahir:    '" . ($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') . "',
                                     status:       '" . e($m->status) . "'
                                 })\"
-                                class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700'
+                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-black/[0.05] hover:text-black'
                                 title='Edit'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg>
                             </button>
                             <button type='button'
                                 onclick=\"openConfirmModal('/mahasantri/{$m->id_mahasantri}', '" . e($m->nama_lengkap) . "')\"
-                                class='inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600'
+                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-rose-50 hover:text-rose-600'
                                 title='Hapus'>
                                 <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg>
                             </button>
@@ -118,14 +118,14 @@ x-init="
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
-                        <h1 class="text-xl font-semibold text-slate-800">Kelola Calon Mahasantri</h1>
-                        <p class="text-sm text-slate-400">Kelola data pendaftaran calon mahasantri.</p>
+                        <h1 class="text-xl font-semibold text-black">Kelola Calon Mahasantri</h1>
+                        <p class="text-sm text-black">Kelola data pendaftaran calon mahasantri.</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     @if(auth()->user()->jabatan === 'Panitia')
                     <button type="button" onclick="importModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 active:scale-95">
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95">
                         <x-heroicon-s-arrow-up-tray class="h-4 w-4" />
                         Upload Excel
                     </button>
@@ -139,7 +139,7 @@ x-init="
             </div>
 
             {{-- Table --}}
-            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
                 <x-ui.data-table
                     :rows="$rows"
                     :columns="$columns"
@@ -203,7 +203,7 @@ x-init="
             </div>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100" onclick="editModal.close()">Batal</button>
+            <button type="button" class="btn btn-ghost btn-sm text-black hover:text-black hover:bg-black/[0.05]" onclick="editModal.close()">Batal</button>
             <button type="submit" form="editModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
@@ -241,11 +241,11 @@ x-init="
                 </form>
 
                 {{-- Template Preview --}}
-                <details class="rounded-lg border border-slate-200">
-                    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Lihat template header</summary>
-                    <div class="border-t border-slate-200 p-3">
-                        <p class="mb-2 text-xs text-slate-500">Header yang didukung:</p>
-                        <code class="block whitespace-pre-wrap rounded bg-slate-50 p-2 text-[10px] leading-relaxed text-slate-600">
+                <details class="rounded-lg border border-black/20">
+                    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-black hover:bg-black/[0.03]">Lihat template header</summary>
+                    <div class="border-t border-black/20 p-3">
+                        <p class="mb-2 text-xs text-black">Header yang didukung:</p>
+                        <code class="block whitespace-pre-wrap rounded bg-black/[0.03] p-2 text-[10px] leading-relaxed text-black">
 Timestamp, Nama Lengkap, Nama Ayah Kandung, Pekerjaan Ayah, No HP/Whatsap Ayah Yang Aktif, Nama Ibu Kandung, Pekerjaan Ibu, No HP/Whatsap Ibu Yang Aktif, Nama Wali (jika peserta di tanggung oleh selain orang tua kandung), Pekerjaan Wali, Nomer HP Wali, Scan KTP asli, Scan Kartu Keluarga asli, Scan Ijazah terakhir, Surat izin Orang tua
                         </code>
                     </div>
