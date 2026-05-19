@@ -14,10 +14,13 @@ class HasilTesController extends Controller
      */
     public function index(JadwalTes $jadwalTes)
     {
-        $jadwalTes->load('pengujiList.panitia');
+        $jadwalTes->load(['pengujiList.panitia', 'mahasantri']);
 
-        // Get all mahasantri
-        $mahasantris = User::all();
+        // Get the mahasantri related to this jadwal
+        $mahasantris = collect();
+        if ($jadwalTes->mahasantri) {
+            $mahasantris = collect([$jadwalTes->mahasantri]);
+        }
 
         // Get existing hasil tes for this jadwal
         $hasilTes = HasilTes::where('id_jadwal', $jadwalTes->id_jadwal)
@@ -128,7 +131,7 @@ class HasilTesController extends Controller
             ]);
         }
 
-        return redirect()->route('jadwal-tes.nilai', $validated['id_jadwal'])
+        return redirect()->route('seleksi.nilai', $validated['id_jadwal'])
             ->with('success', 'Nilai berhasil disimpan');
     }
 

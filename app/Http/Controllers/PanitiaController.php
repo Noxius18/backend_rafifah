@@ -12,7 +12,7 @@ class PanitiaController extends Controller
      */
     public function index()
     {
-        $panitias = Panitia::paginate(10);
+        $panitias = Panitia::all();
         
         return view('menu.panitia.index', [
             'panitias' => $panitias
@@ -119,6 +119,27 @@ class PanitiaController extends Controller
             $validated['password'] = bcrypt($validated['password']);
         } else {
             unset($validated['password']);
+        }
+
+        // LOGIKA BARU: Jika jabatan berubah, update Prefix ID dan urutannya
+        if ($panitia->jabatan !== $validated['jabatan']) {
+            $kodeJabatan = [
+                'Pengawas' => 'PNG',
+                'Panitia'  => 'PNT',
+            ];
+
+            $prefix = $kodeJabatan[$validated['jabatan']];
+            $last = Panitia::where('id_panitia', 'LIKE', $prefix . '%')
+                ->orderBy('id_panitia', 'desc')
+                ->first();
+
+            $urut = 1;
+            if ($last) {
+                $urut = (int) substr($last->id_panitia, 3) + 1;
+            }
+
+            // Memasukkan ID baru ke dalam array validated untuk disimpan
+            $validated['id_panitia'] = $prefix . str_pad($urut, 2, '0', STR_PAD_LEFT);
         }
 
         $panitia->update($validated);

@@ -13,13 +13,23 @@ return new class extends Migration
     {
         Schema::create('jadwal_tes', function (Blueprint $table) {
             $table->char('id_jadwal', 5)->primary();
-            $table->string('periode', 20);
-            $table->string('keterangan', 50);
+            
+            // Kolom baru sesuai restructure
+            $table->char('id_mahasantri', 5);
             $table->date('tanggal');
+            $table->time('jam')->nullable();
             $table->string('link_zoom')->nullable();
-            $table->char('pic', 5)->nullable()->comment('Penanggung jawab (panitia)');
+            $table->char('penanggung_jawab', 5)->nullable()->comment('Penanggung jawab (panitia)');
 
-            $table->foreign('pic')
+            // Foreign key ke tabel mahasantri
+            $table->foreign('id_mahasantri')
+                  ->references('id_mahasantri')
+                  ->on('mahasantri')
+                  ->onDelete('cascade')
+                  ->onUpdate('cascade');
+
+            // Foreign key ke tabel panitia
+            $table->foreign('penanggung_jawab')
                   ->references('id_panitia')
                   ->on('panitia')
                   ->onDelete('set null')

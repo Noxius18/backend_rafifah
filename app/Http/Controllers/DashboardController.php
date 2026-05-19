@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Berkas;
 use App\Models\Panitia;
-use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -14,10 +13,8 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // Cache statistics for 5 minutes to improve performance
-        $stats = Cache::remember('dashboard_stats', 300, function () {
-            return $this->calculateStatistics();
-        });
+        // Langsung hitung tanpa Cache biar selalu Real-Time
+        $stats = $this->calculateStatistics();
 
         return view('dashboard.dashboard', [
             'stats' => $stats,
@@ -76,8 +73,6 @@ class DashboardController extends Controller
      */
     public function refresh()
     {
-        // Clear cache and recalculate
-        Cache::forget('dashboard_stats');
         $stats = $this->calculateStatistics();
 
         return response()->json([

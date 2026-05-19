@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Orangtua;
 use App\Models\Berkas;
+use App\Models\JadwalTes;
+use App\Models\Penguji;
+use Carbon\Carbon;
 use App\Jobs\DownloadGoogleDriveFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +56,7 @@ class MahasantriController extends Controller
             'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
             'tanggal_lahir' => 'nullable|date',
+            'gelombang'     => 'nullable|string|max:20',
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nama_lengkap.max'      => 'Nama lengkap maksimal 35 karakter.',
@@ -189,6 +193,81 @@ class MahasantriController extends Controller
         }
 
         return redirect()->route('mahasantri.index')->with('success', 'Data mahasantri berhasil dihapus');
+    }
+
+    /**
+     * Verifikasi mahasantri (ubah status dari Pendaftar Baru ke Terverifikasi)
+     */
+    public function verifikasi($id)
+    {
+        $mahasantri = \App\Models\User::findOrFail($id);
+        
+        // 1. Update status jadi Terverifikasi
+        $mahasantri->update(['status' => 'Terverifikasi']);
+
+        // 2. LOGIKA AUTO-JADWAL
+        if ($mahasantri->gelombang) {
+            $lastJadwal = \App\Models\JadwalTes::whereHas('mahasantri', function($q) use ($mahasantri) {
+                $q->where('gelombang', $mahasantri->gelombang);
+            })->orderBy('tanggal', 'desc')->orderBy('jam', 'desc')->first();
+
+            if ($lastJadwal) {
+                $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes(30)->format('H:i:s');
+                
+                // Generate ID Jadwal Baru (Contoh: JDT02)
+                $lastJadwalDb = \App\Models\JadwalTes::orderBy('id_jadwal', 'desc')->first();
+                $nextJadwalNum = $lastJadwalDb ? intval(substr($lastJadwalDb->id_jadwal, 3)) + 1 : 1;
+                $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
+
+                $newJadwal = \App\Models\JadwalTes::create([
+                    'id_jadwal'        => $newId,
+                    'id_mahasantri'    => $mahasantri->id_mahasantri,
+                    'tanggal'          => $lastJadwal->tanggal,
+                    'jam'              => $newJam,
+                    'link_zoom'        => $lastJadwal->link_zoom,
+                    'penanggung_jawab' => $lastJadwal->penanggung_jawab,
+                ]);
+
+                // Generate Penguji & ID Penguji (Contoh: PGJ05)
+                $lastPengujiDb = \App\Models\Penguji::orderBy('id_penguji', 'desc')->first();
+                $nextPengujiNum = $lastPengujiDb ? intval(substr($lastPengujiDb->id_penguji, 3)) + 1 : 1;
+
+                foreach ($lastJadwal->pengujiList as $penguji) {
+                    $newPengujiId = 'PGJ' . str_pad($nextPengujiNum, 2, '0', STR_PAD_LEFT);
+                    \App\Models\Penguji::create([
+                        'id_penguji' => $newPengujiId,
+                        'id_jadwal'  => $newJadwal->id_jadwal,
+                        'id_panitia' => $penguji->id_panitia,
+                        'aspek'      => $penguji->aspek,
+                    ]);
+                    $nextPengujiNum++;
+                }
+            }
+        }
+
+        return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi dan ditambahkan ke jadwal (jika ada).');
+    }
+
+    /**
+     * Update gelombang mahasantri
+     */
+    public function updateGelombang(Request $request, User $mahasantri)
+    {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa mengubah gelombang mahasantri');
+        }
+
+        $validated = $request->validate([
+            'gelombang' => 'required|string|max:20',
+        ]);
+
+        $mahasantri->update(['gelombang' => $validated['gelombang']]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Gelombang berhasil diperbarui']);
+        }
+
+        return redirect()->route('mahasantri.index')->with('success', 'Gelombang berhasil diperbarui');
     }
 
     /**
@@ -370,12 +449,16 @@ class MahasantriController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'file'      => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'gelombang' => 'required|string|max:20',
         ], [
-            'file.required' => 'File Excel wajib diupload.',
-            'file.mimes'    => 'File harus berformat Excel (xlsx, xls) atau CSV.',
-            'file.max'      => 'Ukuran file maksimal 10MB.',
+            'file.required'      => 'File Excel wajib diupload.',
+            'file.mimes'         => 'File harus berformat Excel (xlsx, xls) atau CSV.',
+            'file.max'           => 'Ukuran file maksimal 10MB.',
+            'gelombang.required' => 'Pilih gelombang terlebih dahulu.',
         ]);
+
+        $gelombang = $request->input('gelombang');
 
         $file = $request->file('file');
         $spreadsheet = IOFactory::load($file->getPathname());
@@ -425,6 +508,7 @@ class MahasantriController extends Controller
                         'tempat_lahir'   => null,
                         'tanggal_lahir'  => null,
                         'status'         => 'Pendaftar Baru',
+                        'gelombang'      => $gelombang,
                         'tanggal_daftar' => $tanggalDaftar,
                     ]);
 
@@ -518,7 +602,7 @@ class MahasantriController extends Controller
                 DownloadGoogleDriveFile::dispatch($berkas);
             }
 
-            $message = "Berhasil mengimpor {$imported} data mahasantri.";
+            $message = "Berhasil mengimpor {$imported} data mahasantri ke {$gelombang}.";
             if (count($errors) > 0) {
                 $message .= " Gagal: " . count($errors) . " baris.";
             }

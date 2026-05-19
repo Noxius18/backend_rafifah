@@ -27,7 +27,7 @@
         @endif
 
         {{-- Body --}}
-        <div class="px-6 py-5">
+        <div class="px-6 py-5 overflow-y-auto overflow-x-hidden max-h-[75vh] break-words">
             {{ $body ?? $slot }}
         </div>
 

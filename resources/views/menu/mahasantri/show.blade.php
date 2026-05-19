@@ -181,16 +181,18 @@ x-init="
                         <x-heroicon-s-arrow-left class="h-4 w-4" />
                         Kembali
                     </a>
-                    <button type="button" onclick="editModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
-                        <x-heroicon-s-pencil-square class="h-4 w-4" />
-                        Edit
-                    </button>
-                    <button type="button" onclick="openConfirmModal('/mahasantri/{{ $m->id_mahasantri }}', '{{ e($m->nama_lengkap) }}')"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-rose-700 active:scale-95">
-                        <x-heroicon-s-trash class="h-4 w-4" />
-                        Hapus
-                    </button>
+                   @if(auth()->user()->jabatan === 'Panitia')
+    <button type="button" onclick="editModal.showModal()"
+        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
+        <x-heroicon-s-pencil-square class="h-4 w-4" />
+        Edit
+    </button>
+    <button type="button" onclick="openConfirmModal('/mahasantri/{{ $mahasantri->id_mahasantri }}', '{{ e($mahasantri->nama_lengkap) }}')"
+        class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-rose-700 active:scale-95">
+        <x-heroicon-s-trash class="h-4 w-4" />
+        Hapus
+    </button>
+@endif
                 </div>
             </div>
 

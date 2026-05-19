@@ -27,6 +27,7 @@ class User extends Authenticatable
         'tempat_lahir',
         'tanggal_lahir',
         'status',
+        'gelombang',
         'tanggal_daftar',
     ];
     /** @use HasFactory<UserFactory> */

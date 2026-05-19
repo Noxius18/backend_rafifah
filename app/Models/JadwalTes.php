@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\HasilTes as Hasil;
+use App\Models\User as Mahasantri;
 
 class JadwalTes extends Model
 {
@@ -14,11 +15,11 @@ class JadwalTes extends Model
     public $timestamps = false;
     protected $fillable = [
         'id_jadwal',
-        'periode',
-        'keterangan',
+        'id_mahasantri',
         'tanggal',
+        'jam',
         'link_zoom',
-        'pic',
+        'penanggung_jawab',
     ];
 
     public function hasilTes() {
@@ -29,7 +30,11 @@ class JadwalTes extends Model
         return $this->hasMany(Penguji::class, 'id_jadwal', 'id_jadwal');
     }
 
-    public function picPanitia() {
-        return $this->belongsTo(Panitia::class, 'pic', 'id_panitia');
+    public function penanggungJawab() {
+        return $this->belongsTo(Panitia::class, 'penanggung_jawab', 'id_panitia');
+    }
+
+    public function mahasantri() {
+        return $this->belongsTo(Mahasantri::class, 'id_mahasantri', 'id_mahasantri');
     }
 }

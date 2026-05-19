@@ -13,7 +13,6 @@
         .section { margin-bottom: 22px; }
         .section h2 { font-size: 14px; color: #065f46; border-bottom: 2px solid #a7f3d0; padding-bottom: 5px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* ── Tabel Ringkasan ── */
         table.summary { width: 100%; border-collapse: collapse; }
         table.summary td { padding: 8px 12px; border: 1px solid #d1d5db; font-size: 13px; }
         table.summary .label { background: #f0fdf4; font-weight: 600; color: #065f46; width: 25%; }
@@ -23,7 +22,6 @@
         table.summary .value-amber { color: #d97706; }
         table.summary .value-slate { color: #475569; }
 
-        /* ── Tabel Detail ── */
         table.detail { width: 100%; border-collapse: collapse; margin-top: 6px; }
         table.detail th { background: #065f46; color: #fff; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
         table.detail th:first-child { text-align: left; }
@@ -42,7 +40,6 @@
         <p>Dicetak: {{ $date }}</p>
     </div>
 
-    {{-- Bagian 1: Ringkasan Umum --}}
     <div class="section">
         <h2>Ringkasan Umum</h2>
         <table class="summary">
@@ -67,14 +64,13 @@
         </table>
     </div>
 
-    {{-- Bagian 2: Detail Per Jadwal --}}
     <div class="section">
         <h2>Detail Per Jadwal Tes</h2>
         <table class="detail">
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Jadwal Tes</th>
+                    <th>Gelombang</th>
                     <th>Tanggal</th>
                     <th>Total</th>
                     <th>Lulus</th>
@@ -87,7 +83,7 @@
                 @forelse ($perJadwal as $index => $pj)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $pj['jadwal']->periode }}</td>
+                        <td>{{ $pj['jadwal']->mahasantri->gelombang ?? '-' }}</td>
                         <td>{{ \Carbon\Carbon::parse($pj['jadwal']->tanggal)->format('d/m/Y') }}</td>
                         <td>{{ $pj['total'] }}</td>
                         <td style="color: #059669; font-weight: 700;">{{ $pj['lulus'] }}</td>

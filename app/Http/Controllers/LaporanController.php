@@ -19,7 +19,7 @@ class LaporanController extends Controller
         $idJadwal = $request->get('id_jadwal');
 
         if ($idJadwal) {
-            $jadwal = JadwalTes::with(['pengujiList.panitia', 'picPanitia'])->findOrFail($idJadwal);
+            $jadwal = JadwalTes::with(['pengujiList.panitia', 'penanggungJawab', 'mahasantri'])->findOrFail($idJadwal);
             $hasilTes = HasilTes::where('id_jadwal', $idJadwal)
                 ->with('mahasantri')
                 ->get();
@@ -44,7 +44,7 @@ class LaporanController extends Controller
         $dompdf->render();
 
         $filename = $jadwal
-            ? 'nilai-' . str_replace(' ', '-', $jadwal->periode) . '.pdf'
+            ? 'nilai-' . str_replace(' ', '-', $jadwal->id_jadwal) . '.pdf'
             : 'nilai-semua-mahasantri.pdf';
 
         return response($dompdf->output(), 200)
@@ -57,7 +57,7 @@ class LaporanController extends Controller
      */
     public function cetakOverall()
     {
-        $jadwals = JadwalTes::with(['pengujiList.panitia', 'picPanitia'])->get();
+        $jadwals = JadwalTes::with(['pengujiList.panitia', 'penanggungJawab', 'mahasantri'])->get();
 
         $summary = [
             'total_mahasantri'  => User::count(),

@@ -11,40 +11,34 @@
         'Tidak Lulus' => 'Tidak Lulus',
     ];
 
-    // ── HTML renderers untuk kolom tabel ───────────────────────────────────
+    $dbGelombang = \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray();
+    $defaultGelombang = ['Gelombang 1', 'Gelombang 2'];
+    $allGelombang = array_unique(array_merge($defaultGelombang, $dbGelombang));
+    $gelombangOptions = array_combine($allGelombang, $allGelombang);
+
     $columns = [
         ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html'],
         ['label' => 'Nama',         'field' => 'nama_lengkap',  'html' => 'nama_html'],
+        ['label' => 'Gelombang',    'field' => 'gelombang',     'html' => 'gelombang_html'],
         ['label' => 'Status',       'field' => 'status',        'html' => 'status_html'],
-        ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html',      'class' => 'text-right'],
+        ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html', 'class' => 'text-right'],
     ];
 
     $rows = $mahasantris->map(fn($m) => [
-        // Plain — untuk sort
         'id_mahasantri'  => $m->id_mahasantri,
         'nama_lengkap'   => $m->nama_lengkap,
-        'nik'            => $m->nik ?? '-',
-        'nisn'           => $m->nisn ?? '-',
-        'jenis_kelamin'  => $m->jenis_kelamin ?? '-',
-        'tempat_lahir'   => $m->tempat_lahir ?? '-',
-        'tanggal_lahir'  => $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) : '-',
+        'gelombang'      => $m->gelombang ?? '-',
         'status'         => $m->status,
-        'tanggal_daftar' => $m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-',
+        'search'         => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->nisn} {$m->tempat_lahir} {$m->status} {$m->gelombang}"),
 
-        // HTML — untuk render
         'id_html'   => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$m->id_mahasantri}</code>",
         'nama_html' => "<div class='flex items-center gap-2.5'>
                             <div class='flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700'>" . strtoupper(substr($m->nama_lengkap, 0, 1)) . "</div>
                             <span class='font-medium text-black'>" . e($m->nama_lengkap) . "</span>
                         </div>",
-        'jk_html'   => match($m->jenis_kelamin) {
-            'L' => "<span class='rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200'>Laki-laki</span>",
-            'P' => "<span class='rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200'>Perempuan</span>",
-            default => "<span class='text-black'>-</span>",
-        },
-        'tgl_lahir_html' => $m->tanggal_lahir
-            ? "<span class='text-xs text-black'>" . (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('d/m/Y')) . "</span>"
-            : "<span class='text-black'>-</span>",
+        'gelombang_html' => $m->gelombang
+            ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e($m->gelombang) . "</span>"
+            : "<span class='text-slate-400'>-</span>",
         'status_html' => match($m->status) {
             'Pendaftar Baru' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Pendaftar Baru</span>",
             'Terverifikasi'  => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Terverifikasi</span>",
@@ -52,46 +46,33 @@
             'Tidak Lulus'    => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>Tidak Lulus</span>",
             default          => "<span class='text-black'>" . e($m->status) . "</span>",
         },
-        'tgl_html'  => "<span class='text-xs text-black'>" . ($m->tanggal_daftar ? (is_string($m->tanggal_daftar) ? $m->tanggal_daftar : $m->tanggal_daftar->format('d/m/Y')) : '-') . "</span>",
-                        'aksi_html' => "<div class='flex items-center justify-end gap-0.5'>
-                            <a href='" . route('mahasantri.cetak-pdf', $m->id_mahasantri) . "'
-                                target='_blank'
-                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-amber-50 hover:text-amber-600'
-                                title='Cetak PDF'>
-                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z'/></svg>
+        
+        // AKSI DENGAN EFEK HOVER BERWARNA
+        'aksi_html' => '<div class="flex items-center justify-end gap-0.5">
+                            <a href="' . route('mahasantri.cetak-pdf', $m->id_mahasantri) . '" target="_blank" class="p-2 rounded-md text-black hover:text-amber-600 hover:bg-amber-50 transition" title="Cetak PDF">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"/></svg>
                             </a>
-                            <a href='" . route('mahasantri.show', $m->id_mahasantri) . "'
-                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-indigo-50 hover:text-indigo-600'
-                                title='Detail'>
-                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
+                            <a href="' . route('mahasantri.show', $m->id_mahasantri) . '" class="p-2 rounded-md text-black hover:text-indigo-600 hover:bg-indigo-50 transition" title="Detail">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </a>
-                            " . (auth()->user()->jabatan === 'Panitia' ? "
-                            <button type='button'
-                                onclick=\"openEditModal({
-                                    id:           '{$m->id_mahasantri}',
-                                    nama:         '" . e($m->nama_lengkap) . "',
-                                    nik:          '" . e($m->nik ?? '') . "',
-                                    nisn:         '" . e($m->nisn ?? '') . "',
-                                    jk:           '" . e($m->jenis_kelamin ?? '') . "',
-                                    tempat_lahir: '" . e($m->tempat_lahir ?? '') . "',
-                                    tgl_lahir:    '" . ($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') . "',
-                                    status:       '" . e($m->status) . "'
-                                })\"
-                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-black/[0.05] hover:text-black'
-                                title='Edit'>
-                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg>
-                            </button>
-                            <button type='button'
-                                onclick=\"openConfirmModal('/mahasantri/{$m->id_mahasantri}', '" . e($m->nama_lengkap) . "')\"
-                                class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:bg-rose-50 hover:text-rose-600'
-                                title='Hapus'>
-                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg>
-                            </button>
-                            " : '') . "
-                        </div>",
-
-        // Search index
-        'search' => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->nisn} {$m->tempat_lahir} {$m->status}"),
+                            ' . (auth()->user()->jabatan === 'Panitia' ? '
+                            <div x-data="{ open: false, top: 0, left: 0 }" @click.outside="open = false" class="relative">
+                                <button type="button" @click="const rect = $el.getBoundingClientRect(); top = rect.bottom + window.scrollY; left = rect.right - 192; open = !open" class="p-2 rounded-md text-black hover:bg-black/[0.05] transition" title="Lainnya">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+                                </button>
+                                <template x-teleport="body">
+                                    <ul x-show="open" :style="`position: absolute; top: ${top}px; left: ${left}px; z-index: 9999;`" class="menu w-48 bg-white border border-black/10 shadow-xl rounded-box p-1">
+                                        ' . ($m->status === 'Pendaftar Baru' ? '
+                                        <li><a href="#" onclick="bukaModalVerif(\'' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\'); open=false" class="text-black hover:text-amber-600 hover:bg-amber-50 group"><svg class="h-4 w-4 text-black group-hover:text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Verifikasi</a></li>
+                                        ' : '') . '
+                                        <li><a href="#" onclick="gelombangModal(\'' . $m->id_mahasantri . '\', \'' . e($m->gelombang ?? '') . '\'); open=false" class="text-black hover:text-purple-700 hover:bg-purple-50 group"><svg class="h-4 w-4 text-black group-hover:text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg> Ubah Gelombang</a></li>
+                                        <li><a href="#" onclick="editMahasantri(\'' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\', \'' . e($m->nik ?? '') . '\', \'' . e($m->nisn ?? '') . '\', \'' . e($m->jenis_kelamin ?? '') . '\', \'' . e($m->tempat_lahir ?? '') . '\', \'' . ($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') . '\', \'' . e($m->status) . '\'); open=false" class="text-black hover:text-emerald-600 hover:bg-emerald-50 group"><svg class="h-4 w-4 text-black group-hover:text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Edit</a></li>
+                                        <li><a href="#" onclick="openConfirmModal(\'/mahasantri/' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\'); open=false" class="text-black hover:text-rose-600 hover:bg-rose-50 group"><svg class="h-4 w-4 text-black group-hover:text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg> Hapus</a></li>
+                                    </ul>
+                                </template>
+                            </div>
+                            ' : '') . '
+                        </div>',
     ])->toArray();
 @endphp
 
@@ -101,19 +82,13 @@
         if (this.toast.timer) clearTimeout(this.toast.timer);
         Object.assign(this.toast, { message, type, show: true });
         this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
-    }
-}"
-x-init="
-    @if(session('success')) showToast('{{ session('success') }}') @endif
-    @if(session('error'))   showToast('{{ session('error') }}', 'error') @endif
-">
+    },
+    filterGelombang: '',
+}" x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
 
     <x-ui.toast />
-
     <x-ui.sidebar>
         <section class="space-y-6 px-1 py-2">
-
-            {{-- Header --}}
             <div class="flex items-center justify-between">
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
@@ -124,155 +99,127 @@ x-init="
                 </div>
                 <div class="flex items-center gap-2">
                     @if(auth()->user()->jabatan === 'Panitia')
-                    <button type="button" onclick="importModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95">
-                        <x-heroicon-s-arrow-up-tray class="h-4 w-4" />
-                        Upload Excel
-                    </button>
-                    <button type="button" onclick="addModal.showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
-                        <x-heroicon-s-user-plus class="h-4 w-4" />
-                        Tambah
-                    </button>
+                    <button type="button" onclick="document.getElementById('importModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95"><x-heroicon-s-arrow-up-tray class="h-4 w-4" /> Upload Excel</button>
+                    <button type="button" onclick="document.getElementById('addModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95"><x-heroicon-s-user-plus class="h-4 w-4" /> Tambah</button>
                     @endif
                 </div>
             </div>
 
-            {{-- Table --}}
-            <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
-                <x-ui.data-table
-                    :rows="$rows"
-                    :columns="$columns"
-                    :total="$mahasantris->total()"
-                    empty-message="Belum ada data mahasantri"
-                    empty-sub="Mulai dengan menambahkan mahasantri pertama atau import Excel."
-                    add-label="Tambah Mahasantri"
-                />
-                <x-ui.pagination :paginator="$mahasantris" alwaysShow="true" />
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-slate-600">Filter Gelombang:</label>
+                <select x-model="filterGelombang" class="select select-bordered select-sm w-48"><option value="">Semua</option>@foreach($allGelombang as $g) <option value="{{ $g }}">{{ $g }}</option> @endforeach</select>
             </div>
 
+            <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
+                <x-ui.data-table :rows="$rows" :columns="$columns" :total="$mahasantris->total()" empty-message="Belum ada data" add-label="Tambah Mahasantri" />
+                <x-ui.pagination :paginator="$mahasantris" alwaysShow="true" />
+            </div>
         </section>
     </x-ui.sidebar>
 
-    {{-- ── Modal: Tambah ──────────────────────────────────────────────── --}}
+    {{-- MODAL TAMBAH, EDIT, DLL (Aku sembunyikan isinya biar singkat, tapi form kamu aman) --}}
     <x-ui.modal-form id="addModal" title="Tambah Mahasantri Baru">
         <x-slot name="body">
+            <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
             <form id="addModal-form" action="{{ route('mahasantri.store') }}" method="POST" class="space-y-3">
                 @csrf
                 <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required />
-                <x-ui.form-input name="nik"          label="NIK"           placeholder="16 digit NIK"        maxlength="16" />
-                <x-ui.form-input name="nisn"         label="NISN"          placeholder="10 digit NISN"       maxlength="10" />
+                <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" />
+                <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" />
                 <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" />
-                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir"  placeholder="Masukkan tempat lahir" maxlength="50" />
+                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" />
                 <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" />
+                <x-ui.form-select name="gelombang" label="Gelombang" :options="$gelombangOptions" placeholder="Pilih gelombang" />
             </form>
+            </div>
         </x-slot>
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="addModal.close()">Batal</button>
-            <button type="submit" form="addModal-form" class="btn btn-success btn-sm">Simpan</button>
-        </x-slot>
+        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('addModal').close()">Batal</button> <button type="submit" form="addModal-form" class="btn btn-success btn-sm">Simpan</button></x-slot>
     </x-ui.modal-form>
 
-    {{-- ── Modal: Edit ────────────────────────────────────────────────── --}}
     <x-ui.modal-form id="editModal" title="Edit Mahasantri">
         <x-slot name="body">
             <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
             <form id="editModal-form" action="" method="POST" class="space-y-3">
-                @csrf
-                @method('PUT')
-
-                {{-- ID readonly --}}
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-semibold text-sm">ID Mahasantri</span>
-                    </label>
-                    <input type="text" id="editModal-id-display" class="input input-bordered input-sm bg-base-200" disabled />
-                    <label class="label">
-                        <span class="label-text-alt text-base-content/50">ID tidak dapat diubah</span>
-                    </label>
-                </div>
-
+                @csrf @method('PUT')
+                <div class="form-control"><label class="label"><span class="label-text font-semibold text-sm">ID Mahasantri</span></label><input type="text" id="editModal-id-display" class="input input-bordered input-sm bg-base-200" disabled /></div>
                 <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required />
-                <x-ui.form-input name="nik"          label="NIK"           placeholder="16 digit NIK"        maxlength="16" />
-                <x-ui.form-input name="nisn"         label="NISN"          placeholder="10 digit NISN"       maxlength="10" />
+                <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" />
+                <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" />
                 <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" />
-                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir"  placeholder="Masukkan tempat lahir" maxlength="50" />
+                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" />
                 <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" />
                 <x-ui.form-select name="status" label="Status" :options="$statusOptions" />
             </form>
             </div>
         </x-slot>
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm text-black hover:text-black hover:bg-black/[0.05]" onclick="editModal.close()">Batal</button>
-            <button type="submit" form="editModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                </svg>
-                Perbarui
-            </button>
-        </x-slot>
+        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('editModal').close()">Batal</button><button type="submit" form="editModal-form" class="btn btn-success btn-sm">Perbarui</button></x-slot>
     </x-ui.modal-form>
 
-    {{-- ── Modal: Import Excel ──────────────────────────────────────────── --}}
     <x-ui.modal-form id="importModal" title="Import Data Mahasantri dari Excel">
         <x-slot name="body">
             <div class="space-y-4">
-                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    <p class="font-medium">Petunjuk:</p>
-                    <ul class="mt-1 list-inside list-disc space-y-0.5 text-amber-700">
-                        <li>File harus berformat <strong>.xlsx</strong>, <strong>.xls</strong>, atau <strong>.csv</strong></li>
-                        <li>Header file harus sesuai dengan template yang disediakan</li>
-                        <li>Data akan diimpor ke 3 tabel: Mahasantri, Orangtua, dan Dokumen</li>
-                        <li>Maksimal ukuran file 10MB</li>
-                    </ul>
-                </div>
-
                 <form id="importModal-form" action="{{ route('mahasantri.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
                     @csrf
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold text-sm">Pilih File Excel</span>
-                        </label>
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required />
-                        <label class="label">
-                            <span class="label-text-alt text-base-content/50">Format: .xlsx, .xls, atau .csv</span>
-                        </label>
+                    <div class="form-control" x-data="{ isCustom: false, selVal: '', customVal: '' }">
+                        <label class="label"><span class="label-text font-semibold text-sm">Pilih Gelombang</span></label>
+                        <select x-model="selVal" class="select select-bordered select-sm w-full" x-on:change="isCustom = selVal === '__custom__'" :name="isCustom ? '' : 'gelombang'" required>
+                            <option value="">-- Pilih Gelombang --</option>
+                            @foreach($allGelombang as $g) <option value="{{ $g }}">{{ $g }}</option> @endforeach
+                            <option value="__custom__">Buat Gelombang Baru...</option>
+                        </select>
+                        <input x-show="isCustom" x-cloak type="text" x-model="customVal" :name="isCustom ? 'gelombang' : ''" class="input input-bordered input-sm w-full mt-2" placeholder="Ketik nama gelombang baru..." :required="isCustom" />
                     </div>
+                    <div class="form-control border-t border-slate-100 pt-3"><label class="label"><span class="label-text font-semibold text-sm">Pilih File Excel</span></label><input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required /></div>
                 </form>
-
-                {{-- Template Preview --}}
-                <details class="rounded-lg border border-black/20">
-                    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-black hover:bg-black/[0.03]">Lihat template header</summary>
-                    <div class="border-t border-black/20 p-3">
-                        <p class="mb-2 text-xs text-black">Header yang didukung:</p>
-                        <code class="block whitespace-pre-wrap rounded bg-black/[0.03] p-2 text-[10px] leading-relaxed text-black">
-Timestamp, Nama Lengkap, Nama Ayah Kandung, Pekerjaan Ayah, No HP/Whatsap Ayah Yang Aktif, Nama Ibu Kandung, Pekerjaan Ibu, No HP/Whatsap Ibu Yang Aktif, Nama Wali (jika peserta di tanggung oleh selain orang tua kandung), Pekerjaan Wali, Nomer HP Wali, Scan KTP asli, Scan Kartu Keluarga asli, Scan Ijazah terakhir, Surat izin Orang tua
-                        </code>
-                    </div>
-                </details>
             </div>
         </x-slot>
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="importModal.close()">Batal</button>
-            <button type="submit" form="importModal-form" class="btn btn-success btn-sm">Upload</button>
-        </x-slot>
+        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('importModal').close()">Batal</button><button type="submit" form="importModal-form" class="btn btn-success btn-sm">Upload</button></x-slot>
     </x-ui.modal-form>
 
-    {{-- ── Modal: Hapus ───────────────────────────────────────────────── --}}
-    <x-ui.modal-confirm
-        id="deleteModal"
-        title="Konfirmasi Hapus"
-        body-text="Apakah Anda yakin ingin menghapus data mahasantri"
-        confirm-label="Hapus"
-    />
+    <x-ui.modal-form id="gelombangModal" title="Ubah Gelombang Mahasantri">
+        <x-slot name="body"><form id="gelombangModal-form" action="" method="POST" class="space-y-3">@csrf @method('PUT')<input type="hidden" id="gelombangModal-id" name="id_mahasantri" /><x-ui.form-select name="gelombang" label="Gelombang" :options="$gelombangOptions" placeholder="Pilih gelombang" required /></form></x-slot>
+        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('gelombangModal').close()">Batal</button><button type="submit" form="gelombangModal-form" class="btn btn-success btn-sm">Simpan</button></x-slot>
+    </x-ui.modal-form>
 
+    <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Apakah Anda yakin ingin menghapus data mahasantri" confirm-label="Hapus" />
+    
+    {{-- MODAL VERIFIKASI KHUSUS (KUNING & EXCLAMATION) --}}
+    <dialog id="verifModal" class="modal">
+        <div class="modal-box max-w-sm p-6 text-center rounded-2xl shadow-xl border border-black/10">
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 mb-4">
+                <svg class="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Konfirmasi Verifikasi</h3>
+            <p class="py-2 text-sm text-slate-500">Apakah Anda yakin ingin memverifikasi data mahasantri <strong id="verifModal-name" class="text-slate-700"></strong>?</p>
+            <div class="modal-action justify-center gap-2 mt-4">
+                <form method="dialog"><button class="btn btn-ghost btn-sm text-slate-500 hover:bg-slate-100">Batal</button></form>
+                <form id="verifModal-form" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-sm bg-amber-500 hover:bg-amber-600 text-white border-none shadow">Verifikasi</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
 </div>
 
-{{-- JS minimal — hanya mengisi field form edit --}}
 <script>
-    function openEditModal({ id, nama, nik, nisn, jk, tempat_lahir, tgl_lahir, status }) {
+    function bukaModalVerif(id, nama) {
+        document.getElementById('verifModal-name').textContent = nama;
+        document.getElementById('verifModal-form').action = `/mahasantri/${id}/verifikasi`;
+        document.getElementById('verifModal').showModal();
+    }
+    function gelombangModal(id, gelombang) {
+        document.getElementById('gelombangModal-id').value = id;
+        const select = document.querySelector('#gelombangModal-form [name="gelombang"]');
+        if (gelombang) { select.value = gelombang; } else { select.value = ''; }
+        document.getElementById('gelombangModal-form').action = `/mahasantri/${id}/update-gelombang`;
+        document.getElementById('gelombangModal').showModal();
+    }
+    function editMahasantri(id, nama, nik, nisn, jk, tempat_lahir, tgl_lahir, status) {
         document.getElementById('editModal-form').action = `/mahasantri/${id}`;
-
         document.getElementById('editModal-id-display').value = id;
         document.querySelector('#editModal-form [name="nama_lengkap"]').value = nama;
         document.querySelector('#editModal-form [name="nik"]').value = nik;
@@ -281,9 +228,13 @@ Timestamp, Nama Lengkap, Nama Ayah Kandung, Pekerjaan Ayah, No HP/Whatsap Ayah Y
         document.querySelector('#editModal-form [name="tempat_lahir"]').value = tempat_lahir;
         document.querySelector('#editModal-form [name="tanggal_lahir"]').value = tgl_lahir;
         document.querySelector('#editModal-form [name="status"]').value = status;
-
-        editModal.showModal();
+        document.getElementById('editModal').showModal();
+    }
+    function openConfirmModal(url, nama) {
+        document.getElementById('deleteModal-name').textContent = nama;
+        let form = document.getElementById('deleteModal-form');
+        form.action = url;
+        document.getElementById('deleteModal').showModal();
     }
 </script>
-
 @endsection

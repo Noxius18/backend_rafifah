@@ -9,7 +9,6 @@
         .header h1 { font-size: 20px; color: #065f46; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
         .header p { font-size: 10px; color: #94a3b8; margin: 2px 0; }
 
-        /* ── Card Data Mahasantri ── */
         .card { border: 1.5px solid #d1d5db; border-radius: 8px; margin-bottom: 18px; overflow: hidden; }
         .card-header { background: #065f46; color: #fff; padding: 8px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .card-body { padding: 14px; }
@@ -17,9 +16,7 @@
         .info-table td { padding: 5px 8px; font-size: 13px; }
         .info-table .label { color: #64748b; width: 140px; font-weight: 600; }
         .info-table .value { font-weight: 700; color: #1e293b; }
-        .info-table .value-sep { padding: 0 4px; color: #94a3b8; }
 
-        /* ── Card Hasil Tes ── */
         .nilai-grid { display: flex; gap: 12px; margin-top: 10px; }
         .nilai-item { flex: 1; text-align: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 6px; background: #f8fafc; }
         .nilai-item .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -46,7 +43,6 @@
         <p>Dicetak: {{ $date }}</p>
     </div>
 
-    {{-- Card: Data Mahasantri --}}
     <div class="card">
         <div class="card-header">Data Mahasantri</div>
         <div class="card-body">
@@ -67,41 +63,32 @@
         </div>
     </div>
 
-    {{-- Card: Hasil Tes --}}
     @forelse ($hasilTes as $h)
     <div class="card">
-        <div class="card-header">Hasil Tes — {{ $h->jadwalTes->periode ?? 'Tes' }}</div>
+        <div class="card-header">Hasil Tes — {{ $h->jadwalTes?->mahasantri?->nama_lengkap ?? 'Tes' }}</div>
         <div class="card-body">
             <table class="info-table">
                 <tr>
-                    <td class="label">Jadwal Tes</td>
-                    <td class="value">{{ $h->jadwalTes->periode ?? '-' }}</td>
+                    <td class="label">Mahasantri</td>
+                    <td class="value">{{ $h->jadwalTes?->mahasantri?->nama_lengkap ?? '-' }}</td>
                     <td class="label">Tanggal</td>
-                    <td class="value">{{ $h->jadwalTes->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
+                    <td class="value">{{ $h->jadwalTes?->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Jam</td>
+                    <td class="value">{{ $h->jadwalTes?->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
+                    <td class="label">Gelombang</td>
+                    <td class="value">{{ $h->jadwalTes?->mahasantri?->gelombang ?? '-' }}</td>
                 </tr>
             </table>
 
-            {{-- Grid Nilai --}}
             <div class="nilai-grid">
-                <div class="nilai-item">
-                    <div class="label">Tajwid</div>
-                    <div class="value">{{ $h->nilai_tajwid ?? '-' }}</div>
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Tahsin</div>
-                    <div class="value">{{ $h->nilai_tahsin ?? '-' }}</div>
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Kelancaran</div>
-                    <div class="value">{{ $h->nilai_kelancaran ?? '-' }}</div>
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Wawancara</div>
-                    <div class="value">{{ $h->nilai_wawancara ?? '-' }}</div>
-                </div>
+                <div class="nilai-item"><div class="label">Tajwid</div><div class="value">{{ $h->nilai_tajwid ?? '-' }}</div></div>
+                <div class="nilai-item"><div class="label">Tahsin</div><div class="value">{{ $h->nilai_tahsin ?? '-' }}</div></div>
+                <div class="nilai-item"><div class="label">Kelancaran</div><div class="value">{{ $h->nilai_kelancaran ?? '-' }}</div></div>
+                <div class="nilai-item"><div class="label">Wawancara</div><div class="value">{{ $h->nilai_wawancara ?? '-' }}</div></div>
             </div>
 
-            {{-- Result --}}
             <div class="result-row">
                 <div class="result-item">
                     <div class="label">Total Nilai</div>
@@ -115,7 +102,6 @@
                 </div>
             </div>
 
-            {{-- Catatan --}}
             @if($h->catatan_penguji)
             <div class="catatan-box">
                 <div class="label">Catatan Penguji</div>
@@ -127,14 +113,10 @@
     @empty
     <div class="card">
         <div class="card-header">Hasil Tes</div>
-        <div class="card-body" style="text-align: center; padding: 30px; color: #94a3b8;">
-            Belum ada nilai untuk mahasantri ini.
-        </div>
+        <div class="card-body" style="text-align: center; padding: 30px; color: #94a3b8;">Belum ada nilai untuk mahasantri ini.</div>
     </div>
     @endforelse
 
-    <div class="footer">
-        <p>© {{ date('Y') }} Ma'had Rafifah Andalusia MQ — Sistem Manajemen Pendaftaran Santri Baru</p>
-    </div>
+    <div class="footer"><p>© {{ date('Y') }} Ma'had Rafifah Andalusia MQ — Sistem Manajemen Pendaftaran Santri Baru</p></div>
 </body>
 </html>

@@ -103,13 +103,13 @@
           </a>
         </li>
 
-        {{-- Jadwal Tes --}}
+        {{-- Seleksi & Penilaian --}}
         <li class="w-full">
           <a
-            href="{{ route('jadwal-tes.index') }}"
+            href="{{ route('seleksi.index') }}"
             x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
-            x-bind:title="collapsed ? 'Jadwal Tes' : ''"
-            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('jadwal-tes.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
+            x-bind:title="collapsed ? 'Seleksi & Penilaian' : ''"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('seleksi.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
           >
             <x-heroicon-s-pencil class="h-5 w-5 shrink-0" />
             <span
@@ -121,7 +121,7 @@
               x-transition:leave-start="opacity-100"
               x-transition:leave-end="opacity-0"
               class="whitespace-nowrap text-sm"
-            >Jadwal Tes</span>
+            >Seleksi & Penilaian</span>
           </a>
         </li>
 

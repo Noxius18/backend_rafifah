@@ -29,11 +29,14 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     Route::put('/mahasantri/{mahasantri}', [MahasantriController::class, 'update'])->name('mahasantri.update');
     Route::delete('/mahasantri/{mahasantri}', [MahasantriController::class, 'destroy'])->name('mahasantri.destroy');
     Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
+    Route::post('/mahasantri/{mahasantri}/verifikasi', [MahasantriController::class, 'verifikasi'])->name('mahasantri.verifikasi');
+    Route::put('/mahasantri/{mahasantri}/update-gelombang', [MahasantriController::class, 'updateGelombang'])->name('mahasantri.update-gelombang');
 
-    // Jadwal Tes – write ops
-    Route::post('/jadwal-tes', [JadwalTesController::class, 'store'])->name('jadwal-tes.store');
-    Route::put('/jadwal-tes/{jadwalTes}', [JadwalTesController::class, 'update'])->name('jadwal-tes.update');
-    Route::delete('/jadwal-tes/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('jadwal-tes.destroy');
+    // Seleksi (Jadwal Tes) – write ops
+    Route::post('/seleksi', [JadwalTesController::class, 'store'])->name('seleksi.store');
+    Route::put('/seleksi/{jadwalTes}', [JadwalTesController::class, 'update'])->name('seleksi.update');
+    Route::delete('/seleksi/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('seleksi.destroy');
+    Route::post('/seleksi/update-link-zoom', [JadwalTesController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
 
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
@@ -63,12 +66,12 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(funct
     Route::get('/berkas/{berkas}/preview', [MahasantriController::class, 'previewBerkas'])->name('berkas.preview');
     Route::get('/mahasantri/{mahasantri}/cetak-pdf', [MahasantriController::class, 'cetakPdf'])->name('mahasantri.cetak-pdf');
 
-    // Jadwal Tes – view only
-    Route::get('/jadwal-tes', [JadwalTesController::class, 'index'])->name('jadwal-tes.index');
-    Route::get('/jadwal-tes/{jadwalTes}/edit', [JadwalTesController::class, 'edit'])->name('jadwal-tes.edit');
+    // Seleksi (Jadwal Tes) – view only
+    Route::get('/seleksi', [JadwalTesController::class, 'index'])->name('seleksi.index');
+    Route::get('/seleksi/{jadwalTes}/edit', [JadwalTesController::class, 'edit'])->name('seleksi.edit');
 
     // Hasil Tes – view nilai per jadwal
-    Route::get('/jadwal-tes/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('jadwal-tes.nilai');
+    Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('seleksi.nilai');
 });
 
 // ──────────────────────────────────────────────

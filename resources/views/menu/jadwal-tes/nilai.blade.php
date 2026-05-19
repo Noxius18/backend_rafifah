@@ -118,11 +118,11 @@ x-init="
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
                     <div>
-                        <h1 class="text-xl font-semibold text-slate-800">Nilai — {{ $jadwalTes->periode }}</h1>
-                        <p class="text-sm text-slate-400">{{ $jadwalTes->keterangan }} • {{ \Carbon\Carbon::parse($jadwalTes->tanggal)->format('d F Y') }}</p>
+                        <h1 class="text-xl font-semibold text-slate-800">Nilai — {{ $jadwalTes->mahasantri?->nama_lengkap ?? 'Unknown' }}</h1>
+                        <p class="text-sm text-slate-400">{{ $jadwalTes->mahasantri?->id_mahasantri ?? '' }} &bull; {{ \Carbon\Carbon::parse($jadwalTes->tanggal)->format('d F Y') }} @if($jadwalTes->jam) &bull; {{ \Carbon\Carbon::parse($jadwalTes->jam)->format('H:i') }} @endif</p>
                     </div>
                 </div>
-                <a href="{{ route('jadwal-tes.index') }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+                <a href="{{ route('seleksi.index') }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
                     <x-heroicon-s-arrow-left class="h-4 w-4" />
                     Kembali
                 </a>
@@ -256,7 +256,7 @@ x-init="
         </section>
     </x-ui.sidebar>
 
-    {{-- ── Modal: Input/Edit Nilai ────────────────────────────────────── --}}
+    {{-- Modal: Input/Edit Nilai --}}
     <x-ui.modal id="nilaiModal" size="lg">
         <x-slot name="header">
             <div class="flex items-center gap-3">
@@ -358,7 +358,7 @@ x-init="
                 {{-- Kriteria Nilai --}}
                 <div class="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
                     <p class="font-medium">Kriteria Nilai:</p>
-                    <p>90-100: Sangat Baik • 80-89: Baik • 70-79: Cukup • <70: Tidak Lulus</p>
+                    <p>90-100: Sangat Baik &bull; 80-89: Baik &bull; 70-79: Cukup &bull; <70: Tidak Lulus</p>
                     <p class="mt-1">Jika ada nilai aspek <strong>70</strong>, status akan menjadi <strong>"Pertimbangan"</strong> dan perlu direview Pengawas.</p>
                 </div>
             </div>
@@ -375,7 +375,7 @@ x-init="
         </x-slot>
     </x-ui.modal>
 
-    {{-- ── Modal: Review Pertimbangan ─────────────────────────────────── --}}
+    {{-- Modal: Review Pertimbangan --}}
     <x-ui.modal id="reviewModal" size="sm">
         <x-slot name="header">
             <div class="flex items-center gap-3">
