@@ -25,10 +25,25 @@ class MahasantriController extends Controller
      */
     public function index()
     {
-        $mahasantris = User::with(['orangtuas', 'berkas'])->paginate(10);
+        $query = User::with(['orangtuas', 'berkas']);
+
+        // Filter gelombang berdasarkan prefix id_mahasantri
+        if ($gelombangFilter = request('gelombang')) {
+            $prefix = match ($gelombangFilter) {
+                '1' => date('y') . '01%', // 2601%
+                '2' => date('y') . '02%', // 2602%
+                default => null,
+            };
+            if ($prefix) {
+                $query->where('id_mahasantri', 'LIKE', $prefix);
+            }
+        }
+
+        $mahasantris = $query->paginate(10);
 
         return view('menu.mahasantri.index', [
-            'mahasantris' => $mahasantris
+            'mahasantris'     => $mahasantris,
+            'filterGelombang' => request('gelombang', ''),
         ]);
     }
 

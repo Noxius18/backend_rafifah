@@ -11,6 +11,12 @@
         'Tidak Lulus' => 'Tidak Lulus',
     ];
 
+    $tahun = date('y');
+    $gelombangList = [
+        ['value' => '1', 'label' => "Gelombang 1"],
+        ['value' => '2', 'label' => "Gelombang 2"],
+    ];
+
     $gelombangOptions = array_combine(
         array_unique(array_merge(
             ['Gelombang 1', 'Gelombang 2'],
@@ -99,6 +105,18 @@
                     <button type="button" onclick="document.getElementById('addModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95"><x-heroicon-s-user-plus class="h-4 w-4" /> Tambah</button>
                     @endif
                 </div>
+            </div>
+
+            {{-- Filter Chips Gelombang --}}
+            <div class="flex items-center gap-2">
+                <a href="{{ route('mahasantri.index') }}" class="rounded-lg px-3 py-1.5 text-xs font-medium transition {{ !$filterGelombang ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">Semua</a>
+                @foreach($gelombangList as $g)
+                    <a href="{{ route('mahasantri.index', array_filter(['gelombang' => $g['value'], 'page' => null])) }}"
+                       class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition {{ $filterGelombang === $g['value'] ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg>
+                        {{ $g['label'] }}
+                    </a>
+                @endforeach
             </div>
 
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
