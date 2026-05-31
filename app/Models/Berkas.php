@@ -61,6 +61,13 @@ class Berkas extends Model
      */
     public function getDownloadFilenameAttribute(): string
     {
+        // Untuk Pas Foto, deteksi extension dari file_path jika file sudah diunduh
+        if ($this->tipe_dokumen === 'Pas Foto' && $this->file_path) {
+            $extension = pathinfo($this->file_path, PATHINFO_EXTENSION);
+            if ($extension) {
+                return $this->id_berkas . '_' . $this->tipe_dokumen . '.' . $extension;
+            }
+        }
         return $this->id_berkas . '_' . $this->tipe_dokumen . '.pdf';
     }
 }

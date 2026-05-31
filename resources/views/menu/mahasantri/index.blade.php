@@ -11,15 +11,20 @@
         'Tidak Lulus' => 'Tidak Lulus',
     ];
 
-    $dbGelombang = \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray();
-    $defaultGelombang = ['Gelombang 1', 'Gelombang 2'];
-    $allGelombang = array_unique(array_merge($defaultGelombang, $dbGelombang));
-    $gelombangOptions = array_combine($allGelombang, $allGelombang);
+    $gelombangOptions = array_combine(
+        array_unique(array_merge(
+            ['Gelombang 1', 'Gelombang 2'],
+            \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray()
+        )),
+        array_unique(array_merge(
+            ['Gelombang 1', 'Gelombang 2'],
+            \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray()
+        ))
+    );
 
     $columns = [
         ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html'],
         ['label' => 'Nama',         'field' => 'nama_lengkap',  'html' => 'nama_html'],
-        ['label' => 'Gelombang',    'field' => 'gelombang',     'html' => 'gelombang_html'],
         ['label' => 'Status',       'field' => 'status',        'html' => 'status_html'],
         ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html', 'class' => 'text-right'],
     ];
@@ -27,18 +32,11 @@
     $rows = $mahasantris->map(fn($m) => [
         'id_mahasantri'  => $m->id_mahasantri,
         'nama_lengkap'   => $m->nama_lengkap,
-        'gelombang'      => $m->gelombang ?? '-',
         'status'         => $m->status,
-        'search'         => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->nisn} {$m->tempat_lahir} {$m->status} {$m->gelombang}"),
+        'search'         => strtolower("{$m->id_mahasantri} {$m->nama_lengkap} {$m->nik} {$m->nisn} {$m->tempat_lahir} {$m->status}"),
 
         'id_html'   => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$m->id_mahasantri}</code>",
-        'nama_html' => "<div class='flex items-center gap-2.5'>
-                            <div class='flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700'>" . strtoupper(substr($m->nama_lengkap, 0, 1)) . "</div>
-                            <span class='font-medium text-black'>" . e($m->nama_lengkap) . "</span>
-                        </div>",
-        'gelombang_html' => $m->gelombang
-            ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e($m->gelombang) . "</span>"
-            : "<span class='text-slate-400'>-</span>",
+        'nama_html' => "<span class='font-medium text-black'>" . e($m->nama_lengkap) . "</span>",
         'status_html' => match($m->status) {
             'Pendaftar Baru' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Pendaftar Baru</span>",
             'Terverifikasi'  => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Terverifikasi</span>",
@@ -65,7 +63,6 @@
                                         ' . ($m->status === 'Pendaftar Baru' ? '
                                         <li><a href="#" onclick="bukaModalVerif(\'' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\'); open=false" class="text-black hover:text-amber-600 hover:bg-amber-50 group"><svg class="h-4 w-4 text-black group-hover:text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Verifikasi</a></li>
                                         ' : '') . '
-                                        <li><a href="#" onclick="gelombangModal(\'' . $m->id_mahasantri . '\', \'' . e($m->gelombang ?? '') . '\'); open=false" class="text-black hover:text-purple-700 hover:bg-purple-50 group"><svg class="h-4 w-4 text-black group-hover:text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg> Ubah Gelombang</a></li>
                                         <li><a href="#" onclick="editMahasantri(\'' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\', \'' . e($m->nik ?? '') . '\', \'' . e($m->nisn ?? '') . '\', \'' . e($m->jenis_kelamin ?? '') . '\', \'' . e($m->tempat_lahir ?? '') . '\', \'' . ($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') . '\', \'' . e($m->status) . '\'); open=false" class="text-black hover:text-emerald-600 hover:bg-emerald-50 group"><svg class="h-4 w-4 text-black group-hover:text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Edit</a></li>
                                         <li><a href="#" onclick="openConfirmModal(\'/mahasantri/' . $m->id_mahasantri . '\', \'' . e($m->nama_lengkap) . '\'); open=false" class="text-black hover:text-rose-600 hover:bg-rose-50 group"><svg class="h-4 w-4 text-black group-hover:text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg> Hapus</a></li>
                                     </ul>
@@ -83,7 +80,6 @@
         Object.assign(this.toast, { message, type, show: true });
         this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
     },
-    filterGelombang: '',
 }" x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
 
     <x-ui.toast />
@@ -103,11 +99,6 @@
                     <button type="button" onclick="document.getElementById('addModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95"><x-heroicon-s-user-plus class="h-4 w-4" /> Tambah</button>
                     @endif
                 </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <label class="text-sm font-medium text-slate-600">Filter Gelombang:</label>
-                <select x-model="filterGelombang" class="select select-bordered select-sm w-48"><option value="">Semua</option>@foreach($allGelombang as $g) <option value="{{ $g }}">{{ $g }}</option> @endforeach</select>
             </div>
 
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
@@ -176,11 +167,6 @@
         <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('importModal').close()">Batal</button><button type="submit" form="importModal-form" class="btn btn-success btn-sm">Upload</button></x-slot>
     </x-ui.modal-form>
 
-    <x-ui.modal-form id="gelombangModal" title="Ubah Gelombang Mahasantri">
-        <x-slot name="body"><form id="gelombangModal-form" action="" method="POST" class="space-y-3">@csrf @method('PUT')<input type="hidden" id="gelombangModal-id" name="id_mahasantri" /><x-ui.form-select name="gelombang" label="Gelombang" :options="$gelombangOptions" placeholder="Pilih gelombang" required /></form></x-slot>
-        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('gelombangModal').close()">Batal</button><button type="submit" form="gelombangModal-form" class="btn btn-success btn-sm">Simpan</button></x-slot>
-    </x-ui.modal-form>
-
     <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Apakah Anda yakin ingin menghapus data mahasantri" confirm-label="Hapus" />
     
     {{-- MODAL VERIFIKASI KHUSUS (KUNING & EXCLAMATION) --}}
@@ -210,13 +196,6 @@
         document.getElementById('verifModal-name').textContent = nama;
         document.getElementById('verifModal-form').action = `/mahasantri/${id}/verifikasi`;
         document.getElementById('verifModal').showModal();
-    }
-    function gelombangModal(id, gelombang) {
-        document.getElementById('gelombangModal-id').value = id;
-        const select = document.querySelector('#gelombangModal-form [name="gelombang"]');
-        if (gelombang) { select.value = gelombang; } else { select.value = ''; }
-        document.getElementById('gelombangModal-form').action = `/mahasantri/${id}/update-gelombang`;
-        document.getElementById('gelombangModal').showModal();
     }
     function editMahasantri(id, nama, nik, nisn, jk, tempat_lahir, tgl_lahir, status) {
         document.getElementById('editModal-form').action = `/mahasantri/${id}`;

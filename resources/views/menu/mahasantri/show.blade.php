@@ -21,6 +21,7 @@
             'title'   => $b->tipe_dokumen,
             'id'      => $b->id_berkas,
             'isValid' => $b->is_valid,
+            'isImage' => $b->tipe_dokumen === 'Pas Foto',
         ])
         ->toJson();
 @endphp
@@ -36,9 +37,6 @@
     // ── Preview Dokumen (Iframe Modal) ─────────────────────────────────
     previewDocs: [],
     previewDocIndex: 0,
-    previewBerkasId: null,
-    previewIsValid: false,
-    previewTempIsValid: false,
     saving: false,
     // Field data mahasantri untuk diisi di modal preview
     previewNik: '',
@@ -57,12 +55,19 @@
     get previewTotal() {
         return this.previewDocs.length;
     },
+    get isImageDoc() {
+        return this.previewDoc.isImage || false;
+    },
+    get currentLocalIsValid() {
+        return this.previewDoc.localIsValid ?? this.previewDoc.isValid ?? false;
+    },
+    get hasChanges() {
+        return this.previewDocs.some(doc => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
+    },
     openPreview(docs, index, nik, nisn, tempatLahir, tanggalLahir) {
-        this.previewDocs = docs;
+        // Inisialisasi localIsValid untuk setiap dokumen jika belum ada
+        this.previewDocs = docs.map(d => ({ ...d, localIsValid: d.localIsValid ?? d.isValid }));
         this.previewDocIndex = index;
-        this.previewBerkasId = docs[index]?.id || null;
-        this.previewIsValid = docs[index]?.isValid || false;
-        this.previewTempIsValid = docs[index]?.isValid || false;
         this.previewNik = nik || '';
         this.previewNisn = nisn || '';
         this.previewTempatLahir = tempatLahir || '';
@@ -72,24 +77,13 @@
     prevDoc() {
         if (this.previewDocIndex > 0) {
             this.previewDocIndex--;
-            this.syncCurrentDoc();
         }
     },
     nextDoc() {
         if (this.previewDocIndex < this.previewDocs.length - 1) {
             this.previewDocIndex++;
-            this.syncCurrentDoc();
         }
     },
-    syncCurrentDoc() {
-        const doc = this.previewDocs[this.previewDocIndex];
-        if (doc) {
-            this.previewBerkasId = doc.id;
-            this.previewIsValid = doc.isValid;
-            this.previewTempIsValid = doc.isValid;
-        }
-    },
-
     // ── Retry Download ─────────────────────────────────────────────────
     async retryDownload(berkasId) {
         const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
@@ -113,41 +107,91 @@
         }
     },
 
-    // ── Toggle di dalam modal (hanya ubah state lokal) ─────────────────
+    // ── Toggle (simpan state ke doc.localIsValid) ──────────────────────
     togglePreviewStatus() {
-        this.previewTempIsValid = !this.previewTempIsValid;
+        const doc = this.previewDocs[this.previewDocIndex];
+        if (doc) {
+            doc.localIsValid = !(doc.localIsValid ?? doc.isValid ?? false);
+        }
     },
 
-    // ── Simpan perubahan status via AJAX lalu reload ───────────────────
+    // ── Simpan SEMUA perubahan sekaligus ───────────────────────────────
     async saveBerkasStatus() {
-        this.saving = true;
         const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        if (!csrfToken) { this.showToast('CSRF token tidak ditemukan', 'error'); return; }
+
+        // Filter dokumen yang berubah
+        const changed = this.previewDocs.filter(doc => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
+
+        if (changed.length === 0 && !this.previewNik && !this.previewNisn && !this.previewTempatLahir && !this.previewTanggalLahir) {
+            this.showToast('Tidak ada perubahan yang perlu disimpan', 'error');
+            return;
+        }
+
+        this.saving = true;
 
         try {
-            const res = await fetch(`/berkas/${this.previewBerkasId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_valid: this.previewTempIsValid,
-                    nik: this.previewNik || null,
-                    nisn: this.previewNisn || null,
-                    tempat_lahir: this.previewTempatLahir || null,
-                    tanggal_lahir: this.previewTanggalLahir || null,
-                }),
-            });
+            // Kirim semua perubahan secara paralel
+            const promises = [];
 
-            const data = await res.json();
+            // Loop setiap dokumen yang berubah
+            for (const doc of changed) {
+                const body = { is_valid: doc.localIsValid ?? false };
 
-            if (res.ok) {
-                this.showToast(data.message || 'Status berhasil diperbarui');
-                // Reload halaman untuk refresh data
+                // Data mahasantri hanya dikirim sekali (bersama dokumen pertama)
+                if (doc === changed[0]) {
+                    body.nik = this.previewNik || null;
+                    body.nisn = this.previewNisn || null;
+                    body.tempat_lahir = this.previewTempatLahir || null;
+                    body.tanggal_lahir = this.previewTanggalLahir || null;
+                }
+
+                promises.push(
+                    fetch(`/berkas/${doc.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(body),
+                    }).then(r => r.json())
+                );
+            }
+
+            // Jika tidak ada dokumen berubah tapi data mahasantri berubah
+            if (changed.length === 0) {
+                promises.push(
+                    fetch(`/berkas/${this.previewDocs[0]?.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            is_valid: this.previewDocs[0]?.isValid ?? false,
+                            nik: this.previewNik || null,
+                            nisn: this.previewNisn || null,
+                            tempat_lahir: this.previewTempatLahir || null,
+                            tanggal_lahir: this.previewTanggalLahir || null,
+                        }),
+                    }).then(r => r.json())
+                );
+            }
+
+            const results = await Promise.all(promises);
+            const allOk = results.every(r => r.message);
+
+            if (allOk) {
+                // Sinkronkan state lokal dengan server
+                for (const doc of changed) {
+                    doc.isValid = doc.localIsValid;
+                }
+                this.showToast('Semua perubahan berhasil disimpan');
                 setTimeout(() => window.location.reload(), 500);
             } else {
-                this.showToast(data.message || 'Gagal memperbarui status', 'error');
+                this.showToast('Beberapa perubahan gagal disimpan', 'error');
                 this.saving = false;
             }
         } catch (e) {
@@ -482,46 +526,28 @@ x-init="
         confirm-label="Hapus"
     />
 
-    {{-- ── Modal: Preview Dokumen (Iframe) ─────────────────────────────── --}}
+    {{-- ── Modal: Preview Dokumen ─────────────────────────────────── --}}
     <dialog id="previewModal" class="modal" onclick="if(event.target === this) this.close();">
         <div class="modal-box max-w-5xl w-full">
             {{-- Header: Judul + Toggle Status + Close --}}
             <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
                 <div class="flex items-center gap-3">
-                    {{-- Prev / Next Navigation --}}
-                    <template x-if="previewTotal > 1">
-                        <div class="flex items-center gap-1">
-                            <button type="button" @click="prevDoc" :disabled="previewDocIndex === 0"
-                                class="inline-flex items-center justify-center rounded-md p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                                :class="previewDocIndex > 0 ? 'hover:bg-slate-100 text-slate-600' : 'text-slate-300'">
-                                <x-heroicon-s-chevron-left class="h-5 w-5" />
-                            </button>
-                            <span class="text-xs font-medium text-slate-500 min-w-[4rem] text-center" x-text="`(${(previewDocIndex + 1)}/${previewTotal})`"></span>
-                            <button type="button" @click="nextDoc" :disabled="previewDocIndex === previewTotal - 1"
-                                class="inline-flex items-center justify-center rounded-md p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                                :class="previewDocIndex < previewTotal - 1 ? 'hover:bg-slate-100 text-slate-600' : 'text-slate-300'">
-                                <x-heroicon-s-chevron-right class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </template>
-                    <template x-if="previewTotal <= 1">
-                        <h3 class="text-lg font-semibold text-slate-800" x-text="previewTitle"></h3>
-                    </template>
+                    <h3 class="text-base font-semibold text-slate-800" x-text="previewTitle"></h3>
                     <div class="flex items-center gap-2">
                         @if(auth()->user()->jabatan === 'Panitia')
                         {{-- Toggle Switch (hanya Panitia) --}}
                         <button type="button"
                             @click="togglePreviewStatus()"
-                            :class="previewTempIsValid ? 'bg-emerald-500' : 'bg-gray-300'"
+                            :class="currentLocalIsValid ? 'bg-emerald-500' : 'bg-gray-300'"
                             class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                            <span :class="previewTempIsValid ? 'translate-x-5' : 'translate-x-0'"
+                            <span :class="currentLocalIsValid ? 'translate-x-5' : 'translate-x-0'"
                                 class="inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
                         </button>
                         @endif
                         {{-- Status Label --}}
-                        <span x-show="previewTempIsValid"
+                        <span x-show="currentLocalIsValid"
                             class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Terverifikasi</span>
-                        <span x-show="!previewTempIsValid"
+                        <span x-show="!currentLocalIsValid"
                             class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">Belum Verifikasi</span>
                     </div>
                 </div>
@@ -530,66 +556,113 @@ x-init="
                 </button>
             </div>
 
-            {{-- Iframe Preview --}}
-            <iframe
-                :src="previewUrl"
-                class="w-full rounded-lg border border-slate-200"
-                style="height: 60vh;"
-                frameborder="0"
-                allowfullscreen
-            ></iframe>
+            {{-- Grid 2 kolom: kiri = preview + carousel, kanan = form --}}
+            <div class="lg:grid lg:grid-cols-2 gap-4">
+                {{-- KIRI: Preview + Carousel --}}
+                <div class="flex flex-col">
+                    {{-- Preview Area: <img> untuk image, <iframe> untuk PDF --}}
+                    <template x-if="isImageDoc">
+                        <div class="flex items-center justify-center w-full rounded-lg border border-slate-200 bg-slate-50 p-4 min-h-[40vh]">
+                            <img :src="previewUrl" :alt="previewTitle" class="max-w-full max-h-[45vh] object-contain rounded shadow-sm" />
+                        </div>
+                    </template>
+                    <template x-if="!isImageDoc">
+                        <iframe
+                            :src="previewUrl"
+                            class="w-full rounded-lg border border-slate-200 min-h-[40vh]"
+                            frameborder="0"
+                            allowfullscreen
+                        ></iframe>
+                    </template>
 
-            @if(auth()->user()->jabatan === 'Panitia')
-            {{-- ── Form Data Mahasantri (Inline Edit) — hanya Panitia ───── --}}
-            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div class="mb-2 flex items-center gap-2">
-                    <x-heroicon-s-pencil class="h-4 w-4 text-slate-500" />
-                    <span class="text-sm font-semibold text-slate-700">Data Pribadi (edit langsung)</span>
-                    <span class="text-xs text-slate-400">Cocokkan dengan dokumen di atas</span>
+                    {{-- Carousel Thumbnails --}}
+                    <template x-if="previewTotal > 1">
+                        <div class="mt-3">
+                            <div class="flex items-center justify-center gap-2 flex-wrap">
+                                <template x-for="(doc, idx) in previewDocs" :key="doc.id">
+                                    <button type="button" @click="previewDocIndex = idx"
+                                        class="relative flex flex-col items-center gap-1 rounded-lg border-2 p-1.5 transition hover:bg-slate-50 min-w-[64px]"
+                                        :class="idx === previewDocIndex ? 'border-emerald-500 bg-emerald-50' : (doc.isValid !== doc.localIsValid ? 'border-amber-400 bg-amber-50' : 'border-slate-200')">
+                                        <template x-if="doc.isImage">
+                                            <img :src="doc.url" class="h-10 w-10 rounded object-cover" />
+                                        </template>
+                                        <template x-if="!doc.isImage">
+                                            <div class="flex h-10 w-10 items-center justify-center rounded bg-slate-100">
+                                                <x-heroicon-s-document-text class="h-5 w-5 text-slate-400" />
+                                            </div>
+                                        </template>
+                                        <span class="text-[10px] font-medium text-slate-600 text-center leading-tight" x-text="doc.title"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <div class="flex items-center justify-center gap-3 mt-2">
+                                <button type="button" @click="prevDoc" :disabled="previewDocIndex === 0"
+                                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                    :class="previewDocIndex > 0 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'text-slate-400'">
+                                    <x-heroicon-s-chevron-left class="h-3.5 w-3.5" />
+                                    Sebelumnya
+                                </button>
+                                <span class="text-xs font-medium text-slate-500 min-w-[3rem] text-center" x-text="`${previewDocIndex + 1} / ${previewTotal}`"></span>
+                                <button type="button" @click="nextDoc" :disabled="previewDocIndex === previewTotal - 1"
+                                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                    :class="previewDocIndex < previewTotal - 1 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'text-slate-400'">
+                                    Selanjutnya
+                                    <x-heroicon-s-chevron-right class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </template>
                 </div>
-                <div class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
-                    {{-- NIK --}}
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-0.5">NIK</label>
-                        <input type="text" x-model="previewNik" maxlength="16" placeholder="16 digit NIK"
-                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
-                    </div>
-                    {{-- NISN --}}
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-0.5">NISN</label>
-                        <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
-                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
-                    </div>
-                    {{-- Tempat Lahir --}}
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-0.5">Tempat Lahir</label>
-                        <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir"
-                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
-                    </div>
-                    {{-- Tanggal Lahir --}}
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-0.5">Tanggal Lahir</label>
-                        <input type="date" x-model="previewTanggalLahir"
-                            class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
-                    </div>
-                </div>
-            </div>
 
-            {{-- Footer: Tombol Simpan (hanya Panitia) --}}
-            <div class="mt-4 flex items-center justify-end">
-                <div class="flex items-center gap-2">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('previewModal').close()">
-                        Tutup
-                    </button>
-                    <button type="button" @click="saveBerkasStatus()"
-                        :disabled="saving"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span x-show="saving" class="loading loading-spinner loading-xs"></span>
-                        <span x-text="saving ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
-                    </button>
+                {{-- KANAN: Form Data Pribadi (hanya Panitia) --}}
+                @if(auth()->user()->jabatan === 'Panitia')
+                <div class="flex flex-col justify-between">
+                    <div>
+                        <div class="mb-3 flex items-center gap-2">
+                            <x-heroicon-s-pencil class="h-4 w-4 text-slate-500" />
+                            <span class="text-sm font-semibold text-slate-700">Data Pribadi</span>
+                            <span class="text-xs text-slate-400">Cocokkan dengan dokumen</span>
+                        </div>
+                        <div class="space-y-3">
+                            {{-- NIK --}}
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-0.5">NIK</label>
+                                <input type="text" x-model="previewNik" maxlength="16" placeholder="16 digit NIK"
+                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                            </div>
+                            {{-- NISN --}}
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-0.5">NISN</label>
+                                <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
+                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                            </div>
+                            {{-- Tempat Lahir --}}
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-0.5">Tempat Lahir</label>
+                                <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir"
+                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                            </div>
+                            {{-- Tanggal Lahir --}}
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-0.5">Tanggal Lahir</label>
+                                <input type="date" x-model="previewTanggalLahir"
+                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Tombol Simpan --}}
+                    <div class="mt-4 flex items-center justify-end border-t border-slate-100 pt-3">
+                        <button type="button" @click="saveBerkasStatus()"
+                            :disabled="saving"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="saving ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                        </button>
+                    </div>
                 </div>
+                @endif
             </div>
-            @endif
         </div>
         <form method="dialog" class="modal-backdrop">
             <button>close</button>

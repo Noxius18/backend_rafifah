@@ -315,8 +315,11 @@ class MahasantriController extends Controller
             abort(404, 'File tidak ditemukan di penyimpanan.');
         }
 
+        // Deteksi mime type asli file agar PDF tampil sebagai PDF dan image sebagai image
+        $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+
         return response()->file($fullPath, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . $berkas->download_filename . '"',
         ]);
     }
@@ -380,6 +383,24 @@ class MahasantriController extends Controller
 
         if (!empty($mahasantriData)) {
             $berkas->mahasantri()->update($mahasantriData);
+        }
+
+        // ── Auto-verifikasi: jika semua dokumen terverifikasi & data pribadi lengkap ──
+        $mahasantri = $berkas->mahasantri;
+        if ($mahasantri && $mahasantri->status === 'Pendaftar Baru') {
+            $allBerkasValid = $mahasantri->berkas()
+                ->where('download_status', 'success')
+                ->where('is_valid', false)
+                ->doesntExist(); // tidak ada berkas success yang belum terverifikasi
+
+            $dataLengkap = !empty($mahasantri->nik)
+                && !empty($mahasantri->nisn)
+                && !empty($mahasantri->tempat_lahir)
+                && !empty($mahasantri->tanggal_lahir);
+
+            if ($allBerkasValid && $dataLengkap) {
+                $mahasantri->update(['status' => 'Terverifikasi']);
+            }
         }
 
         if ($request->wantsJson()) {
