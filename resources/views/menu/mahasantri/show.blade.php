@@ -123,7 +123,7 @@
         // Filter dokumen yang berubah
         const changed = this.previewDocs.filter(doc => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
 
-        if (changed.length === 0 && !this.previewNik && !this.previewNisn && !this.previewTempatLahir && !this.previewTanggalLahir) {
+        if (changed.length === 0 && !this.previewNik && !this.previewNisn) {
             this.showToast('Tidak ada perubahan yang perlu disimpan', 'error');
             return;
         }
@@ -142,8 +142,6 @@
                 if (doc === changed[0]) {
                     body.nik = this.previewNik || null;
                     body.nisn = this.previewNisn || null;
-                    body.tempat_lahir = this.previewTempatLahir || null;
-                    body.tanggal_lahir = this.previewTanggalLahir || null;
                 }
 
                 promises.push(
@@ -160,7 +158,7 @@
             }
 
             // Jika tidak ada dokumen berubah tapi data mahasantri berubah
-            if (changed.length === 0) {
+            if (changed.length === 0 && (this.previewNik || this.previewNisn)) {
                 promises.push(
                     fetch(`/berkas/${this.previewDocs[0]?.id}`, {
                         method: 'PATCH',
@@ -173,8 +171,6 @@
                             is_valid: this.previewDocs[0]?.isValid ?? false,
                             nik: this.previewNik || null,
                             nisn: this.previewNisn || null,
-                            tempat_lahir: this.previewTempatLahir || null,
-                            tanggal_lahir: this.previewTanggalLahir || null,
                         }),
                     }).then(r => r.json())
                 );
@@ -636,17 +632,17 @@ x-init="
                                 <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
                                     class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
                             </div>
-                            {{-- Tempat Lahir --}}
+                            {{-- Tempat Lahir (readonly) --}}
                             <div>
                                 <label class="block text-xs font-medium text-slate-500 mb-0.5">Tempat Lahir</label>
-                                <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir"
-                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                                <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir" disabled
+                                    class="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-500 cursor-not-allowed">
                             </div>
-                            {{-- Tanggal Lahir --}}
+                            {{-- Tanggal Lahir (readonly) --}}
                             <div>
                                 <label class="block text-xs font-medium text-slate-500 mb-0.5">Tanggal Lahir</label>
-                                <input type="date" x-model="previewTanggalLahir"
-                                    class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                                <input type="date" x-model="previewTanggalLahir" disabled
+                                    class="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-500 cursor-not-allowed">
                             </div>
                         </div>
                     </div>
