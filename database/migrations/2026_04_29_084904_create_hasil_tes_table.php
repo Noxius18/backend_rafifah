@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('nilai_kelancaran')->nullable();
             $table->integer('nilai_wawancara')->nullable();
             $table->integer('total_nilai')->nullable();
-            $table->char('id_mahasantri', 5);
+            $table->char('id_mahasantri', 6);
             $table->char('id_jadwal', 5);
 
             $table->foreign('id_mahasantri')

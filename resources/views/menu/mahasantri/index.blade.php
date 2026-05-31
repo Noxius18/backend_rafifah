@@ -158,18 +158,18 @@
     <x-ui.modal-form id="importModal" title="Import Data Mahasantri dari Excel">
         <x-slot name="body">
             <div class="space-y-4">
+                <div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm text-sky-700">
+                    <div class="flex items-start gap-2">
+                        <x-heroicon-s-information-circle class="h-5 w-5 mt-0.5 shrink-0" />
+                        <div>
+                            <strong class="font-semibold">Gelombang otomatis</strong>
+                            <p class="mt-0.5 text-sky-600">Gelombang akan dideteksi otomatis berdasarkan tanggal daftar di file Excel. Pastikan tanggal daftar berada dalam rentang yang sudah dikonfigurasi.</p>
+                        </div>
+                    </div>
+                </div>
                 <form id="importModal-form" action="{{ route('mahasantri.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
                     @csrf
-                    <div class="form-control" x-data="{ isCustom: false, selVal: '', customVal: '' }">
-                        <label class="label"><span class="label-text font-semibold text-sm">Pilih Gelombang</span></label>
-                        <select x-model="selVal" class="select select-bordered select-sm w-full" x-on:change="isCustom = selVal === '__custom__'" :name="isCustom ? '' : 'gelombang'" required>
-                            <option value="">-- Pilih Gelombang --</option>
-                            @foreach($allGelombang as $g) <option value="{{ $g }}">{{ $g }}</option> @endforeach
-                            <option value="__custom__">Buat Gelombang Baru...</option>
-                        </select>
-                        <input x-show="isCustom" x-cloak type="text" x-model="customVal" :name="isCustom ? 'gelombang' : ''" class="input input-bordered input-sm w-full mt-2" placeholder="Ketik nama gelombang baru..." :required="isCustom" />
-                    </div>
-                    <div class="form-control border-t border-slate-100 pt-3"><label class="label"><span class="label-text font-semibold text-sm">Pilih File Excel</span></label><input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required /></div>
+                    <div class="form-control"><label class="label"><span class="label-text font-semibold text-sm">Pilih File Excel</span></label><input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required /></div>
                 </form>
             </div>
         </x-slot>

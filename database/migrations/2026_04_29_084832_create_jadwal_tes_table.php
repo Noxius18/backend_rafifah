@@ -15,7 +15,7 @@ return new class extends Migration
             $table->char('id_jadwal', 5)->primary();
             
             // Kolom baru sesuai restructure
-            $table->char('id_mahasantri', 5);
+            $table->char('id_mahasantri', 6);
             $table->date('tanggal');
             $table->time('jam')->nullable();
             $table->string('link_zoom')->nullable();

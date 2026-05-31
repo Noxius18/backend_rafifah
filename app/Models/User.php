@@ -59,4 +59,27 @@ class User extends Authenticatable
     }
 
     // TODO: Mungkin tambah relasi ke Panitia buat siapa panitia yang kelola salah satu data santri
+
+    /**
+     * Generate ID mahasantri dengan format: <2-digit-tahun><2-digit-gelombang><2-digit-nomor>
+     * Contoh: Gelombang 1 tahun 2026 → 260101, 260102, ...
+     *         Gelombang 2 tahun 2026 → 260201, 260202, ...
+     *
+     * Nomor urut reset per tahun (per prefix tahun+gelombang).
+     */
+    public static function generateId(string $tahun, int $nomorGelombang): string
+    {
+        $prefix = substr($tahun, -2) . str_pad($nomorGelombang, 2, '0', STR_PAD_LEFT);
+
+        $last = static::where('id_mahasantri', 'LIKE', $prefix . '%')
+            ->orderBy('id_mahasantri', 'desc')
+            ->first();
+
+        $urut = 1;
+        if ($last) {
+            $urut = (int) substr($last->id_mahasantri, 4) + 1;
+        }
+
+        return $prefix . str_pad($urut, 2, '0', STR_PAD_LEFT);
+    }
 }

@@ -69,18 +69,30 @@ class MahasantriController extends Controller
             'tanggal_lahir.date'    => 'Format tanggal lahir tidak valid.',
         ]);
 
-        $last = User::where('id_mahasantri', 'LIKE', 'MHS%')
-            ->orderBy('id_mahasantri', 'desc')
-            ->first();
-
-        $urut = 1;
-        if ($last) {
-            $urut = (int) substr($last->id_mahasantri, 3) + 1;
+        // Auto-detect gelombang jika tidak dipilih
+        $tanggalDaftar = now();
+        if (empty($validated['gelombang'])) {
+            $gelombang = $this->detectGelombang($tanggalDaftar);
+            if (!$gelombang) {
+                return redirect()->back()
+                    ->with('error', 'Tidak ada gelombang yang aktif untuk tanggal ini. Periksa konfigurasi gelombang.')
+                    ->withInput();
+            }
+            $validated['gelombang'] = $gelombang['nama'];
+            $nomorGelombang = $gelombang['nomor'];
+        } else {
+            // User pilih gelombang — cari nomor gelombang dari config
+            $nomorGelombang = $this->getNomorGelombangByNama($validated['gelombang']);
+            if (!$nomorGelombang) {
+                // Fallback: parse dari config atau default 1
+                $nomorGelombang = 1;
+            }
         }
 
-        $validated['id_mahasantri'] = 'MHS' . str_pad($urut, 2, '0', STR_PAD_LEFT);
+        $tahun = $tanggalDaftar->format('Y');
+        $validated['id_mahasantri'] = User::generateId($tahun, $nomorGelombang);
         $validated['status'] = 'Pendaftar Baru';
-        $validated['tanggal_daftar'] = now();
+        $validated['tanggal_daftar'] = $tanggalDaftar;
 
         User::create($validated);
 
@@ -389,21 +401,43 @@ class MahasantriController extends Controller
     }
 
     /**
-     * ── Helper: ambil nomor urut terakhir dari tabel ─────────────────────
-     * Dipanggil sekali sebelum loop import agar counter berjalan benar
-     * di dalam transaksi.
+     * ── Helper: detect gelombang dari tanggal ────────────────────────────
+     * Cari gelombang yang aktif berdasarkan tanggal daftar.
+     * Returns array{gelombang: string, nomor: int} atau null jika tidak cocok.
      */
-    private function getLastCounter(string $table, string $prefix, string $column): int
+    private function detectGelombang(Carbon $tanggal): ?array
     {
-        $last = DB::table($table)
-            ->where($column, 'LIKE', $prefix . '%')
-            ->orderBy($column, 'desc')
-            ->first();
+        $daftarGelombang = config('gelombang.gelombang', []);
 
-        if ($last) {
-            return (int) substr($last->$column, strlen($prefix)) + 1;
+        foreach ($daftarGelombang as $nomor => $config) {
+            $start = Carbon::parse($config['start'])->startOfDay();
+            $end   = Carbon::parse($config['end'])->endOfDay();
+
+            if ($tanggal->between($start, $end)) {
+                return [
+                    'nama'  => $config['nama'],
+                    'nomor' => (int) $nomor,
+                ];
+            }
         }
-        return 1;
+
+        return null;
+    }
+
+    /**
+     * ── Helper: cari nomor gelombang dari nama ───────────────────────────
+     */
+    private function getNomorGelombangByNama(string $nama): ?int
+    {
+        $daftarGelombang = config('gelombang.gelombang', []);
+
+        foreach ($daftarGelombang as $nomor => $config) {
+            if ($config['nama'] === $nama) {
+                return (int) $nomor;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -440,6 +474,47 @@ class MahasantriController extends Controller
     }
 
     /**
+     * ── Helper: parse serial number Excel ke date ──────────────────────────
+     */
+    private function parseExcelSerialNumber(mixed $value): ?Carbon
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        // Jika numeric (serial number Excel)
+        if (is_numeric($value)) {
+            // Excel serial number: day 1 = 1900-01-01 (dengan bug leap year 1900)
+            return Carbon::createFromFormat('Y-m-d', '1899-12-30')->addDays((int) $value);
+        }
+
+        // Jika string tanggal biasa
+        try {
+            return Carbon::parse(trim($value));
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * ── Helper: konversi jenis kelamin ─────────────────────────────────────
+     */
+    private function parseJenisKelamin(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        $value = trim(strtolower($value));
+
+        return match ($value) {
+            'l', 'laki-laki', 'laki laki', 'lakilaki' => 'L',
+            'p', 'perempuan'                          => 'P',
+            default                                   => null,
+        };
+    }
+
+    /**
      * Process Excel import
      */
     public function processImport(Request $request)
@@ -449,16 +524,12 @@ class MahasantriController extends Controller
         }
 
         $request->validate([
-            'file'      => 'required|file|mimes:xlsx,xls,csv|max:10240',
-            'gelombang' => 'required|string|max:20',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ], [
-            'file.required'      => 'File Excel wajib diupload.',
-            'file.mimes'         => 'File harus berformat Excel (xlsx, xls) atau CSV.',
-            'file.max'           => 'Ukuran file maksimal 10MB.',
-            'gelombang.required' => 'Pilih gelombang terlebih dahulu.',
+            'file.required' => 'File Excel wajib diupload.',
+            'file.mimes'    => 'File harus berformat Excel (xlsx, xls) atau CSV.',
+            'file.max'      => 'Ukuran file maksimal 10MB.',
         ]);
-
-        $gelombang = $request->input('gelombang');
 
         $file = $request->file('file');
         $spreadsheet = IOFactory::load($file->getPathname());
@@ -476,16 +547,18 @@ class MahasantriController extends Controller
 
         $imported = 0;
         $errors = [];
+        $allPendingBerkas = [];
 
         // ── Ambil counter awal sekali di luar transaksi ──────────────────
-        $counterMhs  = $this->getLastCounter('mahasantri', 'MHS', 'id_mahasantri');
-        $counterOrt  = $this->getLastCounter('orangtua',   'ORT', 'id_orangtua');
-        $counterDkm  = $this->getLastCounter('berkas',     'DKM', 'id_berkas');
+        $counterOrt  = DB::table('orangtua')->orderBy('id_orangtua', 'desc')->first();
+        $counterDkm  = DB::table('berkas')->orderBy('id_berkas', 'desc')->first();
+        $counterOrtVal  = $counterOrt ? (int) substr($counterOrt->id_orangtua, 3) + 1 : 1;
+        $counterDkmVal  = $counterDkm ? (int) substr($counterDkm->id_berkas, 3) + 1 : 1;
 
         DB::beginTransaction();
         try {
             foreach ($dataRows as $index => $row) {
-                $lineNumber = $index + 2; // +2 karena header baris 1, data mulai baris 2
+                $lineNumber = $index + 2;
 
                 // ── Buat associative array dari header ───────────────────
                 $data = [];
@@ -494,25 +567,40 @@ class MahasantriController extends Controller
                 }
 
                 try {
-                    // ── 1. Insert Mahasantri ──────────────────────────────
-                    $idMahasantri = 'MHS' . str_pad($counterMhs, 2, '0', STR_PAD_LEFT);
-
+                    // ── Parsing tanggal ──────────────────────────────────
                     $tanggalDaftar = $this->parseTanggal($data['Timestamp'] ?? $data['Cap waktu'] ?? null);
+                    if (!$tanggalDaftar) {
+                        $tanggalDaftar = now();
+                    }
 
+                    // ── Auto-detect gelombang ───────────────────────────
+                    $gelombangInfo = $this->detectGelombang($tanggalDaftar);
+                    if (!$gelombangInfo) {
+                        throw new \Exception("Tidak ada gelombang yang aktif untuk tanggal {$tanggalDaftar->format('Y-m-d')}. Periksa konfigurasi gelombang.");
+                    }
+
+                    $tahun = $tanggalDaftar->format('Y');
+                    $idMahasantri = User::generateId($tahun, $gelombangInfo['nomor']);
+
+                    // ── Parse jenis kelamin ─────────────────────────────
+                    $jenisKelamin = $this->parseJenisKelamin($data['Jenis Kelamin'] ?? null);
+
+                    // ── Parse tanggal lahir ─────────────────────────────
+                    $tanggalLahir = $this->parseExcelSerialNumber($data['Tanggal Lahir'] ?? null);
+
+                    // ── 1. Insert Mahasantri ──────────────────────────────
                     User::create([
                         'id_mahasantri'  => $idMahasantri,
                         'nama_lengkap'   => $data['Nama Lengkap'] ?? 'Tidak Diketahui',
-                        'nik'            => null,
-                        'nisn'           => null,
-                        'jenis_kelamin'  => null,
-                        'tempat_lahir'   => null,
-                        'tanggal_lahir'  => null,
+                        'nik'            => trim($data['NIK (Nomor Induk Keluarga)'] ?? '') ?: null,
+                        'nisn'           => trim($data['NISN (Nomor Induk Siswa Nasional)'] ?? '') ?: null,
+                        'jenis_kelamin'  => $jenisKelamin,
+                        'tempat_lahir'   => trim($data['Tempat Lahir'] ?? '') ?: null,
+                        'tanggal_lahir'  => $tanggalLahir ? $tanggalLahir->format('Y-m-d') : null,
                         'status'         => 'Pendaftar Baru',
-                        'gelombang'      => $gelombang,
+                        'gelombang'      => $gelombangInfo['nama'],
                         'tanggal_daftar' => $tanggalDaftar,
                     ]);
-
-                    $counterMhs++; // increment untuk row berikutnya
 
                     // ── 2. Insert Orangtua (Ayah, Ibu, [Wali]) ───────────
                     $orangtuaDefinitions = [];
@@ -545,8 +633,8 @@ class MahasantriController extends Controller
                     }
 
                     foreach ($orangtuaDefinitions as $ort) {
-                        $idOrt = 'ORT' . str_pad($counterOrt, 2, '0', STR_PAD_LEFT);
-                        $counterOrt++;
+                        $idOrt = 'ORT' . str_pad($counterOrtVal, 2, '0', STR_PAD_LEFT);
+                        $counterOrtVal++;
 
                         Orangtua::create([
                             'id_orangtua'   => $idOrt,
@@ -558,22 +646,23 @@ class MahasantriController extends Controller
                         ]);
                     }
 
-                    // ── 3. Insert Berkas (KTP, KK, Ijazah, Surat Izin) ──
+                    // ── 3. Insert Berkas (KTP, KK, Ijazah, Surat Izin, Pas Foto) ──
                     $berkasMapping = [
                         'Scan KTP asli'                        => 'KTP',
                         'Scan Kartu Keluarga asli'             => 'KK',
                         'Scan Ijazah terakhir'                 => 'Ijazah',
                         'Surat izin Orang tua'                 => 'Surat Izin Orangtua',
+                        'Pas Foto'                             => 'Pas Foto',
                     ];
 
                     foreach ($berkasMapping as $excelColumn => $tipeDokumen) {
                         $urlValue = trim($data[$excelColumn] ?? '');
 
                         if (!empty($urlValue)) {
-                            $idDkm = 'DKM' . str_pad($counterDkm, 2, '0', STR_PAD_LEFT);
-                            $counterDkm++;
+                            $idDkm = 'DKM' . str_pad($counterDkmVal, 2, '0', STR_PAD_LEFT);
+                            $counterDkmVal++;
 
-                            Berkas::create([
+                            $berkas = Berkas::create([
                                 'id_berkas'      => $idDkm,
                                 'id_mahasantri'  => $idMahasantri,
                                 'tipe_dokumen'   => $tipeDokumen,
@@ -582,6 +671,8 @@ class MahasantriController extends Controller
                                 'is_valid'       => false,
                                 'tanggal_upload' => now(),
                             ]);
+
+                            $allPendingBerkas[] = $berkas;
                         }
                     }
 
@@ -594,15 +685,11 @@ class MahasantriController extends Controller
             DB::commit();
 
             // ── Dispatch download jobs for all pending berkas ────────────
-            $pendingBerkas = Berkas::where('download_status', 'pending')
-                ->whereNotNull('original_url')
-                ->get();
-
-            foreach ($pendingBerkas as $berkas) {
+            foreach ($allPendingBerkas as $berkas) {
                 DownloadGoogleDriveFile::dispatch($berkas);
             }
 
-            $message = "Berhasil mengimpor {$imported} data mahasantri ke {$gelombang}.";
+            $message = "Berhasil mengimpor {$imported} data mahasantri.";
             if (count($errors) > 0) {
                 $message .= " Gagal: " . count($errors) . " baris.";
             }

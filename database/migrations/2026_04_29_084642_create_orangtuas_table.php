@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create("orangtua", function (Blueprint $table) {
             $table->char('id_orangtua', 5)->primary();
-            $table->char('id_mahasantri', 5);
+            $table->char('id_mahasantri', 6);
             $table->enum('tipe_hubungan', ['Ayah', 'Ibu', 'Wali']);
             $table->string('nama_lengkap', 25);
             $table->string('pekerjaan', 20)->nullable();

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mahasantri', function (Blueprint $table) {
-            $table->char("id_mahasantri", 5)->primary();
+            $table->char("id_mahasantri", 6)->primary();
             $table->string("nama_lengkap", 35);
             // $table->string("email", 50)->unique(); #TODO: Mungkin email tidak wajib, karena banyak mahasantri yang tidak punya email, jadi bisa diganti dengan nomor hp yang lebih umum dimiliki
             // $table->string("no_hp", 13)->unique(); #TODO: Mungkin nomor hp tidak wajib, karena banyak mahasantri yang tidak punya nomor hp, jadi bisa diganti dengan email yang lebih umum dimiliki
