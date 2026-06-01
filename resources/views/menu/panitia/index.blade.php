@@ -34,10 +34,7 @@
             'jabatan'       => $p->jabatan,
 
             'id_html'       => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$p->id_panitia}</code>",
-            'nama_html'     => "<div class='flex items-center gap-2.5'>
-                                    <div class='flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700'>" . strtoupper(substr($p->nama_lengkap, 0, 1)) . "</div>
-                                    <span class='font-medium text-black'>" . e($p->nama_lengkap) . "</span>
-                                </div>",
+            'nama_html'     => "<span class='font-medium text-black'>" . e($p->nama_lengkap) . "</span>",
             'username_html' => "<span class='font-mono text-xs text-black/60'>" . e($p->username) . "</span>",
             'jabatan_html'  => match($p->jabatan) {
                 'Penguji'  => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>Penguji</span>",
