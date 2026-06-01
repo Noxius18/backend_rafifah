@@ -258,6 +258,10 @@ x-init="
                             <dd class="mt-1 text-sm text-slate-700">{{ $m->nik ?? '-' }}</dd>
                         </div>
                         <div>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Email</dt>
+                            <dd class="mt-1 text-sm text-slate-700">{{ $m->email ?? '-' }}</dd>
+                        </div>
+                        <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">NISN</dt>
                             <dd class="mt-1 text-sm text-slate-700">{{ $m->nisn ?? '-' }}</dd>
                         </div>

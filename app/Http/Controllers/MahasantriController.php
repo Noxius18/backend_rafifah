@@ -633,6 +633,7 @@ class MahasantriController extends Controller
                     User::create([
                         'id_mahasantri'  => $idMahasantri,
                         'nama_lengkap'   => $data['Nama Lengkap'] ?? 'Tidak Diketahui',
+                        'email'          => trim($data['Email'] ?? '') ?: null,
                         'nik'            => trim($data['NIK (Nomor Induk Keluarga)'] ?? '') ?: null,
                         'nisn'           => trim($data['NISN (Nomor Induk Siswa Nasional)'] ?? '') ?: null,
                         'jenis_kelamin'  => $jenisKelamin,
