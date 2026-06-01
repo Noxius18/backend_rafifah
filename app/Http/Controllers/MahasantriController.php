@@ -582,6 +582,7 @@ class MahasantriController extends Controller
         $dataRows = array_slice($rows, 1);
 
         $imported = 0;
+        $skipped = 0;
         $errors = [];
         $allPendingBerkas = [];
 
@@ -603,6 +604,15 @@ class MahasantriController extends Controller
                 }
 
                 try {
+                    // ── Check for duplicate NIK ──────────────────────────
+                    $nikValue = trim($data['NIK (Nomor Induk Keluarga)'] ?? '') ?: null;
+
+                    if ($nikValue && User::where('nik', $nikValue)->exists()) {
+                        $errors[] = "Baris {$lineNumber}: NIK {$nikValue} sudah terdaftar - di-skip";
+                        $skipped++;
+                        continue;
+                    }
+
                     // ── Parsing tanggal ──────────────────────────────────
                     $tanggalDaftar = $this->parseTanggal($data['Timestamp'] ?? $data['Cap waktu'] ?? null);
                     if (!$tanggalDaftar) {
@@ -725,15 +735,13 @@ class MahasantriController extends Controller
                 DownloadGoogleDriveFile::dispatch($berkas);
             }
 
-            $message = "Berhasil mengimpor {$imported} data mahasantri.";
-            if (count($errors) > 0) {
-                $message .= " Gagal: " . count($errors) . " baris.";
-            }
+            $message = "Berhasil mengimpor {$imported} data baru.";
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'message' => $message,
                     'imported' => $imported,
+                    'skipped' => $skipped,
                     'errors' => $errors,
                 ]);
             }
