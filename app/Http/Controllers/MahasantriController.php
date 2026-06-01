@@ -40,7 +40,7 @@ class MahasantriController extends Controller
             }
         }
 
-        $mahasantris = $query->paginate(10);
+        $mahasantris = $query->paginate(5);
 
         return view('menu.mahasantri.index', [
             'mahasantris'     => $mahasantris,
@@ -520,10 +520,16 @@ class MahasantriController extends Controller
         }
 
         // Jika string tanggal biasa
+        $value = trim((string)$value);
         try {
-            return Carbon::parse(trim($value));
+            return Carbon::parse($value);
         } catch (\Exception $e) {
-            return null;
+            // Coba format d/m/Y (format yang dipakai di Excel)
+            try {
+                return Carbon::createFromFormat('d/m/Y', $value);
+            } catch (\Exception $e2) {
+                return null;
+            }
         }
     }
 

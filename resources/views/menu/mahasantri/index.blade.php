@@ -102,7 +102,6 @@
                 <div class="flex items-center gap-2">
                     @if(auth()->user()->jabatan === 'Panitia')
                     <button type="button" onclick="document.getElementById('importModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95"><x-heroicon-s-arrow-up-tray class="h-4 w-4" /> Upload Excel</button>
-                    <button type="button" onclick="document.getElementById('addModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95"><x-heroicon-s-user-plus class="h-4 w-4" /> Tambah</button>
                     @endif
                 </div>
             </div>
@@ -120,30 +119,12 @@
             </div>
 
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
-                <x-ui.data-table :rows="$rows" :columns="$columns" :total="$mahasantris->total()" empty-message="Belum ada data" add-label="Tambah Mahasantri" />
+                <x-ui.data-table :rows="$rows" :columns="$columns" :total="$mahasantris->total()" empty-message="Belum ada data" />
                 <x-ui.pagination :paginator="$mahasantris" alwaysShow="true" />
             </div>
         </section>
     </x-ui.sidebar>
 
-    {{-- MODAL TAMBAH, EDIT, DLL (Aku sembunyikan isinya biar singkat, tapi form kamu aman) --}}
-    <x-ui.modal-form id="addModal" title="Tambah Mahasantri Baru">
-        <x-slot name="body">
-            <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
-            <form id="addModal-form" action="{{ route('mahasantri.store') }}" method="POST" class="space-y-3">
-                @csrf
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required />
-                <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" />
-                <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" />
-                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" />
-                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" />
-                <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" />
-                <x-ui.form-select name="gelombang" label="Gelombang" :options="$gelombangOptions" placeholder="Pilih gelombang" />
-            </form>
-            </div>
-        </x-slot>
-        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('addModal').close()">Batal</button> <button type="submit" form="addModal-form" class="btn btn-success btn-sm">Simpan</button></x-slot>
-    </x-ui.modal-form>
 
     <x-ui.modal-form id="editModal" title="Edit Mahasantri">
         <x-slot name="body">
