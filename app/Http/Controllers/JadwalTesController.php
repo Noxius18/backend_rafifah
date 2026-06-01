@@ -34,8 +34,7 @@ class JadwalTesController extends Controller
         }
 
         $validated = $request->validate([
-            'gelombang'        => 'required|string|max:20',
-            'gelombang_custom' => 'nullable|string|max:50',
+            'gelombang'        => 'required|in:1,2',
             'tanggal'          => 'required|date',
             'jam_mulai'        => 'required|date_format:H:i',
             'interval'         => 'required|integer|min:5|max:120',
@@ -46,24 +45,24 @@ class JadwalTesController extends Controller
             'penguji_wawancara'  => 'nullable|exists:panitia,id_panitia',
         ], [
             'gelombang.required' => 'Gelombang wajib dipilih.',
+            'gelombang.in'       => 'Gelombang yang dipilih tidak valid.',
             'tanggal.required'   => 'Tanggal tes wajib diisi.',
             'jam_mulai.required' => 'Jam mulai wajib diisi.',
             'interval.required'  => 'Interval per mahasantri wajib diisi.',
         ]);
 
-        // Handle gelombang_custom: if user selected "__custom__", use the custom input value
-        if ($validated['gelombang'] === '__custom__' && !empty($validated['gelombang_custom'])) {
-            $validated['gelombang'] = $validated['gelombang_custom'];
-        }
+        // Filter mahasantri terverifikasi berdasarkan prefix ID (tahun + nomor gelombang)
+        $prefixTahun = date('y');
+        $nomorGelombang = str_pad($validated['gelombang'], 2, '0', STR_PAD_LEFT);
+        $prefixId = $prefixTahun . $nomorGelombang;
 
-        // Ambil semua mahasantri di gelombang tersebut yang sudah terverifikasi
-        $mahasantris = User::where('gelombang', $validated['gelombang'])
+        $mahasantris = User::where('id_mahasantri', 'LIKE', $prefixId . '%')
             ->where('status', 'Terverifikasi')
             ->get();
 
         if ($mahasantris->isEmpty()) {
             return redirect()->route('seleksi.index')
-                ->with('error', 'Tidak ada mahasantri terverifikasi di ' . $validated['gelombang'] . '.');
+                ->with('error', 'Tidak ada mahasantri terverifikasi di Gelombang ' . $validated['gelombang'] . '.');
         }
 
         $jamMulai = \Carbon\Carbon::createFromFormat('H:i', $validated['jam_mulai']);
@@ -119,12 +118,12 @@ class JadwalTesController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => "Berhasil membuat {$count} jadwal untuk {$validated['gelombang']}.",
+                'message' => "Berhasil membuat {$count} jadwal untuk Gelombang {$validated['gelombang']}.",
             ], 201);
         }
 
         return redirect()->route('seleksi.index')
-            ->with('success', "Berhasil membuat {$count} jadwal untuk {$validated['gelombang']}.");
+            ->with('success', "Berhasil membuat {$count} jadwal untuk Gelombang {$validated['gelombang']}.");
     }
 
     /**

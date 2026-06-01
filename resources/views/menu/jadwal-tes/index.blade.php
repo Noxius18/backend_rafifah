@@ -4,9 +4,7 @@
 
 @php
     $aspekList = ['Tajwid', 'Tahsin', 'Kelancaran', 'Wawancara'];
-    $dbGelombang = \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray();
-    $defaultGelombang = ['Gelombang 1', 'Gelombang 2'];
-    $allGelombang = array_unique(array_merge($defaultGelombang, $dbGelombang));
+    $gelombangList = [1 => 'Gelombang 1', 2 => 'Gelombang 2'];
 
     $isPengawas = auth()->user()->jabatan === 'Pengawas';
     $isPanitia = auth()->user()->jabatan === 'Panitia';
@@ -56,11 +54,11 @@
 
         return [
             'id_jadwal'   => $j->id_jadwal,
-            'gelombang'   => $j->mahasantri?->gelombang ?? '-',
-            'search'      => strtolower("{$j->id_jadwal} {$j->mahasantri?->nama_lengkap} {$j->mahasantri?->gelombang} {$j->tanggal}"),
+            'gelombang'   => $j->mahasantri ? \App\Models\User::extractGelombangNama($j->mahasantri->id_mahasantri) : '-',
+            'search'      => strtolower("{$j->id_jadwal} {$j->mahasantri?->nama_lengkap} {$j->tanggal}"),
             'id_html'     => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$j->id_jadwal}</code>",
             'mhs_html'    => $j->mahasantri ? "<span class='font-medium text-black'>" . e($j->mahasantri->nama_lengkap) . "</span><br><span class='text-[10px] text-black/60'>" . e($j->mahasantri->id_mahasantri) . "</span>" : "<span class='text-black/50 text-xs'>-</span>",
-            'gelombang_html' => $j->mahasantri?->gelombang ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e($j->mahasantri->gelombang) . "</span>" : "<span class='text-slate-400'>-</span>",
+            'gelombang_html' => $j->mahasantri ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e(\App\Models\User::extractGelombangNama($j->mahasantri->id_mahasantri)) . "</span>" : "<span class='text-slate-400'>-</span>",
             'tgl_html'    => "<span class='text-xs text-black'>" . \Carbon\Carbon::parse($j->tanggal)->format('d/m/Y') . "</span>",
             'jam_html'    => $j->jam ? "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 ring-1 ring-slate-200'>" . \Carbon\Carbon::parse($j->jam)->format('H:i') . "</span>" : "<span class='text-slate-400 text-xs'>-</span>",
             
@@ -164,14 +162,12 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
             <form id="addModal-form" action="{{ route('seleksi.store') }}" method="POST" class="space-y-4">
                 @csrf
-                <div class="space-y-2" x-data="{ selected: '' }">
-                    <select x-model="selected" name="gelombang" class="select select-bordered select-sm w-full" required>
-                        <option value="">-- Pilih Gelombang --</option>
-                        @foreach($allGelombang as $g) <option value="{{ $g }}">{{ $g }}</option> @endforeach
-                        <option value="__custom__">Lainnya...</option>
-                    </select>
-                    <input x-show="selected === '__custom__'" x-cloak type="text" name="gelombang_custom" class="input input-bordered input-sm w-full mt-2" placeholder="Ketik nama gelombang baru..." :required="selected === '__custom__'" />
-                </div>
+                <select name="gelombang" class="select select-bordered select-sm w-full" required>
+                    <option value="">-- Pilih Gelombang --</option>
+                    @foreach($gelombangList as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                    @endforeach
+                </select>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
                     <x-ui.form-input name="jam_mulai" label="Jam Mulai" type="time" required />

@@ -70,11 +70,6 @@ class MigrateExistingMHS extends Command
             // Generate ID baru
             $newId = User::generateId($tahun, $nomorGelombang);
 
-            // Update gelombang jika belum di-set
-            if (empty($user->gelombang)) {
-                $user->gelombang = $gelombangNama;
-            }
-
             if ($dryRun) {
                 $this->newLine();
                 $this->line("  {$user->id_mahasantri} → {$newId} ({$user->nama_lengkap})");

@@ -72,7 +72,6 @@ class MahasantriController extends Controller
             'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
             'tanggal_lahir' => 'nullable|date',
-            'gelombang'     => 'nullable|string|max:20',
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nama_lengkap.max'      => 'Nama lengkap maksimal 35 karakter.',
@@ -85,25 +84,15 @@ class MahasantriController extends Controller
             'tanggal_lahir.date'    => 'Format tanggal lahir tidak valid.',
         ]);
 
-        // Auto-detect gelombang jika tidak dipilih
+        // Auto-detect gelombang dari tanggal daftar
         $tanggalDaftar = now();
-        if (empty($validated['gelombang'])) {
-            $gelombang = $this->detectGelombang($tanggalDaftar);
-            if (!$gelombang) {
-                return redirect()->back()
-                    ->with('error', 'Tidak ada gelombang yang aktif untuk tanggal ini. Periksa konfigurasi gelombang.')
-                    ->withInput();
-            }
-            $validated['gelombang'] = $gelombang['nama'];
-            $nomorGelombang = $gelombang['nomor'];
-        } else {
-            // User pilih gelombang — cari nomor gelombang dari config
-            $nomorGelombang = $this->getNomorGelombangByNama($validated['gelombang']);
-            if (!$nomorGelombang) {
-                // Fallback: parse dari config atau default 1
-                $nomorGelombang = 1;
-            }
+        $gelombang = $this->detectGelombang($tanggalDaftar);
+        if (!$gelombang) {
+            return redirect()->back()
+                ->with('error', 'Tidak ada gelombang yang aktif untuk tanggal ini. Periksa konfigurasi gelombang.')
+                ->withInput();
         }
+        $nomorGelombang = $gelombang['nomor'];
 
         $tahun = $tanggalDaftar->format('Y');
         $validated['id_mahasantri'] = User::generateId($tahun, $nomorGelombang);
@@ -233,69 +222,46 @@ class MahasantriController extends Controller
         // 1. Update status jadi Terverifikasi
         $mahasantri->update(['status' => 'Terverifikasi']);
 
-        // 2. LOGIKA AUTO-JADWAL
-        if ($mahasantri->gelombang) {
-            $lastJadwal = \App\Models\JadwalTes::whereHas('mahasantri', function($q) use ($mahasantri) {
-                $q->where('gelombang', $mahasantri->gelombang);
-            })->orderBy('tanggal', 'desc')->orderBy('jam', 'desc')->first();
+        // 2. LOGIKA AUTO-JADWAL — filter by prefix ID (tahun + nomor gelombang)
+        $prefixGelombang = substr($mahasantri->id_mahasantri, 0, 4);
+        $lastJadwal = \App\Models\JadwalTes::whereHas('mahasantri', function($q) use ($prefixGelombang) {
+            $q->where('id_mahasantri', 'LIKE', $prefixGelombang . '%');
+        })->orderBy('tanggal', 'desc')->orderBy('jam', 'desc')->first();
 
-            if ($lastJadwal) {
-                $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes(30)->format('H:i:s');
-                
-                // Generate ID Jadwal Baru (Contoh: JDT02)
-                $lastJadwalDb = \App\Models\JadwalTes::orderBy('id_jadwal', 'desc')->first();
-                $nextJadwalNum = $lastJadwalDb ? intval(substr($lastJadwalDb->id_jadwal, 3)) + 1 : 1;
-                $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
+        if ($lastJadwal) {
+            $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes(30)->format('H:i:s');
 
-                $newJadwal = \App\Models\JadwalTes::create([
-                    'id_jadwal'        => $newId,
-                    'id_mahasantri'    => $mahasantri->id_mahasantri,
-                    'tanggal'          => $lastJadwal->tanggal,
-                    'jam'              => $newJam,
-                    'link_zoom'        => $lastJadwal->link_zoom,
-                    'penanggung_jawab' => $lastJadwal->penanggung_jawab,
+            // Generate ID Jadwal Baru (Contoh: JDT02)
+            $lastJadwalDb = \App\Models\JadwalTes::orderBy('id_jadwal', 'desc')->first();
+            $nextJadwalNum = $lastJadwalDb ? intval(substr($lastJadwalDb->id_jadwal, 3)) + 1 : 1;
+            $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
+
+            $newJadwal = \App\Models\JadwalTes::create([
+                'id_jadwal'        => $newId,
+                'id_mahasantri'    => $mahasantri->id_mahasantri,
+                'tanggal'          => $lastJadwal->tanggal,
+                'jam'              => $newJam,
+                'link_zoom'        => $lastJadwal->link_zoom,
+                'penanggung_jawab' => $lastJadwal->penanggung_jawab,
+            ]);
+
+            // Generate Penguji & ID Penguji (Contoh: PGJ05)
+            $lastPengujiDb = \App\Models\Penguji::orderBy('id_penguji', 'desc')->first();
+            $nextPengujiNum = $lastPengujiDb ? intval(substr($lastPengujiDb->id_penguji, 3)) + 1 : 1;
+
+            foreach ($lastJadwal->pengujiList as $penguji) {
+                $newPengujiId = 'PGJ' . str_pad($nextPengujiNum, 2, '0', STR_PAD_LEFT);
+                \App\Models\Penguji::create([
+                    'id_penguji' => $newPengujiId,
+                    'id_jadwal'  => $newJadwal->id_jadwal,
+                    'id_panitia' => $penguji->id_panitia,
+                    'aspek'      => $penguji->aspek,
                 ]);
-
-                // Generate Penguji & ID Penguji (Contoh: PGJ05)
-                $lastPengujiDb = \App\Models\Penguji::orderBy('id_penguji', 'desc')->first();
-                $nextPengujiNum = $lastPengujiDb ? intval(substr($lastPengujiDb->id_penguji, 3)) + 1 : 1;
-
-                foreach ($lastJadwal->pengujiList as $penguji) {
-                    $newPengujiId = 'PGJ' . str_pad($nextPengujiNum, 2, '0', STR_PAD_LEFT);
-                    \App\Models\Penguji::create([
-                        'id_penguji' => $newPengujiId,
-                        'id_jadwal'  => $newJadwal->id_jadwal,
-                        'id_panitia' => $penguji->id_panitia,
-                        'aspek'      => $penguji->aspek,
-                    ]);
-                    $nextPengujiNum++;
-                }
+                $nextPengujiNum++;
             }
         }
 
         return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi dan ditambahkan ke jadwal (jika ada).');
-    }
-
-    /**
-     * Update gelombang mahasantri
-     */
-    public function updateGelombang(Request $request, User $mahasantri)
-    {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa mengubah gelombang mahasantri');
-        }
-
-        $validated = $request->validate([
-            'gelombang' => 'required|string|max:20',
-        ]);
-
-        $mahasantri->update(['gelombang' => $validated['gelombang']]);
-
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Gelombang berhasil diperbarui']);
-        }
-
-        return redirect()->route('mahasantri.index')->with('success', 'Gelombang berhasil diperbarui');
     }
 
     /**
@@ -646,7 +612,6 @@ class MahasantriController extends Controller
                         'tempat_lahir'   => trim($data['Tempat Lahir'] ?? '') ?: null,
                         'tanggal_lahir'  => $tanggalLahir ? $tanggalLahir->format('Y-m-d') : null,
                         'status'         => 'Pendaftar Baru',
-                        'gelombang'      => $gelombangInfo['nama'],
                         'tanggal_daftar' => $tanggalDaftar,
                     ]);
 

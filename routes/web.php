@@ -31,7 +31,6 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     Route::delete('/mahasantri/{mahasantri}', [MahasantriController::class, 'destroy'])->name('mahasantri.destroy');
     Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
     Route::post('/mahasantri/{mahasantri}/verifikasi', [MahasantriController::class, 'verifikasi'])->name('mahasantri.verifikasi');
-    Route::put('/mahasantri/{mahasantri}/update-gelombang', [MahasantriController::class, 'updateGelombang'])->name('mahasantri.update-gelombang');
 
     // Seleksi (Jadwal Tes) – write ops
     Route::post('/seleksi', [JadwalTesController::class, 'store'])->name('seleksi.store');

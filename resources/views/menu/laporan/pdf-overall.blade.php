@@ -83,7 +83,7 @@
                 @forelse ($perJadwal as $index => $pj)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $pj['jadwal']->mahasantri->gelombang ?? '-' }}</td>
+                        <td>{{ $pj['jadwal']->mahasantri ? \App\Models\User::extractGelombangNama($pj['jadwal']->mahasantri->id_mahasantri) : '-' }}</td>
                         <td>{{ \Carbon\Carbon::parse($pj['jadwal']->tanggal)->format('d/m/Y') }}</td>
                         <td>{{ $pj['total'] }}</td>
                         <td style="color: #059669; font-weight: 700;">{{ $pj['lulus'] }}</td>

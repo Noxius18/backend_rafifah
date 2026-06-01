@@ -17,16 +17,7 @@
         ['value' => '2', 'label' => "Gelombang 2"],
     ];
 
-    $gelombangOptions = array_combine(
-        array_unique(array_merge(
-            ['Gelombang 1', 'Gelombang 2'],
-            \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray()
-        )),
-        array_unique(array_merge(
-            ['Gelombang 1', 'Gelombang 2'],
-            \App\Models\User::whereNotNull('gelombang')->distinct()->pluck('gelombang')->toArray()
-        ))
-    );
+    $gelombangListSimple = ['Gelombang 1', 'Gelombang 2'];
 
     $columns = [
         ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html'],

@@ -28,7 +28,6 @@ class User extends Authenticatable
         'tempat_lahir',
         'tanggal_lahir',
         'status',
-        'gelombang',
         'tanggal_daftar',
     ];
     /** @use HasFactory<UserFactory> */
@@ -82,5 +81,24 @@ class User extends Authenticatable
         }
 
         return $prefix . str_pad($urut, 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Ekstrak nomor gelombang dari ID mahasantri.
+     * Format: <2-digit-tahun><2-digit-gelombang><2-digit-nomor>
+     * Contoh: "260101" → 1
+     */
+    public static function extractGelombangNomor(string $id): int
+    {
+        return (int) substr($id, 2, 2);
+    }
+
+    /**
+     * Ekstrak nama gelombang dari ID mahasantri.
+     * Contoh: "260101" → "Gelombang 1"
+     */
+    public static function extractGelombangNama(string $id): string
+    {
+        return 'Gelombang ' . static::extractGelombangNomor($id);
     }
 }

@@ -26,7 +26,7 @@ return new class extends Migration
             // Status pendaftaran
             $table->enum('status', ['Pendaftar Baru', 'Terverifikasi', 'Lulus', 'Tidak Lulus'])->default('Pendaftar Baru');
             $table->timestamp('tanggal_daftar')->nullable();
-            $table->string('gelombang', 20)->nullable();
+            // $table->string('gelombang', 20)->nullable();
             
             # TODO: Mungkin tambah Panitia yang mengelola mahasantri ini, jadi tau mahasantri ini dikelola oleh panitia siapa
         });

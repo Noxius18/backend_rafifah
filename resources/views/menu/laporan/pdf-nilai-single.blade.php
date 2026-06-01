@@ -78,7 +78,7 @@
                     <td class="label">Jam</td>
                     <td class="value">{{ $h->jadwalTes?->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
                     <td class="label">Gelombang</td>
-                    <td class="value">{{ $h->jadwalTes?->mahasantri?->gelombang ?? '-' }}</td>
+                    <td class="value">{{ $h->jadwalTes?->mahasantri ? \App\Models\User::extractGelombangNama($h->jadwalTes->mahasantri->id_mahasantri) : '-' }}</td>
                 </tr>
             </table>
 
