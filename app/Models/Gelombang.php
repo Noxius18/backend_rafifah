@@ -9,7 +9,6 @@ class Gelombang extends Model
     protected $table = 'gelombang';
 
     protected $fillable = [
-        'nomor',
         'nama',
         'start_date',
         'end_date',

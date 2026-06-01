@@ -10,7 +10,7 @@ class GelombangController extends Controller
 {
     public function index()
     {
-        $gelombang = Gelombang::orderBy('nomor')->get();
+        $gelombang = Gelombang::orderBy('id')->get();
         return view('menu.gelombang.index', compact('gelombang'));
     }
 

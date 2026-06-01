@@ -35,7 +35,7 @@ x-init="
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white p-6">
                 <div class="flex items-center justify-between mb-5">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">{{ $g->nomor }}</span>
+                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">{{ $g->id }}</span>
                         <h2 class="text-base font-semibold text-black">{{ $g->nama }}</h2>
                     </div>
                     @if($g->updated_by)
@@ -46,7 +46,7 @@ x-init="
                     @endif
                 </div>
 
-                <form method="POST" action="{{ route('gelombang.update', $g->nomor) }}" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <form method="POST" action="{{ route('gelombang.update', $g->id) }}" class="flex flex-col gap-4 sm:flex-row sm:items-end">
                     @csrf
                     @method('PUT')
 

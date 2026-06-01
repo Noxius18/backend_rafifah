@@ -92,7 +92,7 @@ class MahasantriController extends Controller
                 ->with('error', 'Tidak ada gelombang yang aktif untuk tanggal ini. Periksa konfigurasi gelombang.')
                 ->withInput();
         }
-        $nomorGelombang = $gelombang['nomor'];
+        $nomorGelombang = $gelombang['id'];
 
         $tahun = $tanggalDaftar->format('Y');
         $validated['id_mahasantri'] = User::generateId($tahun, $nomorGelombang);
@@ -406,11 +406,11 @@ class MahasantriController extends Controller
     /**
      * ── Helper: detect gelombang dari tanggal ────────────────────────────
      * Cari gelombang yang aktif berdasarkan tanggal daftar.
-     * Returns array{gelombang: string, nomor: int} atau null jika tidak cocok.
+     * Returns array{nama: string, id: int} atau null jika tidak cocok.
      */
     private function detectGelombang(Carbon $tanggal): ?array
     {
-        $gelombangSettings = Gelombang::orderBy('nomor')->get(['nomor', 'nama', 'start_date', 'end_date']);
+        $gelombangSettings = Gelombang::orderBy('id')->get(['id', 'nama', 'start_date', 'end_date']);
 
         foreach ($gelombangSettings as $setting) {
             $start = Carbon::parse($setting->start_date)->startOfDay();
@@ -419,7 +419,7 @@ class MahasantriController extends Controller
             if ($tanggal->between($start, $end)) {
                 return [
                     'nama'  => $setting->nama,
-                    'nomor' => $setting->nomor,
+                    'id' => $setting->id,
                 ];
             }
         }
@@ -434,7 +434,7 @@ class MahasantriController extends Controller
     {
         $gelombang = Gelombang::where('nama', $nama)->first();
 
-        return $gelombang?->nomor;
+        return $gelombang?->id;
     }
 
     /**
@@ -593,7 +593,7 @@ class MahasantriController extends Controller
                     }
 
                     $tahun = $tanggalDaftar->format('Y');
-                    $idMahasantri = User::generateId($tahun, $gelombangInfo['nomor']);
+                    $idMahasantri = User::generateId($tahun, $gelombangInfo['id']);
 
                     // ── Parse jenis kelamin ─────────────────────────────
                     $jenisKelamin = $this->parseJenisKelamin($data['Jenis Kelamin'] ?? null);

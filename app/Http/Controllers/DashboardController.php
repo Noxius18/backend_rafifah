@@ -66,7 +66,7 @@ class DashboardController extends Controller
             'successful_berkas' => $successfulBerkas,
             'failed_berkas' => $berkasByStatus['error'] ?? 0,
             'pending_berkas' => $berkasByStatus['pending'] ?? 0,
-            'gelombang' => Gelombang::orderBy('nomor')->get(),
+            'gelombang' => Gelombang::orderBy('id')->get(),
         ];
     }
 

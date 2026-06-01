@@ -72,7 +72,7 @@
             @foreach($stats['gelombang'] as $g)
             <div class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
               <div class="flex items-center gap-2 mb-2">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">{{ $g->nomor }}</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">{{ $g->id }}</span>
                 <span class="font-medium text-sm text-emerald-900">{{ $g->nama }}</span>
               </div>
               <div class="space-y-1 text-sm text-slate-600">

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('gelombang', function (Blueprint $table) {
             $table->id();
-            $table->tinyInteger('nomor')->unique();
-            $table->string('nama', 50);
+            // $table->tinyInteger('nomor')->unique();
+            $table->string('nama', 20);
             $table->date('start_date');
             $table->date('end_date');
             $table->char('updated_by', 5)->nullable();

@@ -14,13 +14,13 @@ class GelombangSeeder extends Seeder
     {
         $gelombangData = [
             [
-                'nomor' => 1,
+                'id' => 1,
                 'nama'  => 'Gelombang 1',
                 'start_date' => '2026-01-01',
                 'end_date'   => '2026-02-28',
             ],
             [
-                'nomor' => 2,
+                'id' => 2,
                 'nama'  => 'Gelombang 2',
                 'start_date' => '2026-03-01',
                 'end_date'   => '2026-04-30',
@@ -29,7 +29,7 @@ class GelombangSeeder extends Seeder
 
         foreach ($gelombangData as $data) {
             Gelombang::updateOrCreate(
-                ['nomor' => $data['nomor']],
+                ['id' => $data['id']],
                 $data
             );
         }
