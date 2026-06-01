@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Berkas;
 use App\Models\Panitia;
+use App\Models\Gelombang;
 
 class DashboardController extends Controller
 {
@@ -65,6 +66,7 @@ class DashboardController extends Controller
             'successful_berkas' => $successfulBerkas,
             'failed_berkas' => $berkasByStatus['error'] ?? 0,
             'pending_berkas' => $berkasByStatus['pending'] ?? 0,
+            'gelombang' => Gelombang::orderBy('nomor')->get(),
         ];
     }
 

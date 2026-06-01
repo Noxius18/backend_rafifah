@@ -7,6 +7,7 @@ use App\Models\Orangtua;
 use App\Models\Berkas;
 use App\Models\JadwalTes;
 use App\Models\Penguji;
+use App\Models\Gelombang;
 use Carbon\Carbon;
 use App\Jobs\DownloadGoogleDriveFile;
 use Illuminate\Http\Request;
@@ -443,16 +444,16 @@ class MahasantriController extends Controller
      */
     private function detectGelombang(Carbon $tanggal): ?array
     {
-        $daftarGelombang = config('gelombang.gelombang', []);
+        $gelombangSettings = Gelombang::orderBy('nomor')->get(['nomor', 'nama', 'start_date', 'end_date']);
 
-        foreach ($daftarGelombang as $nomor => $config) {
-            $start = Carbon::parse($config['start'])->startOfDay();
-            $end   = Carbon::parse($config['end'])->endOfDay();
+        foreach ($gelombangSettings as $setting) {
+            $start = Carbon::parse($setting->start_date)->startOfDay();
+            $end   = Carbon::parse($setting->end_date)->endOfDay();
 
             if ($tanggal->between($start, $end)) {
                 return [
-                    'nama'  => $config['nama'],
-                    'nomor' => (int) $nomor,
+                    'nama'  => $setting->nama,
+                    'nomor' => $setting->nomor,
                 ];
             }
         }
@@ -465,15 +466,9 @@ class MahasantriController extends Controller
      */
     private function getNomorGelombangByNama(string $nama): ?int
     {
-        $daftarGelombang = config('gelombang.gelombang', []);
+        $gelombang = Gelombang::where('nama', $nama)->first();
 
-        foreach ($daftarGelombang as $nomor => $config) {
-            if ($config['nama'] === $nama) {
-                return (int) $nomor;
-            }
-        }
-
-        return null;
+        return $gelombang?->nomor;
     }
 
     /**

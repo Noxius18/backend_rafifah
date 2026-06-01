@@ -125,8 +125,29 @@
           </a>
         </li>
 
-        {{-- Panitia — hanya untuk Pengawas --}}
-        {{-- Panitia — hanya untuk Pengawas --}}
+        @if(auth()->user()->jabatan === 'Pengawas')
+        <li class="w-full">
+          <a
+            href="{{ route('gelombang.index') }}"
+            x-bind:class="collapsed ? 'justify-center' : 'justify-start'"
+            x-bind:title="collapsed ? 'Pengaturan Gelombang' : ''"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 min-h-[40px] {{ request()->routeIs('gelombang.*') ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700' : 'text-emerald-100 hover:bg-emerald-800' }}"
+          >
+            <x-heroicon-s-adjustments-horizontal class="h-5 w-5 shrink-0" />
+            <span
+              x-show="!collapsed"
+              x-transition:enter="transition-opacity duration-200 delay-100"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              x-transition:leave="transition-opacity duration-100"
+              x-transition:leave-start="opacity-100"
+              x-transition:leave-end="opacity-0"
+              class="whitespace-nowrap text-sm"
+            >Pengaturan Gelombang</span>
+          </a>
+        </li>
+        @endif
+
         {{-- Panitia — hanya untuk Pengawas --}}
         @if(auth()->user()->jabatan === 'Pengawas')
         <li class="w-full">

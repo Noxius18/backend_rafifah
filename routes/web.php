@@ -8,6 +8,7 @@ use App\Http\Controllers\JadwalTesController;
 use App\Http\Controllers\HasilTesController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GelombangController;
 
 Route::middleware('guest')->group(function () {
     // / redirect ke halaman login
@@ -89,4 +90,8 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
         Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
         Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
     });
+
+    // Pengaturan Gelombang – hanya untuk Pengawas
+    Route::get('/pengaturan-gelombang', [GelombangController::class, 'index'])->name('gelombang.index');
+    Route::put('/pengaturan-gelombang/{gelombang}', [GelombangController::class, 'update'])->name('gelombang.update');
 });
