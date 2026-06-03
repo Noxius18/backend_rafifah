@@ -20,7 +20,7 @@
     $gelombangListSimple = ['Gelombang 1', 'Gelombang 2'];
 
     $columns = [
-        ['label' => 'ID',           'field' => 'id_mahasantri', 'html' => 'id_html'],
+        ['label' => 'Kode Pendaftar',           'field' => 'id_mahasantri', 'html' => 'id_html'],
         ['label' => 'Nama',         'field' => 'nama_lengkap',  'html' => 'nama_html'],
         ['label' => 'Status',       'field' => 'status',        'html' => 'status_html'],
         ['label' => 'Aksi',         'field' => 'id_mahasantri', 'html' => 'aksi_html', 'class' => 'text-right'],

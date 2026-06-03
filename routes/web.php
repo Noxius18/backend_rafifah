@@ -72,6 +72,12 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(funct
 
     // Hasil Tes – view nilai per jadwal
     Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('seleksi.nilai');
+
+    // Laporan – cetak PDF (Panitia & Pengawas)
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+        Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
+        Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
+    });
 });
 
 // ──────────────────────────────────────────────
@@ -83,12 +89,6 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
 
     // Hasil Tes – review pertimbangan
     Route::post('/hasil-tes/{hasilTes}/review', [HasilTesController::class, 'review'])->name('hasil-tes.review');
-
-    // Laporan
-    Route::prefix('laporan')->name('laporan.')->group(function () {
-        Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
-        Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
-    });
 
     // Pengaturan Gelombang – hanya untuk Pengawas
     Route::get('/pengaturan-gelombang', [GelombangController::class, 'index'])->name('gelombang.index');

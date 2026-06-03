@@ -19,13 +19,13 @@ class LaporanController extends Controller
         $idJadwal = $request->get('id_jadwal');
 
         if ($idJadwal) {
-            $jadwal = JadwalTes::with(['pengujiList.panitia', 'penanggungJawab', 'mahasantri'])->findOrFail($idJadwal);
+            $jadwal = JadwalTes::with(['penanggungJawab', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara', 'mahasantri'])->findOrFail($idJadwal);
             $hasilTes = HasilTes::where('id_jadwal', $idJadwal)
-                ->with('mahasantri')
+                ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiTajwid', 'jadwalTes.pengujiTahsin', 'jadwalTes.pengujiKelancaran', 'jadwalTes.pengujiWawancara'])
                 ->get();
         } else {
             $jadwal = null;
-            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes'])->get();
+            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiTajwid', 'jadwalTes.pengujiTahsin', 'jadwalTes.pengujiKelancaran', 'jadwalTes.pengujiWawancara'])->get();
         }
 
         $html = view('menu.laporan.pdf-nilai', [
@@ -53,39 +53,62 @@ class LaporanController extends Controller
     }
 
     /**
-     * Cetak PDF — laporan overall (summary)
+     * Cetak PDF — laporan overall (summary & detail per gelombang)
      */
     public function cetakOverall()
     {
-        $jadwals = JadwalTes::with(['pengujiList.panitia', 'penanggungJawab', 'mahasantri'])->get();
+        $totalMahasantri = User::count();
+        $totalLulus = HasilTes::where('status', 'Lulus')->count();
+        $totalTidakLulus = HasilTes::where('status', 'Tidak Lulus')->count();
+        $totalPertimbangan = HasilTes::where('status', 'Pertimbangan')->count();
+        $totalBelumTes = HasilTes::where('status', 'Belum Tes')->count();
 
         $summary = [
-            'total_mahasantri'  => User::count(),
-            'total_lulus'       => HasilTes::where('status', 'Lulus')->count(),
-            'total_tidak_lulus' => HasilTes::where('status', 'Tidak Lulus')->count(),
-            'total_pertimbangan'=> HasilTes::where('status', 'Pertimbangan')->count(),
-            'total_belum_tes'   => HasilTes::where('status', 'Belum Tes')->count(),
-            'total_jadwal'      => $jadwals->count(),
+            'total_mahasantri'   => $totalMahasantri,
+            'total_lulus'        => $totalLulus,
+            'total_tidak_lulus'  => $totalTidakLulus,
+            'total_pertimbangan' => $totalPertimbangan,
+            'total_belum_tes'    => $totalBelumTes,
+            'total_jadwal'       => JadwalTes::count(),
         ];
 
-        // Data per jadwal
-        $perJadwal = [];
-        foreach ($jadwals as $j) {
-            $hasil = HasilTes::where('id_jadwal', $j->id_jadwal)->get();
-            $perJadwal[] = [
-                'jadwal'           => $j,
-                'total'            => $hasil->count(),
-                'lulus'            => $hasil->where('status', 'Lulus')->count(),
-                'tidak_lulus'      => $hasil->where('status', 'Tidak Lulus')->count(),
-                'pertimbangan'     => $hasil->where('status', 'Pertimbangan')->count(),
-                'belum_tes'        => $hasil->where('status', 'Belum Tes')->count(),
-            ];
+        // Ambil semua data dengan eager loading
+        $semuaHasil = HasilTes::with([
+            'mahasantri',
+            'jadwalTes.mahasantri',
+            'jadwalTes.penanggungJawab',
+            'jadwalTes.pengujiTajwid',
+            'jadwalTes.pengujiTahsin',
+            'jadwalTes.pengujiKelancaran',
+            'jadwalTes.pengujiWawancara',
+        ])->get();
+
+        // Kelompokkan per gelombang berdasarkan id_mahasantri
+        $gelombangData = [];
+        foreach ($semuaHasil as $hasil) {
+            $mhs = $hasil->jadwalTes->mahasantri ?? $hasil->mahasantri;
+            if (!$mhs) continue;
+
+            $gelombang = User::extractGelombangNama($mhs->id_mahasantri);
+
+            if (!isset($gelombangData[$gelombang])) {
+                $gelombangData[$gelombang] = [
+                    'nama' => $gelombang,
+                    'penanggung_jawab' => $hasil->jadwalTes->penanggungJawab?->nama_lengkap ?? '-',
+                    'mahasantri' => [],
+                ];
+            }
+
+            $gelombangData[$gelombang]['mahasantri'][] = $hasil;
         }
 
+        // Urutkan gelombang
+        ksort($gelombangData);
+
         $html = view('menu.laporan.pdf-overall', [
-            'summary'  => $summary,
-            'perJadwal'=> $perJadwal,
-            'date'     => now()->format('d/m/Y H:i'),
+            'summary'       => $summary,
+            'gelombangData' => $gelombangData,
+            'date'          => now()->format('d/m/Y H:i'),
         ])->render();
 
         $options = new Options();

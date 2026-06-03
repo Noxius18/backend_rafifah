@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalTes;
-use App\Models\Penguji;
 use App\Models\Panitia;
 use App\Models\User;
+use App\Models\Gelombang;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class JadwalTesController extends Controller
@@ -15,12 +16,29 @@ class JadwalTesController extends Controller
      */
     public function index()
     {
-        $jadwals = JadwalTes::with(['pengujiList.panitia', 'penanggungJawab', 'mahasantri'])->paginate(10);
+        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara'])->paginate(10);
         $panitias = Panitia::where('jabatan', 'Panitia')->get();
+
+        // Dapatkan semua gelombang untuk batasan tanggal (untuk JavaScript validation)
+        $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
+
+        // Tentukan gelombang yang aktif berdasarkan tanggal hari ini (for display purposes)
+        $today = Carbon::today();
+        $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderBy('start_date')
+            ->first();
+
+        // Fallback: kalau gak ada gelombang aktif, gunakan gelombang pertama yang tersisa
+        if (!$activeGelombang && $gelombangs->isNotEmpty()) {
+            $activeGelombang = $gelombangs->first();
+        }
 
         return view('menu.jadwal-tes.index', [
             'jadwals' => $jadwals,
             'panitias' => $panitias,
+            'gelombangs' => $gelombangs,
+            'activeGelombang' => $activeGelombang,
         ]);
     }
 
@@ -34,7 +52,6 @@ class JadwalTesController extends Controller
         }
 
         $validated = $request->validate([
-            'gelombang'        => 'required|in:1,2',
             'tanggal'          => 'required|date',
             'jam_mulai'        => 'required|date_format:H:i',
             'interval'         => 'required|integer|min:5|max:120',
@@ -44,25 +61,39 @@ class JadwalTesController extends Controller
             'penguji_kelancaran' => 'nullable|exists:panitia,id_panitia',
             'penguji_wawancara'  => 'nullable|exists:panitia,id_panitia',
         ], [
-            'gelombang.required' => 'Gelombang wajib dipilih.',
-            'gelombang.in'       => 'Gelombang yang dipilih tidak valid.',
             'tanggal.required'   => 'Tanggal tes wajib diisi.',
             'jam_mulai.required' => 'Jam mulai wajib diisi.',
             'interval.required'  => 'Interval per mahasantri wajib diisi.',
         ]);
 
-        // Filter mahasantri terverifikasi berdasarkan prefix ID (tahun + nomor gelombang)
+        // Cari gelombang yang cocok dengan tanggal yang dipilih user
+        $tanggal = Carbon::parse($validated['tanggal']);
         $prefixTahun = date('y');
-        $nomorGelombang = str_pad($validated['gelombang'], 2, '0', STR_PAD_LEFT);
-        $prefixId = $prefixTahun . $nomorGelombang;
+        $gelombang = Gelombang::whereDate('start_date', '<=', $tanggal)
+            ->whereDate('end_date', '>=', $tanggal)
+            ->orderBy('start_date')
+            ->first();
 
-        $mahasantris = User::where('id_mahasantri', 'LIKE', $prefixId . '%')
-            ->where('status', 'Terverifikasi')
-            ->get();
-
-        if ($mahasantris->isEmpty()) {
+        // Hanya izinkan tanggal yang masuk dalam rentang gelombang
+        if (!$gelombang) {
             return redirect()->route('seleksi.index')
-                ->with('error', 'Tidak ada mahasantri terverifikasi di Gelombang ' . $validated['gelombang'] . '.');
+                ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk dalam rentang gelombang manapun. Periksa tanggal yang dipilih.');
+        }
+
+        $prefixId = $prefixTahun . str_pad($gelombang->id, 2, '0', STR_PAD_LEFT);
+
+        // Get all mahasantri with this prefix (both verified and unverified)
+        $allMahasantri = User::where('id_mahasantri', 'LIKE', $prefixId . '%')->get();
+        $verifiedMahasantri = $allMahasantri->filter(function ($mhs) {
+            return $mhs->status === 'Terverifikasi';
+        });
+        $unverifiedMahasantri = $allMahasantri->reject(function ($mhs) {
+            return $mhs->status === 'Terverifikasi';
+        });
+
+        if ($verifiedMahasantri->isEmpty()) {
+            return redirect()->route('seleksi.index')
+                ->with('error', 'Tidak ada mahasantri terverifikasi di ' . $gelombang->nama . '.');
         }
 
         $jamMulai = \Carbon\Carbon::createFromFormat('H:i', $validated['jam_mulai']);
@@ -75,7 +106,7 @@ class JadwalTesController extends Controller
             ->first();
         $urut = $last ? (int) substr($last->id_jadwal, 3) + 1 : 1;
 
-        foreach ($mahasantris as $mhs) {
+        foreach ($verifiedMahasantri as $mhs) {
             $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
 
@@ -86,44 +117,34 @@ class JadwalTesController extends Controller
                 'jam'               => $jamMulai->format('H:i'),
                 'link_zoom'         => $validated['link_zoom'] ?? null,
                 'penanggung_jawab'  => auth()->user()->id_panitia,
+                'penguji_tajwid'    => $validated['penguji_tajwid'] ?? null,
+                'penguji_tahsin'    => $validated['penguji_tahsin'] ?? null,
+                'penguji_kelancaran' => $validated['penguji_kelancaran'] ?? null,
+                'penguji_wawancara' => $validated['penguji_wawancara'] ?? null,
             ]);
-
-            // Assign penguji per aspek
-            $aspekMapping = [
-                'penguji_tajwid'     => 'Tajwid',
-                'penguji_tahsin'     => 'Tahsin',
-                'penguji_kelancaran' => 'Kelancaran',
-                'penguji_wawancara'  => 'Wawancara',
-            ];
-
-            foreach ($aspekMapping as $field => $aspek) {
-                if (!empty($validated[$field])) {
-                    $lastPenguji = Penguji::where('id_penguji', 'LIKE', 'PGJ%')
-                        ->orderBy('id_penguji', 'desc')
-                        ->first();
-                    $urutPg = $lastPenguji ? (int) substr($lastPenguji->id_penguji, 3) + 1 : 1;
-
-                    Penguji::create([
-                        'id_penguji' => 'PGJ' . str_pad($urutPg, 2, '0', STR_PAD_LEFT),
-                        'id_jadwal'  => $idJadwal,
-                        'id_panitia' => $validated[$field],
-                        'aspek'      => $aspek,
-                    ]);
-                }
-            }
 
             $jamMulai->addMinutes($interval);
             $count++;
         }
 
+        // Prepare unscheduled mahasantri data for modal (only id and name)
+        $unscheduledData = $unverifiedMahasantri->map(function ($mhs) {
+            return [
+                'id_mahasantri' => $mhs->id_mahasantri,
+                'nama_lengkap' => $mhs->nama_lengkap,
+            ];
+        });
+
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => "Berhasil membuat {$count} jadwal untuk Gelombang {$validated['gelombang']}.",
+                'message' => "Berhasil membuat {$count} jadwal untuk Gelombang {$gelombang->nama}.",
+                'unscheduledMahasantri' => $unscheduledData
             ], 201);
         }
 
         return redirect()->route('seleksi.index')
-            ->with('success', "Berhasil membuat {$count} jadwal untuk Gelombang {$validated['gelombang']}.");
+            ->with('success', "Berhasil membuat {$count} jadwal untuk Gelombang {$gelombang->nama}.")
+            ->with('unscheduledMahasantri', $unscheduledData);
     }
 
     /**
@@ -158,14 +179,18 @@ class JadwalTesController extends Controller
      */
     public function edit(JadwalTes $jadwalTes)
     {
-        $jadwalTes->load(['pengujiList.panitia', 'mahasantri']);
+        $jadwalTes->load(['penanggungJawab', 'mahasantri', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara']);
+
+        // Dapatkan semua gelombang untuk validasi tanggal di modal edit
+        $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
 
         if (request()->wantsJson()) {
             return response()->json($jadwalTes);
         }
 
         return view('menu.jadwal-tes.edit', [
-            'jadwalTes' => $jadwalTes
+            'jadwalTes' => $jadwalTes,
+            'gelombangs' => $gelombangs
         ]);
     }
 
@@ -188,40 +213,28 @@ class JadwalTesController extends Controller
             'penguji_wawancara'  => 'nullable|exists:panitia,id_panitia',
         ]);
 
-        // Update jadwal
-        $jadwalTes->update([
-            'tanggal'    => $validated['tanggal'],
-            'jam'        => $validated['jam'] ?? null,
-            'link_zoom'  => $validated['link_zoom'] ?? null,
-        ]);
+        // Validasi tanggal masuk rentang gelombang
+        $tanggal = Carbon::parse($validated['tanggal']);
+        $gelombang = Gelombang::whereDate('start_date', '<=', $tanggal)
+            ->whereDate('end_date', '>=', $tanggal)
+            ->orderBy('start_date')
+            ->first();
 
-        // Update/sync penguji per aspek
-        $aspekMapping = [
-            'penguji_tajwid'     => 'Tajwid',
-            'penguji_tahsin'     => 'Tahsin',
-            'penguji_kelancaran' => 'Kelancaran',
-            'penguji_wawancara'  => 'Wawancara',
-        ];
-
-        foreach ($aspekMapping as $field => $aspek) {
-            Penguji::where('id_jadwal', $jadwalTes->id_jadwal)
-                ->where('aspek', $aspek)
-                ->delete();
-
-            if (!empty($validated[$field])) {
-                $lastPenguji = Penguji::where('id_penguji', 'LIKE', 'PGJ%')
-                    ->orderBy('id_penguji', 'desc')
-                    ->first();
-                $urutPg = $lastPenguji ? (int) substr($lastPenguji->id_penguji, 3) + 1 : 1;
-
-                Penguji::create([
-                    'id_penguji' => 'PGJ' . str_pad($urutPg, 2, '0', STR_PAD_LEFT),
-                    'id_jadwal'  => $jadwalTes->id_jadwal,
-                    'id_panitia' => $validated[$field],
-                    'aspek'      => $aspek,
-                ]);
-            }
+        if (!$gelombang) {
+            return redirect()->route('seleksi.index')
+                ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk dalam rentang gelombang manapun. Periksa tanggal yang dipilih.');
         }
+
+        // Update jadwal termasuk penguji
+        $jadwalTes->update([
+            'tanggal'           => $validated['tanggal'],
+            'jam'               => $validated['jam'] ?? null,
+            'link_zoom'         => $validated['link_zoom'] ?? null,
+            'penguji_tajwid'    => $validated['penguji_tajwid'] ?? null,
+            'penguji_tahsin'    => $validated['penguji_tahsin'] ?? null,
+            'penguji_kelancaran' => $validated['penguji_kelancaran'] ?? null,
+            'penguji_wawancara' => $validated['penguji_wawancara'] ?? null,
+        ]);
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Jadwal tes berhasil diperbarui']);
@@ -239,7 +252,6 @@ class JadwalTesController extends Controller
             abort(403, 'Hanya panitia yang bisa menghapus jadwal tes');
         }
 
-        Penguji::where('id_jadwal', $jadwalTes->id_jadwal)->delete();
         $jadwalTes->delete();
 
         if ($request->wantsJson()) {
