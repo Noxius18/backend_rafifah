@@ -131,13 +131,20 @@ x-init="
             {{-- Info Penguji --}}
             <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-700">
                 <p class="font-medium">Penguji:</p>
-                @if ($jadwalTes->pengujiList->isEmpty())
+                @php
+                    $pengujiItems = [];
+                    if ($jadwalTes->pengujiTajwid) $pengujiItems[] = [$jadwalTes->pengujiTajwid->nama_lengkap, 'Tajwid'];
+                    if ($jadwalTes->pengujiTahsin) $pengujiItems[] = [$jadwalTes->pengujiTahsin->nama_lengkap, 'Tahsin'];
+                    if ($jadwalTes->pengujiKelancaran) $pengujiItems[] = [$jadwalTes->pengujiKelancaran->nama_lengkap, 'Kelancaran'];
+                    if ($jadwalTes->pengujiWawancara) $pengujiItems[] = [$jadwalTes->pengujiWawancara->nama_lengkap, 'Wawancara dan Sikap'];
+                @endphp
+                @if (empty($pengujiItems))
                     <p class="text-xs text-indigo-400">Belum ditentukan</p>
                 @else
                     <div class="mt-1 flex flex-wrap gap-2">
-                        @foreach ($jadwalTes->pengujiList as $p)
+                        @foreach ($pengujiItems as $item)
                             <span class="inline-block rounded-md bg-white px-2 py-0.5 text-xs font-medium text-indigo-600 ring-1 ring-indigo-200">
-                                {{ $p->panitia->nama_lengkap }} <span class="text-indigo-400">({{ $p->aspek }})</span>
+                                {{ $item[0] }} <span class="text-indigo-400">({{ $item[1] }})</span>
                             </span>
                         @endforeach
                     </div>

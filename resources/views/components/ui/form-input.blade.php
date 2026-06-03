@@ -4,6 +4,8 @@
     'type'     => 'text',
     'required' => false,
     'icon'     => null,
+    'min'      => null,
+    'max'      => null,
 ])
 
 @php
@@ -30,6 +32,8 @@
             type="{{ $type }}"
             name="{{ $name }}"
             @if ($required) required @endif
+            @if($min) min="{{ $min }}" @endif
+            @if($max) max="{{ $max }}" @endif
             {{ $attributes->class([
                 'input input-bordered w-full text-sm transition duration-150',
                 'input-sm',

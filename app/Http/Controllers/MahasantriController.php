@@ -218,34 +218,35 @@ class MahasantriController extends Controller
     public function verifikasi($id)
     {
         $mahasantri = \App\Models\User::findOrFail($id);
-        
+
         // 1. Update status jadi Terverifikasi
         $mahasantri->update(['status' => 'Terverifikasi']);
 
-        // 2. LOGIKA AUTO-JADWAL — filter by prefix ID (tahun + nomor gelombang)
+        // 2. LOGIKA AUTO-JADWAL — cari jadwal terakhir di gelombang yang sama
         $prefixGelombang = substr($mahasantri->id_mahasantri, 0, 4);
-        $lastJadwal = \App\Models\JadwalTes::whereHas('mahasantri', function($q) use ($prefixGelombang) {
+        $lastJadwal = \App\Models\JadwalTes::whereHas('mahasantri', function ($q) use ($prefixGelombang) {
             $q->where('id_mahasantri', 'LIKE', $prefixGelombang . '%');
         })->orderBy('tanggal', 'desc')->orderBy('jam', 'desc')->first();
 
         if ($lastJadwal) {
+            // Hitung jam baru (30 menit setelah jadwal terakhir)
             $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes(30)->format('H:i:s');
 
-            // Generate ID Jadwal Baru (Contoh: JDT02)
+            // Generate ID Jadwal Baru
             $lastJadwalDb = \App\Models\JadwalTes::orderBy('id_jadwal', 'desc')->first();
             $nextJadwalNum = $lastJadwalDb ? intval(substr($lastJadwalDb->id_jadwal, 3)) + 1 : 1;
             $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
 
             $newJadwal = \App\Models\JadwalTes::create([
-                'id_jadwal'        => $newId,
-                'id_mahasantri'    => $mahasantri->id_mahasantri,
-                'tanggal'          => $lastJadwal->tanggal,
-                'jam'              => $newJam,
-                'link_zoom'        => $lastJadwal->link_zoom,
+                'id_jadwal'       => $newId,
+                'id_mahasantri'   => $mahasantri->id_mahasantri,
+                'tanggal'         => $lastJadwal->tanggal,
+                'jam'             => $newJam,
+                'link_zoom'       => $lastJadwal->link_zoom,
                 'penanggung_jawab' => $lastJadwal->penanggung_jawab,
             ]);
 
-            // Generate Penguji & ID Penguji (Contoh: PGJ05)
+            // Generate Penguji dengan aspek yang sama
             $lastPengujiDb = \App\Models\Penguji::orderBy('id_penguji', 'desc')->first();
             $nextPengujiNum = $lastPengujiDb ? intval(substr($lastPengujiDb->id_penguji, 3)) + 1 : 1;
 
@@ -259,9 +260,12 @@ class MahasantriController extends Controller
                 ]);
                 $nextPengujiNum++;
             }
+
+            return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi dan ditambahkan ke jadwal.');
         }
 
-        return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi dan ditambahkan ke jadwal (jika ada).');
+        // Jika tidak ada jadwal yang cocok
+        return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi.');
     }
 
     /**
@@ -410,7 +414,7 @@ class MahasantriController extends Controller
      */
     private function detectGelombang(Carbon $tanggal): ?array
     {
-        $gelombangSettings = Gelombang::orderBy('id')->get(['id', 'nama', 'start_date', 'end_date']);
+        $gelombangSettings = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
 
         foreach ($gelombangSettings as $setting) {
             $start = Carbon::parse($setting->start_date)->startOfDay();

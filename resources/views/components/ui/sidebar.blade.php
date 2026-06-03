@@ -172,8 +172,8 @@
         </li>
         @endif
 
-        {{-- Cetak Laporan — hanya untuk Pengawas, buka di tab baru --}}
-        @if(auth()->user()->jabatan === 'Pengawas')
+        {{-- Cetak Laporan — buka di tab baru --}}
+        @if(in_array(auth()->user()->jabatan, ['Pengawas', 'Panitia']))
         <li class="w-full">
           <a
             href="{{ route('laporan.cetak-overall') }}"

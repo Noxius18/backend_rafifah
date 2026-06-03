@@ -3,7 +3,13 @@
 @section('content')
 
 @php
-    $aspekList = ['Tajwid', 'Tahsin', 'Kelancaran', 'Wawancara'];
+    $aspekList = ['Tajwid', 'Tahsin', 'Kelancaran Membaca Al-Qur\'an', 'Wawancara dan Sikap'];
+    $aspekMapping = [
+        'Tajwid'                            => 'tajwid',
+        'Tahsin'                            => 'tahsin',
+        "Kelancaran Membaca Al-Qur'an"      => 'kelancaran',
+        'Wawancara dan Sikap'               => 'wawancara',
+    ];
     $gelombangList = [1 => 'Gelombang 1', 2 => 'Gelombang 2'];
 
     $isPengawas = auth()->user()->jabatan === 'Pengawas';
@@ -47,7 +53,7 @@
 
         // 3. TOMBOL EDIT/HAPUS (Hanya Panitia)
         if ($isPanitia) {
-            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', tanggal: '{$j->tanggal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', penguji_tajwid: '" . e($j->pengujiList->where('aspek','Tajwid')->first()?->id_panitia ?? '') . "', penguji_tahsin: '" . e($j->pengujiList->where('aspek','Tahsin')->first()?->id_panitia ?? '') . "', penguji_kelancaran: '" . e($j->pengujiList->where('aspek','Kelancaran')->first()?->id_panitia ?? '') . "', penguji_wawancara: '" . e($j->pengujiList->where('aspek','Wawancara')->first()?->id_panitia ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>
+            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', tanggal: '{$j->tanggal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', penguji_tajwid: '" . e($j->penguji_tajwid ?? '') . "', penguji_tahsin: '" . e($j->penguji_tahsin ?? '') . "', penguji_kelancaran: '" . e($j->penguji_kelancaran ?? '') . "', penguji_wawancara: '" . e($j->penguji_wawancara ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>
                           <button type='button' onclick=\"openConfirmModal('/seleksi/{$j->id_jadwal}', '" . e($j->mahasantri?->nama_lengkap ?? $j->id_jadwal) . "')\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Hapus'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg></button>";
         }
         $aksiHtml .= "</div>";
@@ -159,26 +165,54 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
 
     <x-ui.modal-form id="addModal" title="Buat Jadwal Seleksi Baru" size="xl">
         <x-slot name="body">
-            <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
-            <form id="addModal-form" action="{{ route('seleksi.store') }}" method="POST" class="space-y-4">
+            @if($activeGelombang)
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-blue-800 mb-1">Gelombang Aktif</p>
+                            <p class="text-xs text-blue-700">{{ $activeGelombang->nama }} ({{ Carbon\Carbon::parse($activeGelombang->start_date)->format('d/m/Y') }} - {{ Carbon\Carbon::parse($activeGelombang->end_date)->format('d/m/Y') }})</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            <div class="-mr-2 pr-2">
+            <div id="form-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <svg class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                    </svg>
+                    <p class="text-sm text-red-700 font-medium" id="form-error-message"></p>
+                </div>
+            </div>
+            <form id="addModal-form" action="{{ route('seleksi.store') }}" method="POST" class="space-y-4" onsubmit="return validateGelombangDate(this)">
                 @csrf
-                <select name="gelombang" class="select select-bordered select-sm w-full" required>
-                    <option value="">-- Pilih Gelombang --</option>
-                    @foreach($gelombangList as $val => $label)
-                        <option value="{{ $val }}">{{ $label }}</option>
-                    @endforeach
-                </select>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
+                    @if($activeGelombang)
+                        <x-ui.form-input
+                            name="tanggal"
+                            label="Tanggal Seleksi"
+                            type="date"
+                            required
+                        />
+                    @else
+                        <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
+                        <p class="text-xs text-red-600 mt-1">
+                            <span class="font-medium">Peringatan:</span> Tidak ada gelombang aktif saat ini. Hubungi admin untuk konfigurasi gelombang.
+                        </p>
+                    @endif
                     <x-ui.form-input name="jam_mulai" label="Jam Mulai" type="time" required />
                     <x-ui.form-input name="interval" label="Interval (menit)" type="number" value="30" min="5" max="120" required />
                     <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." />
                 </div>
                 <div class="border-t border-black/10 pt-3">
-                    <p class="mb-2 text-sm font-semibold text-black">Tentukan Penguji per Aspek</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        @foreach ($aspekList as $aspek)
-                            <x-ui.form-select name="penguji_{{ strtolower($aspek) }}" label="Penguji {{ $aspek }}" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
+                    <p class="mb-2 text-sm font-semibold text-black">Tentukan Penguji Materi</p>
+                    {{-- FIX: Menggunakan :label="$aspek" agar HTML entity tidak meluber --}}
+                    <div class="grid grid-cols-1 gap-4">
+                        @foreach ($aspekMapping as $aspek => $field)
+                            <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
                         @endforeach
                     </div>
                 </div>
@@ -304,16 +338,44 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
 
     <x-ui.modal-form id="editModal" title="Edit Jadwal Seleksi" size="lg">
         <x-slot name="body">
-            <form id="editModal-form" action="" method="POST" class="space-y-3">
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <svg class="h-5 w-5 text-slate-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-slate-700 mb-1">Rentang Gelombang</p>
+                        <p class="text-xs text-slate-600">
+                            @if($gelombangs->count() > 0)
+                                @foreach($gelombangs as $g)
+                                    {{ $g->nama }}: {{ Carbon\Carbon::parse($g->start_date)->format('d/m/Y') }} - {{ Carbon\Carbon::parse($g->end_date)->format('d/m/Y') }}@if(!$loop->last) • @endif
+                                @endforeach
+                            @else
+                                Tidak ada gelombang dikonfigurasi
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div id="edit-form-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <svg class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                    </svg>
+                    <p class="text-sm text-red-700 font-medium" id="edit-form-error-message"></p>
+                </div>
+            </div>
+            <form id="editModal-form" action="" method="POST" class="space-y-3" onsubmit="return validateEditGelombangDate(this)">
                 @csrf @method('PUT')
                 <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
                 <x-ui.form-input name="jam" label="Jam" type="time" />
                 <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." />
                 <div class="border-t border-slate-100 pt-3">
                     <p class="mb-2 text-sm font-semibold text-slate-700">Tentukan Penguji per Aspek</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        @foreach ($aspekList as $aspek)
-                            <x-ui.form-select name="penguji_{{ strtolower($aspek) }}" label="Penguji {{ $aspek }}" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
+                    {{-- FIX: Menggunakan :label="$aspek" agar HTML entity tidak meluber --}}
+                    <div class="grid grid-cols-1 gap-4">
+                        @foreach ($aspekMapping as $aspek => $field)
+                            <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
                         @endforeach
                     </div>
                 </div>
@@ -326,6 +388,61 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
     </x-ui.modal-form>
 
     <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Hapus jadwal seleksi untuk" confirm-label="Hapus" />
+
+    {{-- MODAL PERINGATAN MAHASISWA BELUM TERVERIFIKASI --}}
+    <x-ui.modal id="unscheduledModal" size="lg">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                    <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-800">Peringatan: Ada Mahasantri Belum Terverifikasi</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Mahasantri berikut belum terverifikasi dan tidak masuk dalam jadwal ini</p>
+                </div>
+            </div>
+        </x-slot>
+        <x-slot name="body">
+            <div class="max-h-[60vh] overflow-y-auto -mr-2 pr-2">
+                @php
+                    $unscheduled = session('unscheduledMahasantri', []);
+                @endphp
+                @if(count($unscheduled) > 0)
+                    <div class="space-y-2">
+                        @foreach($unscheduled as $mhs)
+                            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-black">{{ $mhs['id_mahasantri'] }}</span>
+                                        <span class="text-[12px] text-black/60">{{ $mhs['nama_lengkap'] }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Belum Terverifikasi</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-center text-sm text-slate-400 py-4">Tidak ada mahasantri yang belum terverifikasi</p>
+                @endif
+            </div>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('unscheduledModal').close()">Tutup</button>
+        </x-slot>
+    </x-ui.modal>
+
+    <script>
+        // Tampilkan modal otomatis jika ada mahasantri yang belum terverifikasi
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(session('unscheduledMahasantri') && count(session('unscheduledMahasantri')) > 0)
+                document.getElementById('unscheduledModal').showModal();
+            @endif
+        });
+    </script>
 </div>
 
 <script>
@@ -346,6 +463,86 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         let form = document.getElementById('deleteModal-form');
         form.action = url;
         document.getElementById('deleteModal').showModal();
+    }
+
+    // Validasi tanggal sebelum submit form
+    function validateGelombangDate(form) {
+        const tanggalInput = form.querySelector('[name="tanggal"]');
+        const errorDiv = document.getElementById('form-error');
+        const errorMessage = document.getElementById('form-error-message');
+
+        if (!tanggalInput || !errorDiv) return true;
+
+        const selectedDate = tanggalInput.value;
+
+        // Data gelombang dari server (JSON encoded)
+        const gelombangs = @json($gelombangs->map(function($g) {
+            return [
+                'nama' => $g->nama,
+                'start_date' => $g->start_date,
+                'end_date' => $g->end_date
+            ];
+        })->toArray());
+
+        // Cek apakah tanggal ada dalam salah satu rentang gelombang
+        let isValid = false;
+        let matchedGelombang = null;
+
+        for (let gelombang of gelombangs) {
+            if (selectedDate >= gelombang.start_date && selectedDate <= gelombang.end_date) {
+                isValid = true;
+                matchedGelombang = gelombang.nama;
+                break;
+            }
+        }
+
+        if (!isValid) {
+            errorDiv.classList.remove('hidden');
+            errorMessage.innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun. Silakan pilih tanggal yang valid.';
+            return false;
+        }
+
+        errorDiv.classList.add('hidden');
+        return true;
+    }
+
+    // Validasi tanggal untuk edit modal
+    function validateEditGelombangDate(form) {
+        const tanggalInput = form.querySelector('[name="tanggal"]');
+        const errorDiv = document.getElementById('edit-form-error');
+        const errorMessage = document.getElementById('edit-form-error-message');
+
+        if (!tanggalInput || !errorDiv) return true;
+
+        const selectedDate = tanggalInput.value;
+
+        // Data gelombang dari server
+        const gelombangs = @json($gelombangs->map(function($g) {
+            return [
+                'nama' => $g->nama,
+                'start_date' => $g->start_date,
+                'end_date' => $g->end_date
+            ];
+        })->toArray());
+
+        // Cek apakah tanggal ada dalam salah satu rentang gelombang
+        let isValid = false;
+
+        for (let gelombang of gelombangs) {
+            if (selectedDate >= gelombang.start_date && selectedDate <= gelombang.end_date) {
+                isValid = true;
+                break;
+            }
+        }
+
+        if (!isValid) {
+            errorDiv.classList.remove('hidden');
+            errorMessage.innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun. Silakan pilih tanggal yang valid.';
+            return false;
+        }
+
+        errorDiv.classList.add('hidden');
+        return true;
     }
 </script>
 

@@ -20,14 +20,14 @@ class JadwalTes extends Model
         'jam',
         'link_zoom',
         'penanggung_jawab',
+        'penguji_tajwid',
+        'penguji_tahsin',
+        'penguji_kelancaran',
+        'penguji_wawancara',
     ];
 
     public function hasilTes() {
         return $this->hasMany(Hasil::class, 'id_jadwal', 'id_jadwal');
-    }
-
-    public function pengujiList() {
-        return $this->hasMany(Penguji::class, 'id_jadwal', 'id_jadwal');
     }
 
     public function penanggungJawab() {
@@ -36,5 +36,22 @@ class JadwalTes extends Model
 
     public function mahasantri() {
         return $this->belongsTo(Mahasantri::class, 'id_mahasantri', 'id_mahasantri');
+    }
+
+    // Relasi ke panitia sebagai penguji per aspek
+    public function pengujiTajwid() {
+        return $this->belongsTo(Panitia::class, 'penguji_tajwid', 'id_panitia');
+    }
+
+    public function pengujiTahsin() {
+        return $this->belongsTo(Panitia::class, 'penguji_tahsin', 'id_panitia');
+    }
+
+    public function pengujiKelancaran() {
+        return $this->belongsTo(Panitia::class, 'penguji_kelancaran', 'id_panitia');
+    }
+
+    public function pengujiWawancara() {
+        return $this->belongsTo(Panitia::class, 'penguji_wawancara', 'id_panitia');
     }
 }
