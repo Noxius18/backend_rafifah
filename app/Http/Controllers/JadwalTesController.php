@@ -114,6 +114,14 @@ class JadwalTesController extends Controller
             $count++;
         }
 
+        // Prepare unscheduled mahasantri data for modal (only id and name)
+        $unscheduledData = $unverifiedMahasantri->map(function ($mhs) {
+            return [
+                'id_mahasantri' => $mhs->id_mahasantri,
+                'nama_lengkap' => $mhs->nama_lengkap,
+            ];
+        });
+
         $unscheduledData = $unverifiedMahasantri->map(fn($m) => ['id_mahasantri' => $m->id_mahasantri, 'nama_lengkap' => $m->nama_lengkap]);
 
         return redirect()->route('seleksi.index')
