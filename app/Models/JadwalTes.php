@@ -24,10 +24,11 @@ class JadwalTes extends Model
         'penguji_tahsin',
         'penguji_kelancaran',
         'penguji_wawancara',
+        'zoom_reminder_sent',
     ];
 
     public function hasilTes() {
-        return $this->hasMany(Hasil::class, 'id_jadwal', 'id_jadwal');
+        return $this->hasOne(Hasil::class, 'id_jadwal', 'id_jadwal');
     }
 
     public function penanggungJawab() {

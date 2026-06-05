@@ -37,6 +37,8 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     Route::put('/seleksi/{jadwalTes}', [JadwalTesController::class, 'update'])->name('seleksi.update');
     Route::delete('/seleksi/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('seleksi.destroy');
     Route::post('/seleksi/update-link-zoom', [JadwalTesController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
+    Route::post('/seleksi/send-bulk-results', [JadwalTesController::class, 'sendBulkResults'])->name('seleksi.send-bulk-results');
+    Route::post('/seleksi/{jadwalTes}/notify-update', [JadwalTesController::class, 'sendUpdateNotification'])->name('seleksi.notify-update');
 
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');

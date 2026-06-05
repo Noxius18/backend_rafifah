@@ -6,8 +6,14 @@ use App\Models\JadwalTes;
 use App\Models\Panitia;
 use App\Models\User;
 use App\Models\Gelombang;
+use App\Models\HasilTes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Artisan;
+use App\Mail\TestResultPdf;
+use App\Mail\ZoomLinkReminder;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class JadwalTesController extends Controller
 {
@@ -244,6 +250,36 @@ class JadwalTesController extends Controller
     }
 
     /**
+     * Send update notification when jadwal is edited
+     */
+    public function sendUpdateNotification(Request $request, JadwalTes $jadwalTes)
+    {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa kirim notifikasi');
+        }
+
+        $mahasantri = $jadwalTes->mahasantri;
+        if (!$mahasantri || !$mahasantri->email) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Mahasiswa tidak memiliki email']);
+            }
+            return redirect()->back()->with('error', 'Mahasiswa tidak memiliki email');
+        }
+
+        // Reset flag so reminder will be sent again on next schedule run
+        $jadwalTes->update(['zoom_reminder_sent' => false]);
+
+        // Send immediate update notification
+        Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $mahasantri));
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap]);
+        }
+
+        return redirect()->back()->with('success', 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap);
+    }
+
+    /**
      * Remove the specified jadwal tes
      */
     public function destroy(Request $request, JadwalTes $jadwalTes)
@@ -259,5 +295,61 @@ class JadwalTesController extends Controller
         }
 
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil dihapus');
+    }
+
+    /**
+     * Send bulk test results PDFs for all mahasantri in a jadwal group
+     */
+    public function sendBulkResults(Request $request)
+    {
+        if (auth()->user()->jabatan !== 'Panitia') {
+            abort(403, 'Hanya panitia yang bisa kirim hasil test');
+        }
+
+        $request->validate([
+            'tanggal' => 'required|date',
+            'jam' => 'nullable|date_format:H:i',
+        ]);
+
+        $tanggal = $request->input('tanggal');
+        $jam = $request->input('jam');
+
+        $query = JadwalTes::where('tanggal', $tanggal);
+        if ($jam) {
+            $query->where('jam', $jam);
+        }
+
+        $jadwals = $query->with(['mahasantri', 'hasilTes'])->get();
+
+        $count = 0;
+        foreach ($jadwals as $jadwal) {
+            $mahasantri = $jadwal->mahasantri;
+            $hasil = $jadwal->hasilTes->first();
+
+            if (!$mahasantri || !$hasil) {
+                continue;
+            }
+
+            // Generate PDF
+            $pdf = Pdf::loadView('menu.laporan.pdf-single', [
+                'judulTanggal' => $jadwal->tanggal . ' – ' . $jadwal->jam,
+                'mahasantri'   => $mahasantri,
+                'hasil'        => $hasil,
+            ])->setPaper('A4');
+            $pdfOutput = $pdf->output();
+
+            // Send email
+            Mail::to($mahasantri->email)->send(new TestResultPdf($mahasantri, $hasil, $pdfOutput));
+            $count++;
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => "Berhasil mengirim {$count} hasil test ke email mahasantri.",
+            ]);
+        }
+
+        return redirect()->back()
+            ->with('success', "Berhasil mengirim {$count} hasil test ke email mahasantri.");
     }
 }
