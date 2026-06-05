@@ -3,81 +3,55 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\JadwalTes;
-use App\Models\User;
-use Carbon\Carbon;
-use Mail;
-use App\Mail\ZoomLinkReminder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Models\JadwalTes; // Sesuaikan dengan namespace model kamu
+use App\Mail\ZoomLinkReminder; // Sesuaikan dengan namespace mailable kamu
 
 class SendZoomReminders extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'zoom:send-reminders {--force : Send reminders regardless of timing window}';
+    protected $signature = 'zoom:send-reminders {--force}';
+    protected $description = 'Kirim reminder link zoom 1 jam tepat sebelum jadwal ujian';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Send Zoom link email reminders for upcoming exams';
-
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
     public function handle()
     {
-        $now = Carbon::now();
+        // 1. Ambil waktu sekarang, potong sampai menit saja (contoh: "2026-06-05 18:35")
+        $now = Carbon::now()->format('Y-m-d H:i');
         $sent = 0;
-        $window = 5; // minutes
 
-        // Find all jadwal for today that have link_zoom
-        $jadwals = JadwalTes::where('tanggal', $now->toDateString())
+        // 2. Cari jadwal hari ini yang punya link zoom
+        $jadwals = JadwalTes::where('tanggal', Carbon::now()->toDateString())
             ->whereNotNull('link_zoom')
             ->get();
 
         foreach ($jadwals as $jadwal) {
-            // Convert jam string to Carbon object
-            $jadwalTime = Carbon::parse($jadwal->jam);
-            $jadwalDateTime = $now->copy()->setTimeFrom($jadwalTime);
+            // 3. Gabungkan tanggal dan jam ujian
+            $jadwalDateTime = Carbon::parse($jadwal->tanggal . ' ' . $jadwal->jam);
+            
+            // 4. Mundurkan 1 jam, lalu format sampai menit (contoh jadwal 19:35 jadi "2026-06-05 18:35")
+            $reminderTime = $jadwalDateTime->copy()->subHour()->format('Y-m-d H:i');
 
-            // Calculate 1 hour before jadwal time
-            $reminderTime = $jadwalDateTime->subHour();
-
-            // Check if we're within the window (now >= reminderTime AND <= reminderTime + window)
-            if ($now->gte($reminderTime) && $now->lte($reminderTime->addMinutes($window))) {
-                // Check if reminder hasn't been sent yet OR forced
+            // 5. Jika waktu saat ini SAMA PERSIS dengan waktu reminder
+            if ($now === $reminderTime) {
+                
+                // Cek apakah belum pernah dikirim atau dipaksa via --force
                 if (!$this->option('force') && $jadwal->zoom_reminder_sent) {
-                    continue; // skip already sent (unless forced)
+                    continue; 
                 }
 
                 $mahasantri = $jadwal->mahasantri;
                 if ($mahasantri) {
                     Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwal, $mahasantri));
-                    // Mark reminder as sent
+                    
+                    // Tandai bahwa reminder sudah terkirim
                     $jadwal->update(['zoom_reminder_sent' => true]);
                     $sent++;
-                    $this->line("Sent zoom reminder to {$mahasantri->nama_lengkap} for {$jadwal->tanggal} {$jadwal->jam}");
+                    $this->line("Terkirim: Zoom reminder ke {$mahasantri->nama_lengkap} untuk jadwal {$jadwal->tanggal} {$jadwal->jam}");
                 }
             }
         }
 
-        $this->info("Evaluated {$jadwals->count()} exams; sent reminder to {$sent}.");
+        $this->info("Pengecekan selesai: {$jadwals->count()} jadwal dievaluasi, {$sent} email terkirim.");
         return 0;
     }
 }

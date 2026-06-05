@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use App\Models\User;
 use App\Models\HasilTes;
-use Barryvdh\DomPDF\PDF as DomPDF;
+use Barryvdh\DomPDF\Facade\Pdf; // Pastikan Facade PDF di-import
 
 class TestResultPdf extends Mailable implements ShouldQueue
 {
@@ -16,28 +16,27 @@ class TestResultPdf extends Mailable implements ShouldQueue
 
     public $mahasantri;
     public $hasil;
-    public $pdfInline;
+    public $judulTanggal; // Simpan judul tanggal sebagai string biasa
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct(User $mahasantri, HasilTes $hasil, $pdfOutput)
+    public function __construct(User $mahasantri, HasilTes $hasil, $judulTanggal)
     {
         $this->mahasantri = $mahasantri;
         $this->hasil = $hasil;
-        $this->pdfInline = $pdfOutput;
+        $this->judulTanggal = $judulTanggal;
     }
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
+        // Generate PDF DI DALAM sini, sesaat sebelum email dikirim
+        $pdf = Pdf::loadView('menu.laporan.pdf-single', [
+            'judulTanggal' => $this->judulTanggal,
+            'mahasantri'   => $this->mahasantri,
+            'hasil'        => $this->hasil,
+        ])->setPaper('A4');
+
         return $this->subject('Hasil Ujian Mahasantri Baru')
                     ->view('emails.result-pdf')
-                    ->attachData($this->pdfInline, 'hasil-ujian-'.$this->mahasantri->id_mahasantri.'.pdf', [
+                    ->attachData($pdf->output(), 'hasil-ujian-'.$this->mahasantri->id_mahasantri.'.pdf', [
                         'mime' => 'application/pdf',
                     ]);
     }
