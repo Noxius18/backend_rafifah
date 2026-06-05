@@ -522,6 +522,184 @@ class MahasantriController extends Controller
     }
 
     /**
+     * ── Helper: validasi panjang string (shared) ──────────────────────────
+     * Throws jika panjang karakter melebihi batas DB.
+     */
+    private function validateStringLength(string $value, int $max, string $label): void
+    {
+        if (mb_strlen(trim($value)) > $max) {
+            throw new \Exception("{$label} melebihi {$max} karakter.");
+        }
+    }
+
+    /**
+     * ── Helper: validasi NIK (16 digit angka) ─────────────────────────────
+     * Returns NIK yang sudah dinormalisasi, atau null jika kosong.
+     */
+    private function validateNik(?string $nik): ?string
+    {
+        $nik = trim($nik ?? '');
+        if ($nik === '') {
+            return null;
+        }
+
+        // Deteksi karakter non-angka
+        if (preg_match('/[^0-9]/', $nik)) {
+            throw new \Exception('NIK hanya boleh berisi angka.');
+        }
+
+        if (strlen($nik) !== 16) {
+            throw new \Exception('NIK harus 16 digit angka.');
+        }
+
+        return $nik;
+    }
+
+    /**
+     * ── Helper: validasi NISN (10 digit angka) ────────────────────────────
+     */
+    private function validateNisn(?string $nisn): ?string
+    {
+        $nisn = trim($nisn ?? '');
+        if ($nisn === '') {
+            return null;
+        }
+
+        if (preg_match('/[^0-9]/', $nisn)) {
+            throw new \Exception('NISN hanya boleh berisi angka.');
+        }
+
+        if (strlen($nisn) !== 10) {
+            throw new \Exception('NISN harus 10 digit angka.');
+        }
+
+        return $nisn;
+    }
+
+    /**
+     * ── Helper: validasi email ────────────────────────────────────────────
+     * Jika kosong, gunakan fallback (default: id_mahasantri@example.com).
+     */
+    private function validateEmail(?string $email, string $fallback): string
+    {
+        $email = trim($email ?? '');
+        if ($email === '') {
+            return $fallback;
+        }
+
+        if (mb_strlen($email) > 100) {
+            throw new \Exception('Email maksimal 100 karakter.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \Exception('Format email tidak valid.');
+        }
+
+        return $email;
+    }
+
+    /**
+     * ── Helper: validasi nama lengkap (required + max length) ─────────────
+     * $context digunakan untuk pesan error yang lebih jelas.
+     */
+    private function validateNamaLengkap(?string $nama, string $context, int $max = 35): string
+    {
+        $nama = trim($nama ?? '');
+        if ($nama === '') {
+            throw new \Exception("Nama lengkap {$context} wajib diisi.");
+        }
+
+        if (mb_strlen($nama) > $max) {
+            throw new \Exception("Nama lengkap {$context} maksimal {$max} karakter.");
+        }
+
+        return $nama;
+    }
+
+    /**
+     * ── Helper: validasi tempat lahir (nullable, max 50) ─────────────────
+     */
+    private function validateTempatLahir(?string $value): ?string
+    {
+        $value = trim($value ?? '');
+        if ($value === '') {
+            return null;
+        }
+
+        if (mb_strlen($value) > 50) {
+            throw new \Exception('Tempat lahir maksimal 50 karakter.');
+        }
+
+        return $value;
+    }
+
+    /**
+     * ── Helper: validasi & normalisasi nomor HP/WA Indonesia ─────────────
+     * Format input: "08xx", "+62xx", atau "62xx", dengan/tanpa spasi/dash.
+     * Output: dinormalisasi ke "08..." (maks 13 karakter, sesuai kolom DB).
+     *
+     * Regex: ^(\+?62|0)8[1-9][0-9]{7,10}$
+     *   - prefix: +62, 62, atau 0
+     *   - digit pertama setelah prefix: 8 (mobile Indonesia)
+     *   - digit kedua: 1-9 (bukan 0)
+     *   - 7-10 digit sisanya
+     */
+    private function parseAndValidatePhone(?string $phone): ?string
+    {
+        $phone = trim($phone ?? '');
+        if ($phone === '') {
+            return null;
+        }
+
+        // Strip formatting: spasi, dash, parentesis, titik
+        $cleaned = preg_replace('/[\s\-\(\)\.]/', '', $phone);
+
+        // Validasi format Indonesia
+        if (!preg_match('/^(\+?62|0)8[1-9][0-9]{7,10}$/', $cleaned)) {
+            throw new \Exception(
+                'Nomor WA tidak valid. Gunakan format Indonesia (08xx atau +62xx), 10-13 digit angka.'
+            );
+        }
+
+        // Normalisasi ke format "08..."
+        $normalized = preg_replace('/^(\+?62)/', '0', $cleaned);
+
+        if (strlen($normalized) > 13) {
+            throw new \Exception('Nomor WA terlalu panjang (maksimal 13 karakter setelah normalisasi).');
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * ── Helper: handle duplikat no. HP antar-ortua di baris yang sama ─────
+     * Karena kolom no_wa UNIQUE, jika Ayah & Ibu (atau Wali) punya nomor
+     * yang sama dalam 1 baris, kita set null pada yg kedua + warning.
+     *
+     * @param array<string,string> $seenPhones Map: nomor => tipe_hubungan yg pertama
+     * @param array<int,string>    $errors     Referensi ke $errors[] array
+     */
+    private function handleDuplicatePhoneForParents(
+        array &$seenPhones,
+        ?string $normalizedPhone,
+        string $tipeHubungan,
+        int $lineNumber,
+        array &$errors
+    ): ?string {
+        if ($normalizedPhone === null) {
+            return null;
+        }
+
+        if (isset($seenPhones[$normalizedPhone])) {
+            $errors[] = "Baris {$lineNumber}: Nomor WA {$tipeHubungan} ({$normalizedPhone}) sama dengan {$seenPhones[$normalizedPhone]} - dikosongkan";
+            return null;
+        }
+
+        $seenPhones[$normalizedPhone] = $tipeHubungan;
+        return $normalizedPhone;
+    }
+
+    /**
      * Process Excel import
      */
     public function processImport(Request $request)
@@ -575,22 +753,35 @@ class MahasantriController extends Controller
                 }
 
                 try {
-                    // ── Check for duplicate NIK ──────────────────────────
-                    $nikValue = trim($data['NIK (Nomor Induk Keluarga)'] ?? '') ?: null;
+                    // ═════════════════════════════════════════════════════
+                    // FASE 1: VALIDASI SEMUA DATA SEBELUM INSERT
+                    // ═════════════════════════════════════════════════════
 
+                    // ── 1a. Validasi Nama Lengkap ──────────────────────────
+                    $namaLengkap = $this->validateNamaLengkap(
+                        $data['Nama Lengkap'] ?? null,
+                        '',
+                        35
+                    );
+
+                    // ── 1b. Validasi NIK (16 digit angka) + duplicate check ──
+                    $nikValue = $this->validateNik($data['NIK (Nomor Induk Keluarga)'] ?? null);
                     if ($nikValue && User::where('nik', $nikValue)->exists()) {
                         $errors[] = "Baris {$lineNumber}: NIK {$nikValue} sudah terdaftar - di-skip";
                         $skipped++;
                         continue;
                     }
 
-                    // ── Parsing tanggal ──────────────────────────────────
+                    // ── 1c. Validasi NISN (10 digit angka) ──────────────────
+                    $nisn = $this->validateNisn($data['NISN (Nomor Induk Siswa Nasional)'] ?? null);
+
+                    // ── 1d. Parsing tanggal daftar ──────────────────────────
                     $tanggalDaftar = $this->parseTanggal($data['Timestamp'] ?? $data['Cap waktu'] ?? null);
                     if (!$tanggalDaftar) {
                         $tanggalDaftar = now();
                     }
 
-                    // ── Auto-detect gelombang ───────────────────────────
+                    // ── 1e. Auto-detect gelombang ──────────────────────────
                     $gelombangInfo = $this->detectGelombang($tanggalDaftar);
                     if (!$gelombangInfo) {
                         throw new \Exception("Tidak ada gelombang yang aktif untuk tanggal {$tanggalDaftar->format('Y-m-d')}. Periksa konfigurasi gelombang.");
@@ -599,56 +790,149 @@ class MahasantriController extends Controller
                     $tahun = $tanggalDaftar->format('Y');
                     $idMahasantri = User::generateId($tahun, $gelombangInfo['id']);
 
-                    // ── Parse jenis kelamin ─────────────────────────────
+                    // ── 1f. Validasi Email ──────────────────────────────────
+                    $email = $this->validateEmail(
+                        $data['Email'] ?? null,
+                        $idMahasantri . '@example.com'
+                    );
+
+                    // ── 1g. Parse jenis kelamin ────────────────────────────
                     $jenisKelamin = $this->parseJenisKelamin($data['Jenis Kelamin'] ?? null);
 
-                    // ── Parse tanggal lahir ─────────────────────────────
+                    // ── 1h. Validasi Tempat Lahir ───────────────────────────
+                    $tempatLahir = $this->validateTempatLahir($data['Tempat Lahir'] ?? null);
+
+                    // ── 1i. Parse tanggal lahir ─────────────────────────────
                     $tanggalLahir = $this->parseExcelSerialNumber($data['Tanggal Lahir'] ?? null);
 
-                    // ── 1. Insert Mahasantri ──────────────────────────────
+                    // ── 1j. Validasi data Orangtua (koleksi + validasi) ─────
+                    $seenPhones = [];
+                    $orangtuaDefinitions = [];
+
+                    // ── Ayah ──────────────────────────────────────────────────
+                    $namaAyah = trim($data['Nama Ayah Kandung'] ?? '');
+                    if ($namaAyah !== '') {
+                        $namaAyah = $this->validateNamaLengkap(
+                            $namaAyah,
+                            'Ayah',
+                            25
+                        );
+                        $pekerjaanAyah = trim($data['Pekerjaan Ayah'] ?? '');
+                        if ($pekerjaanAyah !== '') {
+                            $this->validateStringLength(
+                                $pekerjaanAyah,
+                                20,
+                                'Pekerjaan Ayah'
+                            );
+                        }
+                        $phoneAyah = $this->parseAndValidatePhone(
+                            $data['No HP/Whatsap Ayah Yang Aktif'] ?? null
+                        );
+                        $phoneAyah = $this->handleDuplicatePhoneForParents(
+                            $seenPhones,
+                            $phoneAyah,
+                            'Ayah',
+                            $lineNumber,
+                            $errors
+                        );
+
+                        $orangtuaDefinitions[] = [
+                            'tipe_hubungan' => 'Ayah',
+                            'nama_lengkap'  => $namaAyah,
+                            'pekerjaan'     => $pekerjaanAyah ?: null,
+                            'no_wa'         => $phoneAyah,
+                        ];
+                    }
+
+                    // ── Ibu ──────────────────────────────────────────────────
+                    $namaIbu = trim($data['Nama Ibu Kandung'] ?? '');
+                    if ($namaIbu !== '') {
+                        $namaIbu = $this->validateNamaLengkap(
+                            $namaIbu,
+                            'Ibu',
+                            25
+                        );
+                        $pekerjaanIbu = trim($data['Pekerjaan Ibu'] ?? '');
+                        if ($pekerjaanIbu !== '') {
+                            $this->validateStringLength(
+                                $pekerjaanIbu,
+                                20,
+                                'Pekerjaan Ibu'
+                            );
+                        }
+                        $phoneIbu = $this->parseAndValidatePhone(
+                            $data['No HP/Whatsap Ibu Yang Aktif'] ?? null
+                        );
+                        $phoneIbu = $this->handleDuplicatePhoneForParents(
+                            $seenPhones,
+                            $phoneIbu,
+                            'Ibu',
+                            $lineNumber,
+                            $errors
+                        );
+
+                        $orangtuaDefinitions[] = [
+                            'tipe_hubungan' => 'Ibu',
+                            'nama_lengkap'  => $namaIbu,
+                            'pekerjaan'     => $pekerjaanIbu ?: null,
+                            'no_wa'         => $phoneIbu,
+                        ];
+                    }
+
+                    // ── Wali ─────────────────────────────────────────────────
+                    $namaWali = trim($data['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)'] ?? '');
+                    if ($namaWali !== '') {
+                        $namaWali = $this->validateNamaLengkap(
+                            $namaWali,
+                            'Wali',
+                            25
+                        );
+                        $pekerjaanWali = trim($data['Pekerjaan Wali'] ?? '');
+                        if ($pekerjaanWali !== '') {
+                            $this->validateStringLength(
+                                $pekerjaanWali,
+                                20,
+                                'Pekerjaan Wali'
+                            );
+                        }
+                        $phoneWali = $this->parseAndValidatePhone(
+                            $data['Nomer HP Wali'] ?? null
+                        );
+                        $phoneWali = $this->handleDuplicatePhoneForParents(
+                            $seenPhones,
+                            $phoneWali,
+                            'Wali',
+                            $lineNumber,
+                            $errors
+                        );
+
+                        $orangtuaDefinitions[] = [
+                            'tipe_hubungan' => 'Wali',
+                            'nama_lengkap'  => $namaWali,
+                            'pekerjaan'     => $pekerjaanWali ?: null,
+                            'no_wa'         => $phoneWali,
+                        ];
+                    }
+
+                    // ═════════════════════════════════════════════════════
+                    // FASE 2: EKSEKUSI INSERT
+                    // ═════════════════════════════════════════════════════
+
+                    // ── 2a. Insert Mahasantri ──────────────────────────────
                     User::create([
                         'id_mahasantri'  => $idMahasantri,
-                        'nama_lengkap'   => $data['Nama Lengkap'] ?? 'Tidak Diketahui',
-                        'email'          => trim($data['Email'] ?? '') ?: null,
-                        'nik'            => trim($data['NIK (Nomor Induk Keluarga)'] ?? '') ?: null,
-                        'nisn'           => trim($data['NISN (Nomor Induk Siswa Nasional)'] ?? '') ?: null,
+                        'nama_lengkap'   => $namaLengkap,
+                        'email'          => $email,
+                        'nik'            => $nikValue,
+                        'nisn'           => $nisn,
                         'jenis_kelamin'  => $jenisKelamin,
-                        'tempat_lahir'   => trim($data['Tempat Lahir'] ?? '') ?: null,
+                        'tempat_lahir'   => $tempatLahir,
                         'tanggal_lahir'  => $tanggalLahir ? $tanggalLahir->format('Y-m-d') : null,
                         'status'         => 'Pendaftar Baru',
                         'tanggal_daftar' => $tanggalDaftar,
                     ]);
 
-                    // ── 2. Insert Orangtua (Ayah, Ibu, [Wali]) ───────────
-                    $orangtuaDefinitions = [];
-
-                    if (!empty(trim($data['Nama Ayah Kandung'] ?? ''))) {
-                        $orangtuaDefinitions[] = [
-                            'tipe_hubungan' => 'Ayah',
-                            'nama_lengkap'  => trim($data['Nama Ayah Kandung']),
-                            'pekerjaan'     => trim($data['Pekerjaan Ayah'] ?? ''),
-                            'no_wa'         => trim($data['No HP/Whatsap Ayah Yang Aktif'] ?? ''),
-                        ];
-                    }
-
-                    if (!empty(trim($data['Nama Ibu Kandung'] ?? ''))) {
-                        $orangtuaDefinitions[] = [
-                            'tipe_hubungan' => 'Ibu',
-                            'nama_lengkap'  => trim($data['Nama Ibu Kandung']),
-                            'pekerjaan'     => trim($data['Pekerjaan Ibu'] ?? ''),
-                            'no_wa'         => trim($data['No HP/Whatsap Ibu Yang Aktif'] ?? ''),
-                        ];
-                    }
-
-                    if (!empty(trim($data['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)'] ?? ''))) {
-                        $orangtuaDefinitions[] = [
-                            'tipe_hubungan' => 'Wali',
-                            'nama_lengkap'  => trim($data['Nama Wali (jika peserta di tanggung oleh selain orang tua kandung)']),
-                            'pekerjaan'     => trim($data['Pekerjaan Wali'] ?? ''),
-                            'no_wa'         => trim($data['Nomer HP Wali'] ?? ''),
-                        ];
-                    }
-
+                    // ── 2b. Insert Orangtua ─────────────────────────────────
                     foreach ($orangtuaDefinitions as $ort) {
                         $idOrt = 'ORT' . str_pad($counterOrtVal, 2, '0', STR_PAD_LEFT);
                         $counterOrtVal++;
@@ -663,7 +947,7 @@ class MahasantriController extends Controller
                         ]);
                     }
 
-                    // ── 3. Insert Berkas (KTP, KK, Ijazah, Surat Izin, Pas Foto) ──
+                    // ── 2c. Insert Berkas ───────────────────────────────────
                     $berkasMapping = [
                         'Scan KTP asli'                        => 'KTP',
                         'Scan Kartu Keluarga asli'             => 'KK',
@@ -707,6 +991,9 @@ class MahasantriController extends Controller
             }
 
             $message = "Berhasil mengimpor {$imported} data baru.";
+            if (count($errors) > 0) {
+                $message .= " " . count($errors) . " baris gagal diimpor - lihat detail di bawah.";
+            }
 
             if ($request->wantsJson()) {
                 return response()->json([

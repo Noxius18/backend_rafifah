@@ -109,6 +109,35 @@
                 @endforeach
             </div>
 
+            {{-- Import Errors Detail (dismissible, auto-hide 15s) --}}
+            @php $importErrors = session('import_errors'); @endphp
+            @if(is_array($importErrors) && count($importErrors) > 0)
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 15000)"
+                     class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div class="flex items-start gap-3">
+                        <x-heroicon-s-exclamation-circle class="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-semibold text-rose-800">
+                                {{ count($importErrors) }} baris gagal diimpor. Perbaiki data Excel lalu upload ulang:
+                            </p>
+                            <ul class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-2">
+                                @foreach($importErrors as $error)
+                                    <li class="flex items-start gap-2 text-sm text-rose-700">
+                                        <span class="mt-1 inline-block h-1 w-1 shrink-0 rounded-full bg-rose-400"></span>
+                                        <span>{{ $error }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        <button type="button" @click="show = false"
+                                class="shrink-0 rounded-lg p-1 text-rose-400 transition hover:bg-rose-100 hover:text-rose-600"
+                                aria-label="Tutup">
+                            <x-heroicon-s-x-mark class="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            @endif
+
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
                 <x-ui.data-table :rows="$rows" :columns="$columns" :total="$mahasantris->total()" empty-message="Belum ada data" />
                 <x-ui.pagination :paginator="$mahasantris" alwaysShow="true" />
