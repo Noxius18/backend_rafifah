@@ -94,6 +94,13 @@
                     @if(auth()->user()->jabatan === 'Panitia')
                     <button type="button" onclick="document.getElementById('importModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95"><x-heroicon-s-arrow-up-tray class="h-4 w-4" /> Upload Excel</button>
                     @endif
+
+                    @if(auth()->user()->jabatan === 'Pengawas')
+                    <button type="button" onclick="document.getElementById('hapusSemuaModal').showModal()"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-white shadow-md transition hover:bg-red-700 active:bg-red-800">
+                        <x-heroicon-s-trash class="h-4 w-4" /> Hapus Semua Data
+                    </button>
+                    @endif
                 </div>
             </div>
 
@@ -187,7 +194,50 @@
     </x-ui.modal-form>
 
     <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Apakah Anda yakin ingin menghapus data mahasantri" confirm-label="Hapus" />
-    
+
+    {{-- HAPUS MASSAL: Modal Semua Tahun Ini --}}
+    <dialog id="hapusSemuaModal" class="modal">
+        <div class="modal-box max-w-md p-6 rounded-2xl shadow-xl border border-black/10">
+            <div class="flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <x-heroicon-s-fire class="h-6 w-6 text-red-500" />
+                </div>
+                <div class="min-w-0">
+                    <h3 class="text-lg font-bold text-slate-800">Hapus Semua Data</h3>
+                    <p class="mt-1 text-sm text-red-600 font-medium">TIDAK DAPAT DIBATALKAN</p>
+                </div>
+            </div>
+            <div class="mt-4 space-y-3 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+                <p class="font-semibold">Tindakan ini akan menghapus SELURUH data 2 gelombang terakhir:</p>
+                <ul class="ml-4 list-disc space-y-1 text-red-700">
+                    <li>Semua mahasantri (Gelombang 1 &amp; 2)</li>
+                    <li>Semua data orang tua/wali</li>
+                    <li>Semua dokumen &amp; file berkas</li>
+                    <li>Semua jadwal tes &amp; penguji</li>
+                    <li><strong>Semua nilai ujian &amp; hasil seleksi — HILANG PERMANEN</strong></li>
+                </ul>
+            </div>
+            <form id="hapusSemuaForm" action="{{ route('mahasantri.destroy-by-tahun-ajaran') }}" method="POST" class="mt-4 space-y-4">
+                @csrf
+                <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-black/10 bg-white p-3 transition hover:bg-slate-50">
+                    <input type="checkbox" name="hapus_file_fisik" value="1" class="checkbox checkbox-sm checkbox-error mt-0.5" />
+                    <div class="text-sm text-slate-600">
+                        <span class="font-medium text-slate-800">Hapus file dokumen fisik</span>
+                        <br /><span class="text-xs text-slate-400">File di storage akan ikut terhapus. Centang jika ingin membersihkan disk.</span>
+                    </div>
+                </label>
+                <div class="modal-action mt-2 gap-2">
+                    <button type="button" class="btn btn-ghost btn-sm text-slate-500 hover:bg-slate-100" onclick="document.getElementById('hapusSemuaModal').close()">Batal</button>
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:bg-red-700 active:bg-red-800 border-none">
+                        <x-heroicon-s-trash class="h-4 w-4" /> Hapus Semua
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+
     {{-- MODAL VERIFIKASI KHUSUS (KUNING & EXCLAMATION) --}}
     <dialog id="verifModal" class="modal">
         <div class="modal-box max-w-sm p-6 text-center rounded-2xl shadow-xl border border-black/10">

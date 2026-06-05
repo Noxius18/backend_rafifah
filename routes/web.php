@@ -95,4 +95,7 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
     // Pengaturan Gelombang – hanya untuk Pengawas
     Route::get('/pengaturan-gelombang', [GelombangController::class, 'index'])->name('gelombang.index');
     Route::put('/pengaturan-gelombang/{gelombang}', [GelombangController::class, 'update'])->name('gelombang.update');
+
+    // Hapus massal mahasantri – hanya Pengawas
+    Route::post('/mahasantri/hapus/semua', [MahasantriController::class, 'destroyByTahunAjaran'])->name('mahasantri.destroy-by-tahun-ajaran');
 });
