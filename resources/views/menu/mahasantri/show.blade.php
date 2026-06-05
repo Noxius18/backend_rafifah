@@ -41,8 +41,6 @@
     // Field data mahasantri untuk diisi di modal preview
     previewNik: '',
     previewNisn: '',
-    previewTempatLahir: '',
-    previewTanggalLahir: '',
     get previewDoc() {
         return this.previewDocs[this.previewDocIndex] || {};
     },
@@ -64,14 +62,12 @@
     get hasChanges() {
         return this.previewDocs.some(doc => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
     },
-    openPreview(docs, index, nik, nisn, tempatLahir, tanggalLahir) {
+    openPreview(docs, index, nik, nisn) {
         // Inisialisasi localIsValid untuk setiap dokumen jika belum ada
         this.previewDocs = docs.map(d => ({ ...d, localIsValid: d.localIsValid ?? d.isValid }));
         this.previewDocIndex = index;
         this.previewNik = nik || '';
         this.previewNisn = nisn || '';
-        this.previewTempatLahir = tempatLahir || '';
-        this.previewTanggalLahir = tanggalLahir || '';
         document.getElementById('previewModal').showModal();
     },
     prevDoc() {
@@ -451,9 +447,7 @@ x-init="
                                                                 {{ $previewDocs }},
                                                                 {{ $clickedIndex !== false ? $clickedIndex : 0 }},
                                                                 {{ json_encode($m->nik) }},
-                                                                {{ json_encode($m->nisn) }},
-                                                                {{ json_encode($m->tempat_lahir) }},
-                                                                {{ json_encode($m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}
+                                                                {{ json_encode($m->nisn) }}
                                                             )"
                                                             class="inline-flex items-center justify-center rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50"
                                                             title="Lihat">
@@ -635,18 +629,6 @@ x-init="
                                 <label class="block text-xs font-medium text-slate-500 mb-0.5">NISN</label>
                                 <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
                                     class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400">
-                            </div>
-                            {{-- Tempat Lahir (readonly) --}}
-                            <div>
-                                <label class="block text-xs font-medium text-slate-500 mb-0.5">Tempat Lahir</label>
-                                <input type="text" x-model="previewTempatLahir" maxlength="50" placeholder="Tempat lahir" disabled
-                                    class="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-500 cursor-not-allowed">
-                            </div>
-                            {{-- Tanggal Lahir (readonly) --}}
-                            <div>
-                                <label class="block text-xs font-medium text-slate-500 mb-0.5">Tanggal Lahir</label>
-                                <input type="date" x-model="previewTanggalLahir" disabled
-                                    class="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-500 cursor-not-allowed">
                             </div>
                         </div>
                     </div>
