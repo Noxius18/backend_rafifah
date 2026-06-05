@@ -213,6 +213,89 @@ class MahasantriController extends Controller
     }
 
     /**
+     * ── Helper: hapus berkas fisik di storage untuk sekumpulan id_mahasantri ──
+     * Dipakai oleh destroyByGelombang & destroyByTahunAjaran saat checkbox "hapus file" aktif.
+     */
+    private function deleteBerkasFilesForPrefix(string $idPrefix, bool $alsoDeleteFiles): array
+    {
+        $deleted = ['mahasantri' => 0, 'orangtua' => 0, 'berkas' => 0, 'jadwal' => 0, 'hasil_tes' => 0, 'files' => 0];
+
+        $mahasantriIds = User::where('id_mahasantri', 'LIKE', $idPrefix . '%')
+            ->pluck('id_mahasantri')
+            ->toArray();
+
+        if (empty($mahasantriIds)) {
+            return $deleted;
+        }
+
+        $deleted['mahasantri'] = count($mahasantriIds);
+        $deleted['orangtua']   = Orangtua::whereIn('id_mahasantri', $mahasantriIds)->count();
+        $deleted['berkas']     = Berkas::whereIn('id_mahasantri', $mahasantriIds)->count();
+        $deleted['jadwal']     = JadwalTes::whereIn('id_mahasantri', $mahasantriIds)->count();
+        $deleted['hasil_tes']  = HasilTes::whereIn('id_mahasantri', $mahasantriIds)->count();
+
+        if ($alsoDeleteFiles) {
+            $berkasList = Berkas::whereIn('id_mahasantri', $mahasantriIds)
+                ->whereNotNull('file_path')
+                ->get();
+            foreach ($berkasList as $b) {
+                if ($b->file_exists) {
+                    Storage::disk('private_berkas')->delete($b->file_path);
+                    $deleted['files']++;
+                }
+            }
+        }
+
+        // Hapus langsung (CASCADE handle ortu/berkas/jadwal/hasil_tes/penguji)
+        User::whereIn('id_mahasantri', $mahasantriIds)->delete();
+
+        return $deleted;
+    }
+
+    /**
+     * ── Hapus semua mahasantri di tahun ajaran aktif (gelombang 1 + 2) ─────
+     * Hanya Pengawas yang bisa menjalankan.
+     */
+    public function destroyByTahunAjaran(Request $request)
+    {
+        if (auth()->user()->jabatan !== 'Pengawas') {
+            abort(403, 'Hanya pengawas yang bisa menghapus data mahasantri secara massal.');
+        }
+
+        $validated = $request->validate([
+            'hapus_file_fisik' => 'nullable|boolean',
+        ]);
+
+        $tahun = date('y');
+        $prefix = $tahun; // 26 → cocokkan semua 26xxxxx (gel 1 + gel 2)
+
+        $alsoDeleteFiles = (bool) $request->boolean('hapus_file_fisik');
+
+        DB::beginTransaction();
+        try {
+            $stats = $this->deleteBerkasFilesForPrefix($prefix, $alsoDeleteFiles);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('mahasantri.index')
+                ->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
+
+        $msg = "Berhasil menghapus semua data tahun ajaran 20{$tahun}: "
+             . "{$stats['mahasantri']} mahasantri, {$stats['orangtua']} data ortu, "
+             . "{$stats['berkas']} berkas, {$stats['jadwal']} jadwal, {$stats['hasil_tes']} hasil tes.";
+        if ($alsoDeleteFiles) {
+            $msg .= " File fisik dihapus: {$stats['files']}.";
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => $msg, 'stats' => $stats]);
+        }
+
+        return redirect()->route('mahasantri.index')->with('success', $msg);
+    }
+
+    /**
      * Verifikasi mahasantri (ubah status dari Pendaftar Baru ke Terverifikasi)
      */
     public function verifikasi($id)
@@ -732,7 +815,8 @@ class MahasantriController extends Controller
 
         $imported = 0;
         $skipped = 0;
-        $errors = [];
+        $validationErrors = [];
+        $skippedDuplicates = [];
         $allPendingBerkas = [];
 
         // ── Ambil counter awal sekali di luar transaksi ──────────────────
@@ -767,7 +851,7 @@ class MahasantriController extends Controller
                     // ── 1b. Validasi NIK (16 digit angka) + duplicate check ──
                     $nikValue = $this->validateNik($data['NIK (Nomor Induk Keluarga)'] ?? null);
                     if ($nikValue && User::where('nik', $nikValue)->exists()) {
-                        $errors[] = "Baris {$lineNumber}: NIK {$nikValue} sudah terdaftar - di-skip";
+                        $skippedDuplicates[] = "Baris {$lineNumber}: NIK {$nikValue} sudah terdaftar - di-skip";
                         $skipped++;
                         continue;
                     }
@@ -833,7 +917,7 @@ class MahasantriController extends Controller
                             $phoneAyah,
                             'Ayah',
                             $lineNumber,
-                            $errors
+                            $validationErrors
                         );
 
                         $orangtuaDefinitions[] = [
@@ -868,7 +952,7 @@ class MahasantriController extends Controller
                             $phoneIbu,
                             'Ibu',
                             $lineNumber,
-                            $errors
+                            $validationErrors
                         );
 
                         $orangtuaDefinitions[] = [
@@ -903,7 +987,7 @@ class MahasantriController extends Controller
                             $phoneWali,
                             'Wali',
                             $lineNumber,
-                            $errors
+                            $validationErrors
                         );
 
                         $orangtuaDefinitions[] = [
@@ -979,7 +1063,7 @@ class MahasantriController extends Controller
 
                     $imported++;
                 } catch (\Exception $e) {
-                    $errors[] = "Baris {$lineNumber}: {$e->getMessage()}";
+                    $validationErrors[] = "Baris {$lineNumber}: {$e->getMessage()}";
                 }
             }
 
@@ -991,8 +1075,11 @@ class MahasantriController extends Controller
             }
 
             $message = "Berhasil mengimpor {$imported} data baru.";
-            if (count($errors) > 0) {
-                $message .= " " . count($errors) . " baris gagal diimpor - lihat detail di bawah.";
+            if (count($validationErrors) > 0) {
+                $message .= " " . count($validationErrors) . " baris gagal diimpor - lihat detail di bawah.";
+            }
+            if ($skipped > 0) {
+                $message .= " ({$skipped} baris sudah terdaftar, di-skip.)";
             }
 
             if ($request->wantsJson()) {
@@ -1000,13 +1087,14 @@ class MahasantriController extends Controller
                     'message' => $message,
                     'imported' => $imported,
                     'skipped' => $skipped,
-                    'errors' => $errors,
+                    'skipped_duplicates' => $skippedDuplicates,
+                    'errors' => $validationErrors,
                 ]);
             }
 
             return redirect()->route('mahasantri.index')
                 ->with('success', $message)
-                ->with('import_errors', $errors);
+                ->with('import_errors', $validationErrors);
 
         } catch (\Exception $e) {
             DB::rollBack();
