@@ -315,7 +315,7 @@ x-init="
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">3</td>
-                                <td class="py-2 font-medium text-slate-700">Kelancaran Bacaan</td>
+                                <td class="py-2 font-medium text-slate-700">Kelancaran Bacaan Al-Qur'an</td>
                                 <td class="py-2 text-center">
                                     <input type="number" min="0" max="100" x-model="formData.nilai_kelancaran"
                                         class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"

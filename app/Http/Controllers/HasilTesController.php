@@ -123,6 +123,18 @@ class HasilTesController extends Controller
             ]);
         }
 
+        // =========================================================================
+        // SINKRONISASI STATUS MAHASANTRI 
+        // =========================================================================
+        // Jika status hasil tes Lulus / Tidak Lulus -> Ubah status mahasantri
+        // Jika Pertimbangan / Belum Tes -> Kembalikan atau jadikan Terverifikasi
+        $mahasantriStatus = in_array($status, ['Lulus', 'Tidak Lulus']) ? $status : 'Terverifikasi';
+        
+        User::where('id_mahasantri', $validated['id_mahasantri'])->update([
+            'status' => $mahasantriStatus
+        ]);
+        // =========================================================================
+
         // Return JSON for AJAX
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -167,6 +179,15 @@ class HasilTesController extends Controller
         }
 
         $hasilTes->update($updateData);
+
+        // =========================================================================
+        // SINKRONISASI STATUS MAHASANTRI SETELAH DIREVIEW PENGAWAS
+        // =========================================================================
+        // Karena pengawas sudah menyetujui, maka otomatis ubah status mahasantri-nya
+        User::where('id_mahasantri', $hasilTes->id_mahasantri)->update([
+            'status' => $validated['status']
+        ]);
+        // =========================================================================
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Status berhasil diperbarui']);

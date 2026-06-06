@@ -297,59 +297,57 @@ class JadwalTesController extends Controller
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil dihapus');
     }
 
-    /**
-     * Send bulk test results PDFs for all mahasantri in a jadwal group
-     */
     public function sendBulkResults(Request $request)
     {
         if (auth()->user()->jabatan !== 'Panitia') {
             abort(403, 'Hanya panitia yang bisa kirim hasil test');
         }
 
+        // 1. Validasi Input Modal
         $request->validate([
-            'tanggal' => 'required|date',
-            'jam' => 'nullable|date_format:H:i',
+            'tanggal_tes'   => 'required|date',
+            'tanggal_kirim' => 'required|date',
+            'jam_kirim'     => 'required',
         ]);
 
-        $tanggal = $request->input('tanggal');
-        $jam = $request->input('jam');
+        // 2. Gabungkan waktu untuk penjadwalan (Queue Delay)
+        $waktuKirim = Carbon::parse($request->tanggal_kirim . ' ' . $request->jam_kirim);
 
-        $query = JadwalTes::where('tanggal', $tanggal);
-        if ($jam) {
-            $query->where('jam', $jam);
+        // 3. Ambil target mahasantri
+        $scheduled = JadwalTes::with(['mahasantri', 'hasilTes'])
+            ->where('tanggal', $request->tanggal_tes)
+            ->get();
+
+        if ($scheduled->isEmpty()) {
+            return back()->with('error', 'Tidak ada jadwal seleksi pada tanggal tes tersebut.');
         }
 
-        $jadwals = $query->with(['mahasantri', 'hasilTes'])->get();
+        $sentCount = 0;
 
-        $count = 0;
-        foreach ($jadwals as $jadwal) {
+        foreach ($scheduled as $jadwal) {
             $mahasantri = $jadwal->mahasantri;
-            $hasil = $jadwal->hasilTes->first();
+            
+            // Mengambil hasil (jaga-jaga jika relasi pakai hasMany atau hasOne)
+            $hasil = $jadwal->hasilTes instanceof \Illuminate\Database\Eloquent\Collection 
+                ? $jadwal->hasilTes->first() 
+                : $jadwal->hasilTes;
 
-            if (!$mahasantri || !$hasil) {
+            // Skip jika belum lulus/tidak lulus
+            if (!$mahasantri || !$hasil || !in_array($mahasantri->status, ['Lulus', 'Tidak Lulus'])) {
                 continue;
             }
 
-            // Generate PDF
-            $pdf = Pdf::loadView('menu.laporan.pdf-single', [
-                'judulTanggal' => $jadwal->tanggal . ' – ' . $jadwal->jam,
-                'mahasantri'   => $mahasantri,
-                'hasil'        => $hasil,
-            ])->setPaper('A4');
-            $pdfOutput = $pdf->output();
-
-            // Send email
-            Mail::to($mahasantri->email)->send(new TestResultPdf($mahasantri, $hasil, $pdfOutput));
-            $count++;
+            // 4. Jadwalkan pengiriman email menggunakan later()
+            Mail::to($mahasantri->email)
+                ->later($waktuKirim, new TestResultPdf($mahasantri, $hasil));
+            
+            $sentCount++;
         }
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => "Berhasil mengirim {$count} hasil test ke email mahasantri.",
-            ]);
+        if ($sentCount === 0) {
+            return back()->with('error', 'Gagal menjadwalkan. Pastikan nilai mahasantri pada tanggal tersebut sudah direview (Lulus/Tidak Lulus).');
         }
 
-        return redirect()->back()
-            ->with('success', "Berhasil mengirim {$count} hasil test ke email mahasantri.");
+        return back()->with('success', "Berhasil! {$sentCount} email dijadwalkan otomatis untuk meluncur pada {$waktuKirim->format('d/m/Y H:i')}.");
     }
 }

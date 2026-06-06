@@ -16,27 +16,25 @@ class TestResultPdf extends Mailable implements ShouldQueue
 
     public $mahasantri;
     public $hasil;
-    public $judulTanggal; // Simpan judul tanggal sebagai string biasa
 
-    public function __construct(User $mahasantri, HasilTes $hasil, $judulTanggal)
+    // Parameter diubah, kita tidak lagi melempar PDF mentah dari luar
+    public function __construct(User $mahasantri, HasilTes $hasil)
     {
         $this->mahasantri = $mahasantri;
         $this->hasil = $hasil;
-        $this->judulTanggal = $judulTanggal;
     }
 
     public function build()
     {
-        // Generate PDF DI DALAM sini, sesaat sebelum email dikirim
-        $pdf = Pdf::loadView('menu.laporan.pdf-single', [
-            'judulTanggal' => $this->judulTanggal,
-            'mahasantri'   => $this->mahasantri,
-            'hasil'        => $this->hasil,
+        // Generate PDF DI DALAM email menggunakan template yang SAMA PERSIS dengan tombol Print
+        $pdf = Pdf::loadView('menu.laporan.pdf-nilai-single', [
+            'mahasantri' => $this->mahasantri,
+            'hasil'      => $this->hasil,
         ])->setPaper('A4');
 
         return $this->subject('Hasil Ujian Mahasantri Baru')
                     ->view('emails.result-pdf')
-                    ->attachData($pdf->output(), 'hasil-ujian-'.$this->mahasantri->id_mahasantri.'.pdf', [
+                    ->attachData($pdf->output(), 'Surat-Kelulusan-'.$this->mahasantri->nama_lengkap.'.pdf', [
                         'mime' => 'application/pdf',
                     ]);
     }

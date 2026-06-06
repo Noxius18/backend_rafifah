@@ -148,8 +148,14 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
                 @if(auth()->user()->jabatan === 'Panitia')
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="document.getElementById('sendBulkModal').showModal()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        Kirim Hasil (Email)
+                    </button>
+
                     <button type="button" onclick="document.getElementById('addModal').showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
                         <x-heroicon-s-plus class="h-4 w-4" /> Buat Jadwal
                     </button>
                 </div>
@@ -209,7 +215,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
                 <div class="border-t border-black/10 pt-3">
                     <p class="mb-2 text-sm font-semibold text-black">Tentukan Penguji Materi</p>
-                    {{-- FIX: Menggunakan :label="$aspek" agar HTML entity tidak meluber --}}
                     <div class="grid grid-cols-1 gap-4">
                         @foreach ($aspekMapping as $aspek => $field)
                             <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
@@ -336,6 +341,42 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         </x-slot>
     </x-ui.modal>
 
+    {{-- MODAL KIRIM EMAIL MASSAL --}}
+    <x-ui.modal-form id="sendBulkModal" title="Jadwalkan Surat Kelulusan Massal" size="md">
+        <x-slot name="body">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-blue-800 mb-1">Informasi Penjadwalan</p>
+                        <p class="text-xs text-blue-700">Tentukan kapan email pengumuman akan dikirim otomatis. Sistem hanya akan mengirim kepada mahasantri yang nilainya sudah direview (Lulus/Tidak Lulus).</p>
+                    </div>
+                </div>
+            </div>
+            <form id="sendBulkModal-form" action="{{ route('seleksi.send-bulk-results') }}" method="POST" class="space-y-4">
+                @csrf
+                <div class="border-b border-slate-200 pb-3">
+                    <p class="text-sm font-semibold mb-2">1. Target Penerima</p>
+                    <x-ui.form-input name="tanggal_tes" label="Tanggal Tes Mahasantri" type="date" required />
+                </div>
+                <div class="pt-1">
+                    <p class="text-sm font-semibold mb-2">2. Waktu Pengiriman Otomatis</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Input Wajib -->
+                        <x-ui.form-input name="tanggal_kirim" label="Tanggal Kirim" type="date" required />
+                        <x-ui.form-input name="jam_kirim" label="Jam Kirim" type="time" required />
+                    </div>
+                </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('sendBulkModal').close()">Batal</button>
+            <button type="submit" form="sendBulkModal-form" class="btn bg-blue-600 hover:bg-blue-700 text-white btn-sm border-none" onclick="this.innerHTML='<span class=\'loading loading-spinner loading-xs\'></span> Menjadwalkan...'">Jadwalkan Email</button>
+        </x-slot>
+    </x-ui.modal-form>
+
     <x-ui.modal-form id="editModal" title="Edit Jadwal Seleksi" size="lg">
         <x-slot name="body">
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">
@@ -372,7 +413,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." />
                 <div class="border-t border-slate-100 pt-3">
                     <p class="mb-2 text-sm font-semibold text-slate-700">Tentukan Penguji per Aspek</p>
-                    {{-- FIX: Menggunakan :label="$aspek" agar HTML entity tidak meluber --}}
                     <div class="grid grid-cols-1 gap-4">
                         @foreach ($aspekMapping as $aspek => $field)
                             <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
@@ -436,7 +476,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
     </x-ui.modal>
 
     <script>
-        // Tampilkan modal otomatis jika ada mahasantri yang belum terverifikasi
         document.addEventListener('DOMContentLoaded', function() {
             @if(session('unscheduledMahasantri') && count(session('unscheduledMahasantri')) > 0)
                 document.getElementById('unscheduledModal').showModal();
@@ -465,7 +504,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         document.getElementById('deleteModal').showModal();
     }
 
-    // Validasi tanggal sebelum submit form
     function validateGelombangDate(form) {
         const tanggalInput = form.querySelector('[name="tanggal"]');
         const errorDiv = document.getElementById('form-error');
@@ -475,7 +513,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
 
         const selectedDate = tanggalInput.value;
 
-        // Data gelombang dari server (JSON encoded)
         const gelombangs = @json($gelombangs->map(function($g) {
             return [
                 'nama' => $g->nama,
@@ -484,7 +521,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             ];
         })->toArray());
 
-        // Cek apakah tanggal ada dalam salah satu rentang gelombang
         let isValid = false;
         let matchedGelombang = null;
 
@@ -506,7 +542,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         return true;
     }
 
-    // Validasi tanggal untuk edit modal
     function validateEditGelombangDate(form) {
         const tanggalInput = form.querySelector('[name="tanggal"]');
         const errorDiv = document.getElementById('edit-form-error');
@@ -516,7 +551,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
 
         const selectedDate = tanggalInput.value;
 
-        // Data gelombang dari server
         const gelombangs = @json($gelombangs->map(function($g) {
             return [
                 'nama' => $g->nama,
@@ -525,7 +559,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             ];
         })->toArray());
 
-        // Cek apakah tanggal ada dalam salah satu rentang gelombang
         let isValid = false;
 
         for (let gelombang of gelombangs) {
