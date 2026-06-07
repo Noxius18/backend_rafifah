@@ -38,8 +38,12 @@
         .badge-pertimbangan { color: #d97706; font-weight: bold; }
         .badge-belum { color: #94a3b8; }
 
-        /* Rincian Nilai Diperbesar */
-        .rincian-nilai { font-size: 11px; color: #334155; margin-top: 6px; line-height: 1.6; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+        /* Rincian Nilai */
+        .rincian-nilai { font-size: 10px; color: #334155; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
+        .rincian-nilai .baris { display: block; margin-bottom: 2px; }
+        .rincian-nilai .label-aspek { display: inline-block; width: 130px; font-weight: 600; }
+        .rincian-nilai .nilai-aspek { font-weight: 700; color: #065f46; }
+        .rincian-nilai .penguji-aspek { color: #64748b; font-size: 9px; }
 
         /* ── Tabel Ringkasan (Paling Bawah) ── */
         .summary-wrapper { page-break-inside: avoid; margin-top: 30px; }
@@ -89,9 +93,9 @@
                     @foreach ($gelombang['mahasantri'] as $index => $h)
                         @php
                             $mhs = $h->jadwalTes->mahasantri ?? $h->mahasantri;
-                            $pengujiTajwid = $h->jadwalTes->pengujiTajwid?->nama_lengkap ?? '';
-                            $pengujiTahsin = $h->jadwalTes->pengujiTahsin?->nama_lengkap ?? '';
-                            $pengujiKelancaran = $h->jadwalTes->pengujiKelancaran?->nama_lengkap ?? '';
+                            $pengujiBacaanAlquran = $h->jadwalTes->pengujiBacaanAlquran?->nama_lengkap ?? '';
+                            $pengujiTajwidTahsin = $h->jadwalTes->pengujiTajwidTahsin?->nama_lengkap ?? '';
+                            $pengujiHafalan = $h->jadwalTes->pengujiHafalan?->nama_lengkap ?? '';
                             $pengujiWawancara = $h->jadwalTes->pengujiWawancara?->nama_lengkap ?? '';
                         @endphp
                         <tr>
@@ -100,13 +104,29 @@
                             <td>{{ $mhs->tanggal_daftar ? \Carbon\Carbon::parse($mhs->tanggal_daftar)->format('d/m/Y') : '-' }}</td>
                             <td>{{ $h->jadwalTes->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
                             <td>{{ $h->jadwalTes->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
-                            <td>
-                                <strong style="font-size: 14px; color: #065f46;">Nilai Akhir: {{ $h->total_nilai ?? '-' }}</strong>
+                            <td style="vertical-align: top;">
+                                <strong style="font-size: 13px; color: #065f46;">Nilai Akhir: {{ $h->total_nilai ?? '-' }}</strong>
                                 <div class="rincian-nilai">
-                                    <strong>Tajwid:</strong> {{ $h->nilai_tajwid ?? '-' }} @if($pengujiTajwid) ({{ $pengujiTajwid }}) @endif &nbsp;|&nbsp;
-                                    <strong>Tahsin:</strong> {{ $h->nilai_tahsin ?? '-' }} @if($pengujiTahsin) ({{ $pengujiTahsin }}) @endif<br>
-                                    <strong>Kelancaran:</strong> {{ $h->nilai_kelancaran ?? '-' }} @if($pengujiKelancaran) ({{ $pengujiKelancaran }}) @endif &nbsp;|&nbsp;
-                                    <strong>Wawancara:</strong> {{ $h->nilai_wawancara ?? '-' }} @if($pengujiWawancara) ({{ $pengujiWawancara }}) @endif
+                                    <span class="baris">
+                                        <span class="label-aspek">Bacaan Al-Qur'an</span>
+                                        <span class="nilai-aspek">{{ $h->nilai_bacaan_al_quran ?? '-' }}</span>
+                                        @if($pengujiBacaanAlquran) <span class="penguji-aspek">({{ $pengujiBacaanAlquran }})</span> @endif
+                                    </span>
+                                    <span class="baris">
+                                        <span class="label-aspek">Tajwid &amp; Tahsin</span>
+                                        <span class="nilai-aspek">{{ $h->nilai_tajwid_tahsin ?? '-' }}</span>
+                                        @if($pengujiTajwidTahsin) <span class="penguji-aspek">({{ $pengujiTajwidTahsin }})</span> @endif
+                                    </span>
+                                    <span class="baris">
+                                        <span class="label-aspek">Hafalan</span>
+                                        <span class="nilai-aspek">{{ $h->nilai_hafalan ?? '-' }}</span>
+                                        @if($pengujiHafalan) <span class="penguji-aspek">({{ $pengujiHafalan }})</span> @endif
+                                    </span>
+                                    <span class="baris">
+                                        <span class="label-aspek">Wawancara</span>
+                                        <span class="nilai-aspek">{{ $h->nilai_wawancara ?? '-' }}</span>
+                                        @if($pengujiWawancara) <span class="penguji-aspek">({{ $pengujiWawancara }})</span> @endif
+                                    </span>
                                 </div>
                             </td>
                             <td>

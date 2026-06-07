@@ -12,9 +12,9 @@
     selectedMhs: null,
     selectedMhsNama: '',
     formData: {
-        nilai_tajwid: '',
-        nilai_tahsin: '',
-        nilai_kelancaran: '',
+        nilai_bacaan_al_quran: '',
+        nilai_tajwid_tahsin: '',
+        nilai_hafalan: '',
         nilai_wawancara: '',
         catatan_penguji: '',
     },
@@ -24,15 +24,15 @@
         this.selectedMhs = mhs;
         this.selectedMhsNama = mhsNama;
         if (hasil) {
-            this.formData.nilai_tajwid = hasil.nilai_tajwid || '';
-            this.formData.nilai_tahsin = hasil.nilai_tahsin || '';
-            this.formData.nilai_kelancaran = hasil.nilai_kelancaran || '';
+            this.formData.nilai_bacaan_al_quran = hasil.nilai_bacaan_al_quran || '';
+            this.formData.nilai_tajwid_tahsin = hasil.nilai_tajwid_tahsin || '';
+            this.formData.nilai_hafalan = hasil.nilai_hafalan || '';
             this.formData.nilai_wawancara = hasil.nilai_wawancara || '';
             this.formData.catatan_penguji = hasil.catatan_penguji || '';
         } else {
-            this.formData.nilai_tajwid = '';
-            this.formData.nilai_tahsin = '';
-            this.formData.nilai_kelancaran = '';
+            this.formData.nilai_bacaan_al_quran = '';
+            this.formData.nilai_tajwid_tahsin = '';
+            this.formData.nilai_hafalan = '';
             this.formData.nilai_wawancara = '';
             this.formData.catatan_penguji = '';
         }
@@ -133,10 +133,10 @@ x-init="
                 <p class="font-medium">Penguji:</p>
                 @php
                     $pengujiItems = [];
-                    if ($jadwalTes->pengujiTajwid) $pengujiItems[] = [$jadwalTes->pengujiTajwid->nama_lengkap, 'Tajwid'];
-                    if ($jadwalTes->pengujiTahsin) $pengujiItems[] = [$jadwalTes->pengujiTahsin->nama_lengkap, 'Tahsin'];
-                    if ($jadwalTes->pengujiKelancaran) $pengujiItems[] = [$jadwalTes->pengujiKelancaran->nama_lengkap, 'Kelancaran'];
-                    if ($jadwalTes->pengujiWawancara) $pengujiItems[] = [$jadwalTes->pengujiWawancara->nama_lengkap, 'Wawancara dan Sikap'];
+                    if ($jadwalTes->pengujiBacaanAlquran) $pengujiItems[] = [$jadwalTes->pengujiBacaanAlquran->nama_lengkap, 'Bacaan Al-Qur\'an'];
+                    if ($jadwalTes->pengujiTajwidTahsin) $pengujiItems[] = [$jadwalTes->pengujiTajwidTahsin->nama_lengkap, 'Tajwid dan Tahsin'];
+                    if ($jadwalTes->pengujiHafalan) $pengujiItems[] = [$jadwalTes->pengujiHafalan->nama_lengkap, 'Hafalan'];
+                    if ($jadwalTes->pengujiWawancara) $pengujiItems[] = [$jadwalTes->pengujiWawancara->nama_lengkap, 'Wawancara'];
                 @endphp
                 @if (empty($pengujiItems))
                     <p class="text-xs text-indigo-400">Belum ditentukan</p>
@@ -295,33 +295,33 @@ x-init="
                         <tbody class="divide-y divide-slate-100">
                             <tr>
                                 <td class="py-2 text-slate-500">1</td>
-                                <td class="py-2 font-medium text-slate-700">Tajwid</td>
+                                <td class="py-2 font-medium text-slate-700">Bacaan Al‑Qur'an</td>
                                 <td class="py-2 text-center">
-                                    <input type="number" min="0" max="100" x-model="formData.nilai_tajwid"
+                                    <input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran"
                                         class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
                                         {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
-                                <td class="py-2 text-xs text-slate-400">Nilai ilmu tajwid</td>
+                                <td class="py-2 text-xs text-slate-400">Nilai bacaan Al‑Qur'an</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">2</td>
-                                <td class="py-2 font-medium text-slate-700">Tahsin</td>
+                                <td class="py-2 font-medium text-slate-700">Tajwid dan Tahsin</td>
                                 <td class="py-2 text-center">
-                                    <input type="number" min="0" max="100" x-model="formData.nilai_tahsin"
+                                    <input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin"
                                         class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
                                         {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
-                                <td class="py-2 text-xs text-slate-400">Nilai tahsin bacaan</td>
+                                <td class="py-2 text-xs text-slate-400">Nilai tajwid dan tahsin</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">3</td>
-                                <td class="py-2 font-medium text-slate-700">Kelancaran Bacaan Al-Qur'an</td>
+                                <td class="py-2 font-medium text-slate-700">Hafalan</td>
                                 <td class="py-2 text-center">
-                                    <input type="number" min="0" max="100" x-model="formData.nilai_kelancaran"
+                                    <input type="number" min="0" max="100" x-model="formData.nilai_hafalan"
                                         class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none"
                                         {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}>
                                 </td>
-                                <td class="py-2 text-xs text-slate-400">Nilai kelancaran membaca</td>
+                                <td class="py-2 text-xs text-slate-400">Nilai hafalan</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">4</td>
@@ -343,7 +343,7 @@ x-init="
                         <span class="text-sm font-semibold text-slate-700">Rata-rata:</span>
                         <span class="text-lg font-bold text-emerald-600" x-text="
                             (() => {
-                                const vals = [formData.nilai_tajwid, formData.nilai_tahsin, formData.nilai_kelancaran, formData.nilai_wawancara]
+                                const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara]
                                     .map(v => parseInt(v)).filter(v => !isNaN(v));
                                 return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-';
                             })()

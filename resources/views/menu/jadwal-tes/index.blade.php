@@ -3,12 +3,12 @@
 @section('content')
 
 @php
-    $aspekList = ['Tajwid', 'Tahsin', 'Kelancaran Membaca Al-Qur\'an', 'Wawancara dan Sikap'];
+    $aspekList = ['Bacaan Al-Qur\'an', 'Tajwid dan Tahsin', 'Hafalan', 'Wawancara'];
     $aspekMapping = [
-        'Tajwid'                            => 'tajwid',
-        'Tahsin'                            => 'tahsin',
-        "Kelancaran Membaca Al-Qur'an"      => 'kelancaran',
-        'Wawancara dan Sikap'               => 'wawancara',
+        'Bacaan Al-Qur\'an'                => 'bacaan_al_quran',
+        'Tajwid dan Tahsin'                 => 'tajwid_tahsin',
+        'Hafalan'                           => 'hafalan',
+        'Wawancara'                         => 'wawancara',
     ];
     $gelombangList = [1 => 'Gelombang 1', 2 => 'Gelombang 2'];
 
@@ -53,7 +53,7 @@
 
         // 3. TOMBOL EDIT/HAPUS (Hanya Panitia)
         if ($isPanitia) {
-            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', tanggal: '{$j->tanggal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', penguji_tajwid: '" . e($j->penguji_tajwid ?? '') . "', penguji_tahsin: '" . e($j->penguji_tahsin ?? '') . "', penguji_kelancaran: '" . e($j->penguji_kelancaran ?? '') . "', penguji_wawancara: '" . e($j->penguji_wawancara ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>
+            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', tanggal: '{$j->tanggal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', penguji_bacaan_al_quran: '" . e($j->penguji_bacaan_al_quran ?? '') . "', penguji_tajwid_tahsin: '" . e($j->penguji_tajwid_tahsin ?? '') . "', penguji_hafalan: '" . e($j->penguji_hafalan ?? '') . "', penguji_wawancara: '" . e($j->penguji_wawancara ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>
                           <button type='button' onclick=\"openConfirmModal('/seleksi/{$j->id_jadwal}', '" . e($j->mahasantri?->nama_lengkap ?? $j->id_jadwal) . "')\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Hapus'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg></button>";
         }
         $aksiHtml .= "</div>";
@@ -88,7 +88,7 @@
 
     {{-- Data untuk Logic Modal Input Nilai --}}
     selectedMhs: null, selectedJadwal: null, selectedMhsNama: '', statusHasil: '',
-    formData: { nilai_tajwid: '', nilai_tahsin: '', nilai_kelancaran: '', nilai_wawancara: '', catatan_penguji: '' },
+    formData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '', catatan_penguji: '' },
     saving: false,
     async submitNilai() {
         this.saving = true;
@@ -127,9 +127,17 @@
     selectedJadwal = $event.detail.id_jadwal; selectedMhs = $event.detail.id_mahasantri; selectedMhsNama = $event.detail.nama; statusHasil = $event.detail.status;
     let hasil = $event.detail.hasil;
     if (hasil) {
-        formData.nilai_tajwid = hasil.nilai_tajwid || ''; formData.nilai_tahsin = hasil.nilai_tahsin || ''; formData.nilai_kelancaran = hasil.nilai_kelancaran || ''; formData.nilai_wawancara = hasil.nilai_wawancara || ''; formData.catatan_penguji = hasil.catatan_penguji || '';
+        formData.nilai_bacaan_al_quran = hasil.nilai_bacaan_al_quran || '';
+        formData.nilai_tajwid_tahsin = hasil.nilai_tajwid_tahsin || '';
+        formData.nilai_hafalan = hasil.nilai_hafalan || '';
+        formData.nilai_wawancara = hasil.nilai_wawancara || '';
+        formData.catatan_penguji = hasil.catatan_penguji || '';
     } else {
-        formData.nilai_tajwid = ''; formData.nilai_tahsin = ''; formData.nilai_kelancaran = ''; formData.nilai_wawancara = ''; formData.catatan_penguji = '';
+        formData.nilai_bacaan_al_quran = '';
+        formData.nilai_tajwid_tahsin = '';
+        formData.nilai_hafalan = '';
+        formData.nilai_wawancara = '';
+        formData.catatan_penguji = '';
     }
     document.getElementById('nilaiModal').showModal();
 "
@@ -264,19 +272,19 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         <thead><tr class="text-xs text-slate-500 border-b border-slate-200"><th class="pb-2 text-left font-medium">No</th><th class="pb-2 text-left font-medium">Aspek Penilaian</th><th class="pb-2 text-center font-medium">Nilai</th><th class="pb-2 text-left font-medium">Keterangan</th></tr></thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr>
-                                <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Tajwid</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai ilmu tajwid</td>
+                                <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Bacaan Al-Qur'an</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-xs text-slate-400">Nilai bacaan Al-Qur'an</td>
                             </tr>
                             <tr>
-                                <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tahsin</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai tahsin bacaan</td>
+                                <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tajwid dan Tahsin</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-xs text-slate-400">Nilai tajwid dan tahsin</td>
                             </tr>
                             <tr>
-                                <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Kelancaran Bacaan</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_kelancaran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai kelancaran membaca</td>
+                                <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Hafalan</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_hafalan" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-xs text-slate-400">Nilai hafalan</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">4</td><td class="py-2 font-medium text-slate-700">Wawancara</td>
@@ -290,7 +298,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 <div class="rounded-lg border border-slate-200 bg-white p-3">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-slate-700">Rata-rata:</span>
-                        <span class="text-lg font-bold text-emerald-600" x-text="(() => { const vals = [formData.nilai_tajwid, formData.nilai_tahsin, formData.nilai_kelancaran, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-'; })()"></span>
+                        <span class="text-lg font-bold text-emerald-600" x-text="(() => { const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-'; })()"></span>
                     </div>
                 </div>
 
@@ -341,7 +349,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         </x-slot>
     </x-ui.modal>
 
-    {{-- MODAL KIRIM EMAIL MASSAL --}}
+    {{-- MODAL KIRIM EMAIL MASSAL (SUDAH DIUBAH MENJADI DETEKSI GELOMBANG OTOMATIS) --}}
     <x-ui.modal-form id="sendBulkModal" title="Jadwalkan Surat Kelulusan Massal" size="md">
         <x-slot name="body">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -351,20 +359,18 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     </svg>
                     <div>
                         <p class="text-sm font-medium text-blue-800 mb-1">Informasi Penjadwalan</p>
-                        <p class="text-xs text-blue-700">Tentukan kapan email pengumuman akan dikirim otomatis. Sistem hanya akan mengirim kepada mahasantri yang nilainya sudah direview (Lulus/Tidak Lulus).</p>
+                        <p class="text-xs text-blue-700">
+                            Sistem akan otomatis mendeteksi <strong class="font-bold">Gelombang yang Aktif</strong> saat ini. 
+                            Email pengumuman hanya akan dikirimkan kepada mahasantri di gelombang tersebut yang nilainya sudah direview (Lulus/Tidak Lulus).
+                        </p>
                     </div>
                 </div>
             </div>
             <form id="sendBulkModal-form" action="{{ route('seleksi.send-bulk-results') }}" method="POST" class="space-y-4">
                 @csrf
-                <div class="border-b border-slate-200 pb-3">
-                    <p class="text-sm font-semibold mb-2">1. Target Penerima</p>
-                    <x-ui.form-input name="tanggal_tes" label="Tanggal Tes Mahasantri" type="date" required />
-                </div>
-                <div class="pt-1">
-                    <p class="text-sm font-semibold mb-2">2. Waktu Pengiriman Otomatis</p>
+                <div>
+                    <p class="text-sm font-semibold mb-2">Tentukan Waktu Pengiriman Otomatis</p>
                     <div class="grid grid-cols-2 gap-3">
-                        <!-- Input Wajib -->
                         <x-ui.form-input name="tanggal_kirim" label="Tanggal Kirim" type="date" required />
                         <x-ui.form-input name="jam_kirim" label="Jam Kirim" type="time" required />
                     </div>
@@ -481,102 +487,52 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 document.getElementById('unscheduledModal').showModal();
             @endif
         });
+
+        function openEditModal({ id, tanggal, jam, link_zoom, penguji_bacaan_al_quran, penguji_tajwid_tahsin, penguji_hafalan, penguji_wawancara }) {
+            document.getElementById('editModal-form').action = `/seleksi/${id}`;
+            document.querySelector('#editModal-form [name="tanggal"]').value = tanggal;
+            document.querySelector('#editModal-form [name="jam"]').value = jam;
+            document.querySelector('#editModal-form [name="link_zoom"]').value = link_zoom;
+            document.querySelector('#editModal-form [name="penguji_bacaan_al_quran"]').value = penguji_bacaan_al_quran;
+            document.querySelector('#editModal-form [name="penguji_tajwid_tahsin"]').value = penguji_tajwid_tahsin;
+            document.querySelector('#editModal-form [name="penguji_hafalan"]').value = penguji_hafalan;
+            document.querySelector('#editModal-form [name="penguji_wawancara"]').value = penguji_wawancara;
+            document.getElementById('editModal').showModal();
+        }
+
+        function openConfirmModal(url, name) {
+            document.getElementById('deleteModal-name').textContent = name;
+            let form = document.getElementById('deleteModal-form');
+            form.action = url;
+            document.getElementById('deleteModal').showModal();
+        }
+
+        const gelombangs = @json($gelombangs->map(function($g) {
+            return ['nama' => $g->nama, 'start_date' => $g->start_date, 'end_date' => $g->end_date];
+        })->toArray());
+
+        function validateGelombangDate(form) {
+            const date = form.querySelector('[name="tanggal"]')?.value;
+            if (!date) return true;
+            const valid = gelombangs.some(g => date >= g.start_date && date <= g.end_date);
+            if (!valid) {
+                document.getElementById('form-error').classList.remove('hidden');
+                document.getElementById('form-error-message').innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun.';
+            }
+            return valid;
+        }
+
+        function validateEditGelombangDate(form) {
+            const date = form.querySelector('[name="tanggal"]')?.value;
+            if (!date) return true;
+            const valid = gelombangs.some(g => date >= g.start_date && date <= g.end_date);
+            if (!valid) {
+                document.getElementById('edit-form-error').classList.remove('hidden');
+                document.getElementById('edit-form-error-message').innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun.';
+                return false;
+            }
+            return valid;
+        }
     </script>
 </div>
-
-<script>
-    function openEditModal({ id, tanggal, jam, link_zoom, penguji_tajwid, penguji_tahsin, penguji_kelancaran, penguji_wawancara }) {
-        document.getElementById('editModal-form').action = `/seleksi/${id}`;
-        document.querySelector('#editModal-form [name="tanggal"]').value = tanggal;
-        document.querySelector('#editModal-form [name="jam"]').value = jam;
-        document.querySelector('#editModal-form [name="link_zoom"]').value = link_zoom;
-        document.querySelector('#editModal-form [name="penguji_tajwid"]').value = penguji_tajwid;
-        document.querySelector('#editModal-form [name="penguji_tahsin"]').value = penguji_tahsin;
-        document.querySelector('#editModal-form [name="penguji_kelancaran"]').value = penguji_kelancaran;
-        document.querySelector('#editModal-form [name="penguji_wawancara"]').value = penguji_wawancara;
-        document.getElementById('editModal').showModal();
-    }
-
-    function openConfirmModal(url, name) {
-        document.getElementById('deleteModal-name').textContent = name;
-        let form = document.getElementById('deleteModal-form');
-        form.action = url;
-        document.getElementById('deleteModal').showModal();
-    }
-
-    function validateGelombangDate(form) {
-        const tanggalInput = form.querySelector('[name="tanggal"]');
-        const errorDiv = document.getElementById('form-error');
-        const errorMessage = document.getElementById('form-error-message');
-
-        if (!tanggalInput || !errorDiv) return true;
-
-        const selectedDate = tanggalInput.value;
-
-        const gelombangs = @json($gelombangs->map(function($g) {
-            return [
-                'nama' => $g->nama,
-                'start_date' => $g->start_date,
-                'end_date' => $g->end_date
-            ];
-        })->toArray());
-
-        let isValid = false;
-        let matchedGelombang = null;
-
-        for (let gelombang of gelombangs) {
-            if (selectedDate >= gelombang.start_date && selectedDate <= gelombang.end_date) {
-                isValid = true;
-                matchedGelombang = gelombang.nama;
-                break;
-            }
-        }
-
-        if (!isValid) {
-            errorDiv.classList.remove('hidden');
-            errorMessage.innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun. Silakan pilih tanggal yang valid.';
-            return false;
-        }
-
-        errorDiv.classList.add('hidden');
-        return true;
-    }
-
-    function validateEditGelombangDate(form) {
-        const tanggalInput = form.querySelector('[name="tanggal"]');
-        const errorDiv = document.getElementById('edit-form-error');
-        const errorMessage = document.getElementById('edit-form-error-message');
-
-        if (!tanggalInput || !errorDiv) return true;
-
-        const selectedDate = tanggalInput.value;
-
-        const gelombangs = @json($gelombangs->map(function($g) {
-            return [
-                'nama' => $g->nama,
-                'start_date' => $g->start_date,
-                'end_date' => $g->end_date
-            ];
-        })->toArray());
-
-        let isValid = false;
-
-        for (let gelombang of gelombangs) {
-            if (selectedDate >= gelombang.start_date && selectedDate <= gelombang.end_date) {
-                isValid = true;
-                break;
-            }
-        }
-
-        if (!isValid) {
-            errorDiv.classList.remove('hidden');
-            errorMessage.innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun. Silakan pilih tanggal yang valid.';
-            return false;
-        }
-
-        errorDiv.classList.add('hidden');
-        return true;
-    }
-</script>
-
 @endsection

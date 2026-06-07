@@ -18,11 +18,12 @@ class JadwalTes extends Model
         'id_mahasantri',
         'tanggal',
         'jam',
+        'interval_minutes',
         'link_zoom',
         'penanggung_jawab',
-        'penguji_tajwid',
-        'penguji_tahsin',
-        'penguji_kelancaran',
+        'penguji_bacaan_al_quran',
+        'penguji_tajwid_tahsin',
+        'penguji_hafalan',
         'penguji_wawancara',
         'zoom_reminder_sent',
     ];
@@ -40,16 +41,16 @@ class JadwalTes extends Model
     }
 
     // Relasi ke panitia sebagai penguji per aspek
-    public function pengujiTajwid() {
-        return $this->belongsTo(Panitia::class, 'penguji_tajwid', 'id_panitia');
+    public function pengujiBacaanAlQuran() {
+        return $this->belongsTo(Panitia::class, 'penguji_bacaan_al_quran', 'id_panitia');
     }
 
-    public function pengujiTahsin() {
-        return $this->belongsTo(Panitia::class, 'penguji_tahsin', 'id_panitia');
+    public function pengujiTajwidTahsin() {
+        return $this->belongsTo(Panitia::class, 'penguji_tajwid_tahsin', 'id_panitia');
     }
 
-    public function pengujiKelancaran() {
-        return $this->belongsTo(Panitia::class, 'penguji_kelancaran', 'id_panitia');
+    public function pengujiHafalan() {
+        return $this->belongsTo(Panitia::class, 'penguji_hafalan', 'id_panitia');
     }
 
     public function pengujiWawancara() {

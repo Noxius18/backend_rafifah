@@ -4,25 +4,29 @@
     <meta charset="utf-8">
     <title>Surat Kelulusan {{ $mahasantri->nama_lengkap }}</title>
     <style>
-        /* Margin atas-bawah diperkecil (20px) agar muat 1 lembar meski font diperbesar */
-        @page { size: A4; margin: 20px 40px; }
+        /* Ukuran margin pas untuk 1 halaman penuh tanpa terkesan sesak */
+        @page { size: A4; margin: 25px 40px; }
         
-        /* FONT DIPERBESAR (dari 13px menjadi 14.5px) */
-        body { font-family: 'Times New Roman', Times, serif; font-size: 14.5px; color: #000; line-height: 1.4; }
+        /* Font size standar surat resmi (14px) agar enak dibaca */
+        body { font-family: 'Times New Roman', Times, serif; font-size: 14px; color: #000; line-height: 1.35; }
         
         /* KOP SURAT */
-        .kop-surat { text-align: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 12px; margin-top: 5px; }
+        .kop-surat { text-align: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 15px; margin-top: 5px; }
         .kop-surat h1 { font-size: 20px; margin: 0; font-weight: bold; letter-spacing: 1px; }
         .kop-surat h2 { font-size: 26px; margin: 3px 0; font-weight: bold; color: #065f46; letter-spacing: 1.5px; }
         .kop-surat p { font-size: 13px; margin: 0; font-style: italic; }
 
         /* JUDUL SURAT */
         .judul-surat { text-align: center; margin-bottom: 15px; }
-        .judul-surat img.basmalah { height: 35px; margin-bottom: 5px; }
+        
+        /* PENGATURAN GAMBAR BASMALAH YANG SUDAH DI-CUT */
+        /* Tinggi diset 45px agar pas, margin negatif dihapus supaya ada jarak dengan teks bawahnya */
+        .judul-surat img.basmalah { height: 45px; width: auto; margin-top: 5px; margin-bottom: 10px; object-fit: contain; }
+        
         .judul-surat .teks-basmalah { font-size: 24px; font-family: 'Traditional Arabic', 'Amiri', 'DejaVu Sans', serif; margin-bottom: 5px; }
-        .judul-surat h3 { font-size: 17px; margin: 0; text-decoration: underline; font-weight: bold; }
-        .judul-surat h4 { font-size: 15px; margin: 3px 0 0; font-weight: bold; }
-        .judul-surat p { font-size: 13px; margin: 5px 0 0; }
+        .judul-surat h3 { font-size: 16px; margin: 0; text-decoration: underline; font-weight: bold; }
+        .judul-surat h4 { font-size: 14px; margin: 3px 0 0; font-weight: bold; }
+        .judul-surat p { font-size: 12px; margin: 5px 0 0; }
 
         /* KONTEN SURAT */
         .content { margin-bottom: 10px; }
@@ -33,22 +37,21 @@
         table.biodata td.titikdua { width: 15px; text-align: center; }
 
         /* STATUS KELULUSAN */
-        .status-box { text-align: center; margin: 12px 0; }
-        .status-text { font-size: 28px; font-weight: bold; margin: 5px 0; letter-spacing: 2px; }
+        .status-box { text-align: center; margin: 15px 0; }
+        .status-text { font-size: 26px; font-weight: bold; margin: 5px 0; letter-spacing: 2px; }
         .status-lulus { color: #059669; }
         .status-tidak { color: #dc2626; }
         .status-pertimbangan { color: #d97706; }
 
         /* TABEL NILAI */
-        table.nilai { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 12px; }
-        table.nilai th, table.nilai td { border: 1px solid #000; padding: 7px 12px; text-align: center; }
-        table.nilai th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; font-size: 13.5px; }
+        table.nilai { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+        table.nilai th, table.nilai td { border: 1px solid #000; padding: 6px 12px; text-align: center; }
+        table.nilai th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; font-size: 13px; }
         table.nilai td:nth-child(2) { text-align: left; }
 
         /* TANDA TANGAN */
         table.ttd-box { width: 100%; margin-top: 25px; text-align: center; }
         table.ttd-box td { width: 50%; vertical-align: top; position: relative; }
-        .ttd-img { height: 75px; margin: 5px 0; z-index: 10; position: relative; }
         .nama-ttd { font-weight: bold; text-decoration: underline; }
     </style>
 </head>
@@ -66,6 +69,14 @@
         $tahun = date('Y');
         $idNum = preg_replace('/[^0-9]/', '', $mahasantri->id_mahasantri ?? '001');
         $nomorSurat = str_pad($idNum ?: '1', 3, '0', STR_PAD_LEFT) . "/PMB/RAMQ/{$tahun}";
+
+        // Trik Base64 Gambar tetap dipertahankan supaya email tidak error
+        $basmalahPath = public_path('images/basmalah.png');
+        $basmalahBase64 = null;
+        if (file_exists($basmalahPath)) {
+            $basmalahData = base64_encode(file_get_contents($basmalahPath));
+            $basmalahBase64 = 'data:image/png;base64,' . $basmalahData;
+        }
     @endphp
 
     <div class="kop-surat">
@@ -75,13 +86,10 @@
     </div>
 
     <div class="judul-surat">
-        {{-- LOGIKA GAMBAR BASMALAH --}}
-        {{-- Jika ada file basmalah.png di folder public/images, maka pakai gambar --}}
-        @if(file_exists(public_path('images/basmalah.png')))
-            <img src="{{ public_path('images/basmalah.png') }}" class="basmalah" alt="Bismillah">
+        @if($basmalahBase64)
+            <img src="{{ $basmalahBase64 }}" class="basmalah" alt="Bismillah">
         @else
-            {{-- Jika tidak ada, pakai teks Arab ini --}}
-            <div class="teks-basmalah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
+            <div class="teks-basmalah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
         @endif
 
         <h3>SURAT KELULUSAN TEST</h3>
@@ -112,7 +120,7 @@
         </table>
 
         <div class="status-box">
-            <p style="margin-bottom: 5px; font-size: 14.5px;">Dinyatakan:</p>
+            <p style="margin-bottom: 5px; font-size: 14px; color: #000; font-weight: normal; letter-spacing: normal;">Dinyatakan:</p>
             @if ($h && $h->status === 'Lulus')
                 <div class="status-text status-lulus">LULUS</div>
             @elseif ($h && $h->status === 'Tidak Lulus')
@@ -120,7 +128,7 @@
             @elseif ($h && $h->status === 'Pertimbangan')
                 <div class="status-text status-pertimbangan">DIPERTIMBANGKAN</div>
             @else
-                <div class="status-text">MENUNGGU HASIL KELULUSAN</div>
+                <div class="status-text" style="font-size: 22px;">MENUNGGU HASIL KELULUSAN</div>
             @endif
         </div>
 
@@ -151,17 +159,17 @@
                 <tr>
                     <td>1</td>
                     <td>Bacaan Al Qur'an</td>
-                    <td>{{ $h->nilai_kelancaran ?? 0 }}</td>
+                    <td>{{ $h->nilai_bacaan_al_quran ?? 0 }}</td>
                 </tr>
                 <tr>
                     <td>2</td>
                     <td>Tajwid dan Tahsin</td>
-                    <td>{{ $h->nilai_tajwid ?? 0 }}</td>
+                    <td>{{ $h->nilai_tajwid_tahsin ?? 0 }}</td>
                 </tr>
                 <tr>
                     <td>3</td>
                     <td>Hafalan</td>
-                    <td>{{ $h->nilai_tahsin ?? 0 }}</td>
+                    <td>{{ $h->nilai_hafalan ?? 0 }}</td>
                 </tr>
                 <tr>
                     <td>4</td>

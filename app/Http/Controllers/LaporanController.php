@@ -19,13 +19,13 @@ class LaporanController extends Controller
         $idJadwal = $request->get('id_jadwal');
 
         if ($idJadwal) {
-            $jadwal = JadwalTes::with(['penanggungJawab', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara', 'mahasantri'])->findOrFail($idJadwal);
+            $jadwal = JadwalTes::with(['penanggungJawab', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara', 'mahasantri'])->findOrFail($idJadwal);
             $hasilTes = HasilTes::where('id_jadwal', $idJadwal)
-                ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiTajwid', 'jadwalTes.pengujiTahsin', 'jadwalTes.pengujiKelancaran', 'jadwalTes.pengujiWawancara'])
+                ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiBacaanAlquran', 'jadwalTes.pengujiTajwidTahsin', 'jadwalTes.pengujiHafalan', 'jadwalTes.pengujiWawancara'])
                 ->get();
         } else {
             $jadwal = null;
-            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiTajwid', 'jadwalTes.pengujiTahsin', 'jadwalTes.pengujiKelancaran', 'jadwalTes.pengujiWawancara'])->get();
+            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiBacaanAlquran', 'jadwalTes.pengujiTajwidTahsin', 'jadwalTes.pengujiHafalan', 'jadwalTes.pengujiWawancara'])->get();
         }
 
         $html = view('menu.laporan.pdf-nilai', [
@@ -77,9 +77,9 @@ class LaporanController extends Controller
             'mahasantri',
             'jadwalTes.mahasantri',
             'jadwalTes.penanggungJawab',
-            'jadwalTes.pengujiTajwid',
-            'jadwalTes.pengujiTahsin',
-            'jadwalTes.pengujiKelancaran',
+            'jadwalTes.pengujiBacaanAlquran',
+            'jadwalTes.pengujiTajwidTahsin',
+            'jadwalTes.pengujiHafalan',
             'jadwalTes.pengujiWawancara',
         ])->get();
 

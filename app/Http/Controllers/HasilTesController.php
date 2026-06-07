@@ -48,18 +48,18 @@ class HasilTesController extends Controller
         $validated = $request->validate([
             'id_mahasantri'   => 'required|exists:mahasantri,id_mahasantri',
             'id_jadwal'       => 'required|exists:jadwal_tes,id_jadwal',
-            'nilai_tajwid'    => 'nullable|integer|min:0|max:100',
-            'nilai_tahsin'    => 'nullable|integer|min:0|max:100',
-            'nilai_kelancaran'=> 'nullable|integer|min:0|max:100',
+            'nilai_bacaan_al_quran'    => 'nullable|integer|min:0|max:100',
+            'nilai_tajwid_tahsin'    => 'nullable|integer|min:0|max:100',
+            'nilai_hafalan'    => 'nullable|integer|min:0|max:100',
             'nilai_wawancara' => 'nullable|integer|min:0|max:100',
             'catatan_penguji' => 'nullable|string',
         ]);
 
         // Calculate total (average of 4 aspects)
         $nilai = array_filter([
-            $validated['nilai_tajwid'],
-            $validated['nilai_tahsin'],
-            $validated['nilai_kelancaran'],
+            $validated['nilai_bacaan_al_quran'],
+            $validated['nilai_tajwid_tahsin'],
+            $validated['nilai_hafalan'],
             $validated['nilai_wawancara'],
         ], function($v) { return $v !== null; });
 
@@ -69,7 +69,7 @@ class HasilTesController extends Controller
         $status = 'Belum Tes';
         if ($totalNilai !== null) {
             $hasPertimbangan = false;
-            foreach (['nilai_tajwid', 'nilai_tahsin', 'nilai_kelancaran', 'nilai_wawancara'] as $aspek) {
+            foreach (['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'] as $aspek) {
                 if ($validated[$aspek] !== null && $validated[$aspek] == 70) {
                     $hasPertimbangan = true;
                     break;
@@ -94,9 +94,9 @@ class HasilTesController extends Controller
             // Only update nilai if status is not 'Pertimbangan' or if the user is pengawas updating
             // For now, allow overwrite
             $existing->update([
-                'nilai_tajwid'     => $validated['nilai_tajwid'],
-                'nilai_tahsin'     => $validated['nilai_tahsin'],
-                'nilai_kelancaran' => $validated['nilai_kelancaran'],
+                'nilai_bacaan_al_quran'     => $validated['nilai_bacaan_al_quran'],
+                'nilai_tajwid_tahsin'     => $validated['nilai_tajwid_tahsin'],
+                'nilai_hafalan' => $validated['nilai_hafalan'],
                 'nilai_wawancara'  => $validated['nilai_wawancara'],
                 'total_nilai'      => $totalNilai,
                 'status'           => $status,
@@ -113,9 +113,9 @@ class HasilTesController extends Controller
                 'id_hasil'         => 'HTL' . str_pad($urut, 2, '0', STR_PAD_LEFT),
                 'id_mahasantri'    => $validated['id_mahasantri'],
                 'id_jadwal'        => $validated['id_jadwal'],
-                'nilai_tajwid'     => $validated['nilai_tajwid'],
-                'nilai_tahsin'     => $validated['nilai_tahsin'],
-                'nilai_kelancaran' => $validated['nilai_kelancaran'],
+                'nilai_bacaan_al_quran'     => $validated['nilai_bacaan_al_quran'],
+                'nilai_tajwid_tahsin'     => $validated['nilai_tajwid_tahsin'],
+                'nilai_hafalan' => $validated['nilai_hafalan'],
                 'nilai_wawancara'  => $validated['nilai_wawancara'],
                 'total_nilai'      => $totalNilai,
                 'status'           => $status,
@@ -160,19 +160,19 @@ class HasilTesController extends Controller
 
         $validated = $request->validate([
             'status'       => 'required|in:Lulus,Tidak Lulus',
-            'nilai_tajwid' => 'nullable|integer|min:0|max:100',
+            'nilai_tajwid_tahsin' => 'nullable|integer|min:0|max:100',
         ]);
 
         $updateData = ['status' => $validated['status']];
 
         // If pengawas changes the 70 value
-        if (!empty($validated['nilai_tajwid'])) {
-            $updateData['nilai_tajwid'] = $validated['nilai_tajwid'];
+        if (!empty($validated['nilai_tajwid_tahsin'])) {
+            $updateData['nilai_tajwid_tahsin'] = $validated['nilai_tajwid_tahsin'];
             // Recalculate total
             $nilai = array_filter([
-                $validated['nilai_tajwid'] ?? $hasilTes->nilai_tajwid,
-                $hasilTes->nilai_tahsin,
-                $hasilTes->nilai_kelancaran,
+                $hasilTes->nilai_bacaan_al_quran,
+                $validated['nilai_tajwid_tahsin'] ?? $hasilTes->nilai_tajwid_tahsin,
+                $hasilTes->nilai_hafalan,
                 $hasilTes->nilai_wawancara,
             ], function($v) { return $v !== null; });
             $updateData['total_nilai'] = count($nilai) > 0 ? round(array_sum($nilai) / count($nilai)) : null;

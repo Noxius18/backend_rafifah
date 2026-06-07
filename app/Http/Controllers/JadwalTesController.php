@@ -10,10 +10,8 @@ use App\Models\HasilTes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Artisan;
 use App\Mail\TestResultPdf;
 use App\Mail\ZoomLinkReminder;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class JadwalTesController extends Controller
 {
@@ -22,20 +20,17 @@ class JadwalTesController extends Controller
      */
     public function index()
     {
-        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara'])->paginate(10);
+        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara'])->paginate(10);
         $panitias = Panitia::where('jabatan', 'Panitia')->get();
 
-        // Dapatkan semua gelombang untuk batasan tanggal (untuk JavaScript validation)
         $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
 
-        // Tentukan gelombang yang aktif berdasarkan tanggal hari ini (for display purposes)
         $today = Carbon::today();
         $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->orderBy('start_date')
             ->first();
 
-        // Fallback: kalau gak ada gelombang aktif, gunakan gelombang pertama yang tersisa
         if (!$activeGelombang && $gelombangs->isNotEmpty()) {
             $activeGelombang = $gelombangs->first();
         }
@@ -49,7 +44,7 @@ class JadwalTesController extends Controller
     }
 
     /**
-     * Store a newly created jadwal tes — generate per mahasantri
+     * Store a newly created jadwal tes
      */
     public function store(Request $request)
     {
@@ -62,17 +57,12 @@ class JadwalTesController extends Controller
             'jam_mulai'        => 'required|date_format:H:i',
             'interval'         => 'required|integer|min:5|max:120',
             'link_zoom'        => 'nullable|string',
-            'penguji_tajwid'     => 'nullable|exists:panitia,id_panitia',
-            'penguji_tahsin'     => 'nullable|exists:panitia,id_panitia',
-            'penguji_kelancaran' => 'nullable|exists:panitia,id_panitia',
-            'penguji_wawancara'  => 'nullable|exists:panitia,id_panitia',
-        ], [
-            'tanggal.required'   => 'Tanggal tes wajib diisi.',
-            'jam_mulai.required' => 'Jam mulai wajib diisi.',
-            'interval.required'  => 'Interval per mahasantri wajib diisi.',
+            'penguji_bacaan_al_quran' => 'nullable|exists:panitia,id_panitia',
+            'penguji_tajwid_tahsin'   => 'nullable|exists:panitia,id_panitia',
+            'penguji_hafalan'         => 'nullable|exists:panitia,id_panitia',
+            'penguji_wawancara'       => 'nullable|exists:panitia,id_panitia',
         ]);
 
-        // Cari gelombang yang cocok dengan tanggal yang dipilih user
         $tanggal = Carbon::parse($validated['tanggal']);
         $prefixTahun = date('y');
         $gelombang = Gelombang::whereDate('start_date', '<=', $tanggal)
@@ -80,36 +70,26 @@ class JadwalTesController extends Controller
             ->orderBy('start_date')
             ->first();
 
-        // Hanya izinkan tanggal yang masuk dalam rentang gelombang
         if (!$gelombang) {
             return redirect()->route('seleksi.index')
-                ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk dalam rentang gelombang manapun. Periksa tanggal yang dipilih.');
+                ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk rentang gelombang manapun.');
         }
 
         $prefixId = $prefixTahun . str_pad($gelombang->id, 2, '0', STR_PAD_LEFT);
-
-        // Get all mahasantri with this prefix (both verified and unverified)
         $allMahasantri = User::where('id_mahasantri', 'LIKE', $prefixId . '%')->get();
-        $verifiedMahasantri = $allMahasantri->filter(function ($mhs) {
-            return $mhs->status === 'Terverifikasi';
-        });
-        $unverifiedMahasantri = $allMahasantri->reject(function ($mhs) {
-            return $mhs->status === 'Terverifikasi';
-        });
+        
+        $verifiedMahasantri = $allMahasantri->filter(fn($m) => $m->status === 'Terverifikasi');
+        $unverifiedMahasantri = $allMahasantri->reject(fn($m) => $m->status === 'Terverifikasi');
 
         if ($verifiedMahasantri->isEmpty()) {
-            return redirect()->route('seleksi.index')
-                ->with('error', 'Tidak ada mahasantri terverifikasi di ' . $gelombang->nama . '.');
+            return redirect()->route('seleksi.index')->with('error', 'Tidak ada mahasantri terverifikasi di ' . $gelombang->nama . '.');
         }
 
         $jamMulai = \Carbon\Carbon::createFromFormat('H:i', $validated['jam_mulai']);
         $interval = (int) $validated['interval'];
         $count = 0;
 
-        // Ambil last counter id_jadwal
-        $last = JadwalTes::where('id_jadwal', 'LIKE', 'JDT%')
-            ->orderBy('id_jadwal', 'desc')
-            ->first();
+        $last = JadwalTes::where('id_jadwal', 'LIKE', 'JDT%')->orderBy('id_jadwal', 'desc')->first();
         $urut = $last ? (int) substr($last->id_jadwal, 3) + 1 : 1;
 
         foreach ($verifiedMahasantri as $mhs) {
@@ -121,205 +101,114 @@ class JadwalTesController extends Controller
                 'id_mahasantri'     => $mhs->id_mahasantri,
                 'tanggal'           => $validated['tanggal'],
                 'jam'               => $jamMulai->format('H:i'),
+                'interval_minutes'  => $interval,
                 'link_zoom'         => $validated['link_zoom'] ?? null,
                 'penanggung_jawab'  => auth()->user()->id_panitia,
-                'penguji_tajwid'    => $validated['penguji_tajwid'] ?? null,
-                'penguji_tahsin'    => $validated['penguji_tahsin'] ?? null,
-                'penguji_kelancaran' => $validated['penguji_kelancaran'] ?? null,
-                'penguji_wawancara' => $validated['penguji_wawancara'] ?? null,
+                'penguji_bacaan_al_quran' => $validated['penguji_bacaan_al_quran'] ?? null,
+                'penguji_tajwid_tahsin'   => $validated['penguji_tajwid_tahsin'] ?? null,
+                'penguji_hafalan'         => $validated['penguji_hafalan'] ?? null,
+                'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
             ]);
 
             $jamMulai->addMinutes($interval);
             $count++;
         }
 
-        // Prepare unscheduled mahasantri data for modal (only id and name)
-        $unscheduledData = $unverifiedMahasantri->map(function ($mhs) {
-            return [
-                'id_mahasantri' => $mhs->id_mahasantri,
-                'nama_lengkap' => $mhs->nama_lengkap,
-            ];
-        });
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => "Berhasil membuat {$count} jadwal untuk Gelombang {$gelombang->nama}.",
-                'unscheduledMahasantri' => $unscheduledData
-            ], 201);
-        }
+        $unscheduledData = $unverifiedMahasantri->map(fn($m) => ['id_mahasantri' => $m->id_mahasantri, 'nama_lengkap' => $m->nama_lengkap]);
 
         return redirect()->route('seleksi.index')
-            ->with('success', "Berhasil membuat {$count} jadwal untuk Gelombang {$gelombang->nama}.")
+            ->with('success', "Berhasil membuat {$count} jadwal untuk {$gelombang->nama}.")
             ->with('unscheduledMahasantri', $unscheduledData);
     }
 
-    /**
-     * Update link zoom massal berdasarkan tanggal
-     */
     public function updateLinkZoomMassal(Request $request)
     {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa update link zoom');
-        }
-
-        $validated = $request->validate([
-            'tanggal'   => 'required|date',
-            'link_zoom' => 'required|string',
-        ]);
-
-        $updated = JadwalTes::where('tanggal', $validated['tanggal'])
-            ->update(['link_zoom' => $validated['link_zoom']]);
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => "Link Zoom berhasil diperbarui untuk {$updated} jadwal.",
-            ]);
-        }
-
-        return redirect()->route('seleksi.index')
-            ->with('success', "Link Zoom berhasil diperbarui untuk {$updated} jadwal.");
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
+        $request->validate(['tanggal' => 'required|date', 'link_zoom' => 'required|string']);
+        $updated = JadwalTes::where('tanggal', $request->tanggal)->update(['link_zoom' => $request->link_zoom]);
+        return redirect()->route('seleksi.index')->with('success', "Link Zoom berhasil diperbarui untuk {$updated} jadwal.");
     }
 
-    /**
-     * Show the form for editing the specified jadwal tes
-     */
     public function edit(JadwalTes $jadwalTes)
     {
-        $jadwalTes->load(['penanggungJawab', 'mahasantri', 'pengujiTajwid', 'pengujiTahsin', 'pengujiKelancaran', 'pengujiWawancara']);
-
-        // Dapatkan semua gelombang untuk validasi tanggal di modal edit
-        $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
-
-        if (request()->wantsJson()) {
-            return response()->json($jadwalTes);
-        }
-
-        return view('menu.jadwal-tes.edit', [
-            'jadwalTes' => $jadwalTes,
-            'gelombangs' => $gelombangs
-        ]);
+        $jadwalTes->load(['penanggungJawab', 'mahasantri', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara']);
+        return view('menu.jadwal-tes.edit', ['jadwalTes' => $jadwalTes, 'gelombangs' => Gelombang::orderBy('start_date')->get()]);
     }
 
-    /**
-     * Update the specified jadwal tes
-     */
     public function update(Request $request, JadwalTes $jadwalTes)
     {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa mengubah jadwal tes');
-        }
-
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
+        
+        // SUDAH DIPERBAIKI: Penamaan validation disesuaikan dengan DB
         $validated = $request->validate([
-            'tanggal'     => 'required|date',
-            'jam'         => 'nullable|date_format:H:i',
-            'link_zoom'   => 'nullable|string',
-            'penguji_tajwid'     => 'nullable|exists:panitia,id_panitia',
-            'penguji_tahsin'     => 'nullable|exists:panitia,id_panitia',
-            'penguji_kelancaran' => 'nullable|exists:panitia,id_panitia',
-            'penguji_wawancara'  => 'nullable|exists:panitia,id_panitia',
+            'tanggal'                 => 'required|date', 
+            'jam'                     => 'nullable|date_format:H:i', 
+            'link_zoom'               => 'nullable|string',
+            'penguji_bacaan_al_quran' => 'nullable|exists:panitia,id_panitia', 
+            'penguji_tajwid_tahsin'   => 'nullable|exists:panitia,id_panitia',
+            'penguji_hafalan'         => 'nullable|exists:panitia,id_panitia', 
+            'penguji_wawancara'       => 'nullable|exists:panitia,id_panitia',
         ]);
 
-        // Validasi tanggal masuk rentang gelombang
-        $tanggal = Carbon::parse($validated['tanggal']);
-        $gelombang = Gelombang::whereDate('start_date', '<=', $tanggal)
-            ->whereDate('end_date', '>=', $tanggal)
-            ->orderBy('start_date')
-            ->first();
-
-        if (!$gelombang) {
-            return redirect()->route('seleksi.index')
-                ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk dalam rentang gelombang manapun. Periksa tanggal yang dipilih.');
-        }
-
-        // Update jadwal termasuk penguji
-        $jadwalTes->update([
-            'tanggal'           => $validated['tanggal'],
-            'jam'               => $validated['jam'] ?? null,
-            'link_zoom'         => $validated['link_zoom'] ?? null,
-            'penguji_tajwid'    => $validated['penguji_tajwid'] ?? null,
-            'penguji_tahsin'    => $validated['penguji_tahsin'] ?? null,
-            'penguji_kelancaran' => $validated['penguji_kelancaran'] ?? null,
-            'penguji_wawancara' => $validated['penguji_wawancara'] ?? null,
-        ]);
-
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Jadwal tes berhasil diperbarui']);
-        }
-
+        $jadwalTes->update($validated);
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
     }
 
-    /**
-     * Send update notification when jadwal is edited
-     */
     public function sendUpdateNotification(Request $request, JadwalTes $jadwalTes)
     {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa kirim notifikasi');
-        }
-
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
         $mahasantri = $jadwalTes->mahasantri;
-        if (!$mahasantri || !$mahasantri->email) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Mahasiswa tidak memiliki email']);
-            }
-            return redirect()->back()->with('error', 'Mahasiswa tidak memiliki email');
-        }
-
-        // Reset flag so reminder will be sent again on next schedule run
+        if (!$mahasantri || !$mahasantri->email) return redirect()->back()->with('error', 'Mahasiswa tidak memiliki email');
+        
         $jadwalTes->update(['zoom_reminder_sent' => false]);
-
-        // Send immediate update notification
         Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $mahasantri));
-
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap]);
-        }
-
         return redirect()->back()->with('success', 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap);
     }
 
-    /**
-     * Remove the specified jadwal tes
-     */
     public function destroy(Request $request, JadwalTes $jadwalTes)
     {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa menghapus jadwal tes');
-        }
-
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
         $jadwalTes->delete();
-
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Jadwal tes berhasil dihapus']);
-        }
-
-        return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil dihapus');
+        return redirect()->route('seleksi.index')->with('success', 'Jadwal tes dihapus');
     }
 
+    /**
+     * PERBAIKAN: Jadwalkan pengiriman email otomatis berdasarkan Gelombang Aktif
+     */
     public function sendBulkResults(Request $request)
     {
-        if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa kirim hasil test');
-        }
+        if (auth()->user()->jabatan !== 'Panitia') abort(403, 'Hanya panitia yang bisa kirim hasil test');
 
-        // 1. Validasi Input Modal
+        // Panitia sekarang HANYA menginput tanggal & jam kapan email mau diluncurkan
         $request->validate([
-            'tanggal_tes'   => 'required|date',
             'tanggal_kirim' => 'required|date',
             'jam_kirim'     => 'required',
         ]);
 
-        // 2. Gabungkan waktu untuk penjadwalan (Queue Delay)
         $waktuKirim = Carbon::parse($request->tanggal_kirim . ' ' . $request->jam_kirim);
 
-        // 3. Ambil target mahasantri
+        // Cari Gelombang yang sedang aktif hari ini (Auto-detect)
+        $today = Carbon::today();
+        $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->first();
+
+        // Kalau tidak ada yang aktif (misal pendaftaran sudah tutup), jadikan gelombang paling terakhir sebagai patokan
+        if (!$activeGelombang) {
+            $activeGelombang = Gelombang::orderBy('end_date', 'desc')->first();
+        }
+
+        if (!$activeGelombang) {
+            return back()->with('error', 'Gagal: Belum ada konfigurasi gelombang di sistem.');
+        }
+
+        // Ambil SEMUA jadwal ujian yang berada dalam RENTANG TANGGAL gelombang tersebut
         $scheduled = JadwalTes::with(['mahasantri', 'hasilTes'])
-            ->where('tanggal', $request->tanggal_tes)
+            ->whereBetween('tanggal', [$activeGelombang->start_date, $activeGelombang->end_date])
             ->get();
 
         if ($scheduled->isEmpty()) {
-            return back()->with('error', 'Tidak ada jadwal seleksi pada tanggal tes tersebut.');
+            return back()->with('error', "Tidak ada jadwal seleksi pada {$activeGelombang->nama}.");
         }
 
         $sentCount = 0;
@@ -327,17 +216,16 @@ class JadwalTesController extends Controller
         foreach ($scheduled as $jadwal) {
             $mahasantri = $jadwal->mahasantri;
             
-            // Mengambil hasil (jaga-jaga jika relasi pakai hasMany atau hasOne)
             $hasil = $jadwal->hasilTes instanceof \Illuminate\Database\Eloquent\Collection 
                 ? $jadwal->hasilTes->first() 
                 : $jadwal->hasilTes;
 
-            // Skip jika belum lulus/tidak lulus
+            // Filter ganda: Skip jika mahasantri kosong atau status belum direview (belum final)
             if (!$mahasantri || !$hasil || !in_array($mahasantri->status, ['Lulus', 'Tidak Lulus'])) {
                 continue;
             }
 
-            // 4. Jadwalkan pengiriman email menggunakan later()
+            // Titipkan tugas pengiriman email ke queue (antrean) background
             Mail::to($mahasantri->email)
                 ->later($waktuKirim, new TestResultPdf($mahasantri, $hasil));
             
@@ -345,9 +233,9 @@ class JadwalTesController extends Controller
         }
 
         if ($sentCount === 0) {
-            return back()->with('error', 'Gagal menjadwalkan. Pastikan nilai mahasantri pada tanggal tersebut sudah direview (Lulus/Tidak Lulus).');
+            return back()->with('error', "Gagal menjadwalkan. Pastikan nilai mahasantri pada {$activeGelombang->nama} sudah direview (Lulus/Tidak Lulus) semua.");
         }
 
-        return back()->with('success', "Berhasil! {$sentCount} email dijadwalkan otomatis untuk meluncur pada {$waktuKirim->format('d/m/Y H:i')}.");
+        return back()->with('success', "Berhasil! {$sentCount} email kelulusan dijadwalkan untuk {$activeGelombang->nama} dan akan meluncur pada {$waktuKirim->format('d/m/Y H:i')}.");
     }
 }
