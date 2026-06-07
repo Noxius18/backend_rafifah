@@ -147,52 +147,46 @@ class HasilTesController extends Controller
             ->with('success', 'Nilai berhasil disimpan');
     }
 
-    /**
-     * Pengawas: review and update status (Lulus/Tidak Lulus) for pertimbangan
-     * Hanya Pengawas yang bisa review
+   /**
+     * Pengawas: review and update status (Lulus/Tidak Lulus) beserta nilai perbaikannya
      */
     public function review(Request $request, HasilTes $hasilTes)
     {
-        // Cek role: hanya Pengawas yang bisa review
         if (auth()->user()->jabatan !== 'Pengawas') {
             abort(403, 'Hanya pengawas yang bisa review pertimbangan');
         }
 
+        // Validasi: Status wajib, nilai juga ditangkap untuk di-update
         $validated = $request->validate([
-            'status'       => 'required|in:Lulus,Tidak Lulus',
-            'nilai_tajwid_tahsin' => 'nullable|integer|min:0|max:100',
+            'status'                => 'required|in:Lulus,Tidak Lulus',
+            'nilai_bacaan_al_quran' => 'required|numeric|min:0|max:100',
+            'nilai_tajwid_tahsin'   => 'required|numeric|min:0|max:100',
+            'nilai_hafalan'         => 'required|numeric|min:0|max:100',
+            'nilai_wawancara'       => 'required|numeric|min:0|max:100',
         ]);
 
-        $updateData = ['status' => $validated['status']];
+        // Hitung ulang rata-rata berdasarkan nilai yang mungkin diedit pengawas
+        $total = round(($validated['nilai_bacaan_al_quran'] + $validated['nilai_tajwid_tahsin'] + $validated['nilai_hafalan'] + $validated['nilai_wawancara']) / 4);
 
-        // If pengawas changes the 70 value
-        if (!empty($validated['nilai_tajwid_tahsin'])) {
-            $updateData['nilai_tajwid_tahsin'] = $validated['nilai_tajwid_tahsin'];
-            // Recalculate total
-            $nilai = array_filter([
-                $hasilTes->nilai_bacaan_al_quran,
-                $validated['nilai_tajwid_tahsin'] ?? $hasilTes->nilai_tajwid_tahsin,
-                $hasilTes->nilai_hafalan,
-                $hasilTes->nilai_wawancara,
-            ], function($v) { return $v !== null; });
-            $updateData['total_nilai'] = count($nilai) > 0 ? round(array_sum($nilai) / count($nilai)) : null;
-        }
+        // Update nilai dan status baru ke database
+        $hasilTes->update([
+            'nilai_bacaan_al_quran' => $validated['nilai_bacaan_al_quran'],
+            'nilai_tajwid_tahsin'   => $validated['nilai_tajwid_tahsin'],
+            'nilai_hafalan'         => $validated['nilai_hafalan'],
+            'nilai_wawancara'       => $validated['nilai_wawancara'],
+            'total_nilai'           => $total,
+            'status'                => $validated['status']
+        ]);
 
-        $hasilTes->update($updateData);
-
-        // =========================================================================
-        // SINKRONISASI STATUS MAHASANTRI SETELAH DIREVIEW PENGAWAS
-        // =========================================================================
-        // Karena pengawas sudah menyetujui, maka otomatis ubah status mahasantri-nya
-        User::where('id_mahasantri', $hasilTes->id_mahasantri)->update([
+        // Sinkronisasi status mahasantri
+        \App\Models\User::where('id_mahasantri', $hasilTes->id_mahasantri)->update([
             'status' => $validated['status']
         ]);
-        // =========================================================================
 
         if ($request->wantsJson()) {
-            return response()->json(['message' => 'Status berhasil diperbarui']);
+            return response()->json(['message' => 'Status dan nilai berhasil diperbarui']);
         }
 
-        return redirect()->back()->with('success', 'Status berhasil diperbarui');
+        return redirect()->back()->with('success', 'Status dan nilai berhasil diperbarui');
     }
 }
