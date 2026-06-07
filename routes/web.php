@@ -11,7 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GelombangController;
 
 Route::middleware('guest')->group(function () {
-    // / redirect ke halaman login
+    // redirect ke halaman login
     Route::get('/', function () {
         return redirect()->route('login');
     });
@@ -37,6 +37,11 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     Route::put('/seleksi/{jadwalTes}', [JadwalTesController::class, 'update'])->name('seleksi.update');
     Route::delete('/seleksi/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('seleksi.destroy');
     Route::post('/seleksi/update-link-zoom', [JadwalTesController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
+    
+    // 👇 INI DIA ROUTENYA (Sekarang sudah aman terlindungi middleware Panitia)
+    Route::post('/seleksi/send-bulk-results', [JadwalTesController::class, 'sendBulkResults'])->name('seleksi.send-bulk-results');
+    
+    Route::post('/seleksi/{jadwalTes}/notify-update', [JadwalTesController::class, 'sendUpdateNotification'])->name('seleksi.notify-update');
 
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');

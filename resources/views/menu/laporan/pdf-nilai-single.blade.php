@@ -2,124 +2,202 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Data Nilai {{ $mahasantri->nama_lengkap }}</title>
+    <title>Surat Kelulusan {{ $mahasantri->nama_lengkap }}</title>
     <style>
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #1e293b; margin: 25px; }
-        .header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #059669; }
-        .header h1 { font-size: 18px; color: #065f46; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .header p { font-size: 10px; color: #94a3b8; margin: 2px 0; }
+        /* Ukuran margin pas untuk 1 halaman penuh tanpa terkesan sesak */
+        @page { size: A4; margin: 25px 40px; }
+        
+        /* Font size standar surat resmi (14px) agar enak dibaca */
+        body { font-family: 'Times New Roman', Times, serif; font-size: 14px; color: #000; line-height: 1.35; }
+        
+        /* KOP SURAT */
+        .kop-surat { text-align: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 15px; margin-top: 5px; }
+        .kop-surat h1 { font-size: 20px; margin: 0; font-weight: bold; letter-spacing: 1px; }
+        .kop-surat h2 { font-size: 26px; margin: 3px 0; font-weight: bold; color: #065f46; letter-spacing: 1.5px; }
+        .kop-surat p { font-size: 13px; margin: 0; font-style: italic; }
 
-        .card { border: 1.5px solid #d1d5db; border-radius: 8px; margin-bottom: 18px; overflow: hidden; }
-        .card-header { background: #065f46; color: #fff; padding: 8px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .card-body { padding: 14px; }
-        .info-table { width: 100%; border-collapse: collapse; }
-        .info-table td { padding: 5px 8px; font-size: 13px; }
-        .info-table .label { color: #64748b; width: 140px; font-weight: 600; }
-        .info-table .value { font-weight: 700; color: #1e293b; }
+        /* JUDUL SURAT */
+        .judul-surat { text-align: center; margin-bottom: 15px; }
+        
+        /* PENGATURAN GAMBAR BASMALAH YANG SUDAH DI-CUT */
+        /* Tinggi diset 45px agar pas, margin negatif dihapus supaya ada jarak dengan teks bawahnya */
+        .judul-surat img.basmalah { height: 45px; width: auto; margin-top: 5px; margin-bottom: 10px; object-fit: contain; }
+        
+        .judul-surat .teks-basmalah { font-size: 24px; font-family: 'Traditional Arabic', 'Amiri', 'DejaVu Sans', serif; margin-bottom: 5px; }
+        .judul-surat h3 { font-size: 16px; margin: 0; text-decoration: underline; font-weight: bold; }
+        .judul-surat h4 { font-size: 14px; margin: 3px 0 0; font-weight: bold; }
+        .judul-surat p { font-size: 12px; margin: 5px 0 0; }
 
-        .nilai-grid { display: flex; gap: 12px; margin-top: 10px; }
-        .nilai-item { flex: 1; text-align: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 6px; background: #f8fafc; }
-        .nilai-item .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-        .nilai-item .value { font-size: 22px; font-weight: 800; color: #065f46; margin-top: 4px; }
-        .nilai-item .penguji { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+        /* KONTEN SURAT */
+        .content { margin-bottom: 10px; }
+        
+        table.biodata { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        table.biodata td { padding: 4px 5px; vertical-align: top; }
+        table.biodata td.label { width: 190px; }
+        table.biodata td.titikdua { width: 15px; text-align: center; }
 
-        .catatan-box { margin-top: 14px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; }
-        .catatan-box .label { font-size: 11px; color: #92400e; font-weight: 600; }
-        .catatan-box .value { font-size: 13px; color: #78350f; margin-top: 2px; }
+        /* STATUS KELULUSAN */
+        .status-box { text-align: center; margin: 15px 0; }
+        .status-text { font-size: 26px; font-weight: bold; margin: 5px 0; letter-spacing: 2px; }
+        .status-lulus { color: #059669; }
+        .status-tidak { color: #dc2626; }
+        .status-pertimbangan { color: #d97706; }
 
-        .result-row { display: flex; gap: 20px; margin-top: 14px; padding: 10px 14px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 6px; }
-        .result-item { flex: 1; }
-        .result-item .label { font-size: 11px; color: #64748b; }
-        .result-item .value { font-size: 16px; font-weight: 700; }
-        .result-item .value-green { color: #059669; }
-        .result-item .value-red { color: #dc2626; }
-        .result-item .value-amber { color: #d97706; }
+        /* TABEL NILAI */
+        table.nilai { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+        table.nilai th, table.nilai td { border: 1px solid #000; padding: 6px 12px; text-align: center; }
+        table.nilai th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; font-size: 13px; }
+        table.nilai td:nth-child(2) { text-align: left; }
 
-        .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #94a3b8; text-align: center; }
+        /* TANDA TANGAN */
+        table.ttd-box { width: 100%; margin-top: 25px; text-align: center; }
+        table.ttd-box td { width: 50%; vertical-align: top; position: relative; }
+        .nama-ttd { font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Data Nilai {{ $mahasantri->nama_lengkap }}</h1>
-        <p>Dicetak: {{ $date }}</p>
-    </div>
 
-    @forelse ($hasilTes as $h)
     @php
-        $pengujiTajwid = $h->jadwalTes->pengujiTajwid?->nama_lengkap ?? '';
-        $pengujiTahsin = $h->jadwalTes->pengujiTahsin?->nama_lengkap ?? '';
-        $pengujiKelancaran = $h->jadwalTes->pengujiKelancaran?->nama_lengkap ?? '';
-        $pengujiWawancara = $h->jadwalTes->pengujiWawancara?->nama_lengkap ?? '';
+        $h = $hasil ?? (isset($hasilTes) ? $hasilTes->first() : null);
+        
+        $nama = $mahasantri->nama_lengkap ?? '-';
+        $tempat_lahir = $mahasantri->tempat_lahir ?? '-';
+        $tgl_lahir = $mahasantri->tanggal_lahir ? \Carbon\Carbon::parse($mahasantri->tanggal_lahir)->locale('id')->translatedFormat('d F Y') : '-';
+        
+        $alamat = $mahasantri->alamat ?? 'Bogor, Jawa Barat'; 
+
+        $tahun = date('Y');
+        $idNum = preg_replace('/[^0-9]/', '', $mahasantri->id_mahasantri ?? '001');
+        $nomorSurat = str_pad($idNum ?: '1', 3, '0', STR_PAD_LEFT) . "/PMB/RAMQ/{$tahun}";
+
+        // Trik Base64 Gambar tetap dipertahankan supaya email tidak error
+        $basmalahPath = public_path('images/basmalah.png');
+        $basmalahBase64 = null;
+        if (file_exists($basmalahPath)) {
+            $basmalahData = base64_encode(file_get_contents($basmalahPath));
+            $basmalahBase64 = 'data:image/png;base64,' . $basmalahData;
+        }
     @endphp
-    <div class="card">
-        <div class="card-header">Hasil Tes</div>
-        <div class="card-body">
-            <table class="info-table">
-                <tr>
-                    <td class="label">Tanggal Daftar</td>
-                    <td class="value">{{ $mahasantri->tanggal_daftar ? \Carbon\Carbon::parse($mahasantri->tanggal_daftar)->format('d/m/Y') : '-' }}</td>
-                    <td class="label">Tanggal Ujian</td>
-                    <td class="value">{{ $h->jadwalTes?->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Jam</td>
-                    <td class="value">{{ $h->jadwalTes?->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
-                    <td class="label">Gelombang</td>
-                    <td class="value">{{ $mahasantri->id_mahasantri ? \App\Models\User::extractGelombangNama($mahasantri->id_mahasantri) : '-' }}</td>
-                </tr>
-            </table>
 
-            <div class="nilai-grid">
-                <div class="nilai-item">
-                    <div class="label">Tajwid</div>
-                    <div class="value">{{ $h->nilai_tajwid ?? '-' }}</div>
-                    @if($pengujiTajwid) <div class="penguji">{{ $pengujiTajwid }}</div> @endif
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Tahsin</div>
-                    <div class="value">{{ $h->nilai_tahsin ?? '-' }}</div>
-                    @if($pengujiTahsin) <div class="penguji">{{ $pengujiTahsin }}</div> @endif
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Kelancaran</div>
-                    <div class="value">{{ $h->nilai_kelancaran ?? '-' }}</div>
-                    @if($pengujiKelancaran) <div class="penguji">{{ $pengujiKelancaran }}</div> @endif
-                </div>
-                <div class="nilai-item">
-                    <div class="label">Wawancara</div>
-                    <div class="value">{{ $h->nilai_wawancara ?? '-' }}</div>
-                    @if($pengujiWawancara) <div class="penguji">{{ $pengujiWawancara }}</div> @endif
-                </div>
-            </div>
+    <div class="kop-surat">
+        <h1>PONDOK PESANTREN TAHFIDZ</h1>
+        <h2>RAFIFAH ANDALUSIA MQ</h2>
+        <p>Cijayanti, Babakan Madang, Bogor, Jawa Barat, Indonesia</p>
+    </div>
 
-            @if($h->catatan_penguji)
-            <div class="catatan-box">
-                <div class="label">Catatan Penguji</div>
-                <div class="value">{{ $h->catatan_penguji }}</div>
-            </div>
+    <div class="judul-surat">
+        @if($basmalahBase64)
+            <img src="{{ $basmalahBase64 }}" class="basmalah" alt="Bismillah">
+        @else
+            <div class="teks-basmalah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
+        @endif
+
+        <h3>SURAT KELULUSAN TEST</h3>
+        <h4>PENERIMAAN MAHASANTRI BARU</h4>
+        <p>Nomor: {{ $nomorSurat }}</p>
+    </div>
+
+    <div class="content">
+        <p><i>Assalamu'alaikum warahmatullahi wabarakatuh</i></p>
+        <p>Berdasarkan hasil seleksi dan tes penerimaan mahasantri baru Tahun Ajaran {{ $tahun }}/{{ $tahun + 1 }}. Maka dengan ini kami menyatakan bahwa:</p>
+
+        <table class="biodata">
+            <tr>
+                <td class="label">Nama</td>
+                <td class="titikdua">:</td>
+                <td><strong>{{ $nama }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Tempat/Tanggal Lahir</td>
+                <td class="titikdua">:</td>
+                <td>{{ $tempat_lahir }}, {{ $tgl_lahir }}</td>
+            </tr>
+            <tr>
+                <td class="label">Alamat</td>
+                <td class="titikdua">:</td>
+                <td>{{ $alamat }}</td>
+            </tr>
+        </table>
+
+        <div class="status-box">
+            <p style="margin-bottom: 5px; font-size: 14px; color: #000; font-weight: normal; letter-spacing: normal;">Dinyatakan:</p>
+            @if ($h && $h->status === 'Lulus')
+                <div class="status-text status-lulus">LULUS</div>
+            @elseif ($h && $h->status === 'Tidak Lulus')
+                <div class="status-text status-tidak">TIDAK LULUS</div>
+            @elseif ($h && $h->status === 'Pertimbangan')
+                <div class="status-text status-pertimbangan">DIPERTIMBANGKAN</div>
+            @else
+                <div class="status-text" style="font-size: 22px;">MENUNGGU HASIL KELULUSAN</div>
             @endif
-
-            <div class="result-row">
-                <div class="result-item">
-                    <div class="label">Total Nilai</div>
-                    <div class="value" style="color: #065f46;">{{ $h->total_nilai ?? '-' }}</div>
-                </div>
-                <div class="result-item">
-                    <div class="label">Status</div>
-                    <div class="value {{ $h->status === 'Lulus' ? 'value-green' : ($h->status === 'Tidak Lulus' ? 'value-red' : ($h->status === 'Pertimbangan' ? 'value-amber' : '')) }}">
-                        {{ $h->status ?? 'Belum Tes' }}
-                    </div>
-                </div>
-            </div>
         </div>
-    </div>
-    @empty
-    <div class="card">
-        <div class="card-header">Hasil Tes</div>
-        <div class="card-body" style="text-align: center; padding: 30px; color: #94a3b8;">Belum ada nilai untuk mahasantri ini.</div>
-    </div>
-    @endforelse
 
-    <div class="footer"><p>© {{ date('Y') }} Ma'had Rafifah Andalusia MQ — Sistem Manajemen Pendaftaran Santri Baru</p></div>
+        <p>Sebagai calon Mahasantri baru di:</p>
+        <table class="biodata" style="margin-bottom: 10px;">
+            <tr>
+                <td class="label">Nama Lembaga</td>
+                <td class="titikdua">:</td>
+                <td><strong>Pondok Pesantren Tahfidz Rafifah Andalusia MQ</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Program</td>
+                <td class="titikdua">:</td>
+                <td><strong>Takhassus Al-Qur'an 30 Juz</strong></td>
+            </tr>
+        </table>
+
+        @if($h)
+        <table class="nilai">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">NO</th>
+                    <th style="width: 60%;">Komponen Penilaian</th>
+                    <th style="width: 30%;">Hasil</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Bacaan Al Qur'an</td>
+                    <td>{{ $h->nilai_bacaan_al_quran ?? 0 }}</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Tajwid dan Tahsin</td>
+                    <td>{{ $h->nilai_tajwid_tahsin ?? 0 }}</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Hafalan</td>
+                    <td>{{ $h->nilai_hafalan ?? 0 }}</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Wawancara</td>
+                    <td>{{ $h->nilai_wawancara ?? 0 }}</td>
+                </tr>
+            </tbody>
+        </table>
+        @endif
+
+        <p>Demikian Surat kelulusan ini disampaikan untuk dipergunakan sebagaimana mestinya.</p>
+        <p><i>Wassalamu'alaikum warahmatullahi wabarakatuh</i></p>
+    </div>
+
+    <table class="ttd-box">
+        <tr>
+            <td>
+                <p style="margin-bottom: 5px;">Ketua Panitia PMB</p>
+                <div style="height: 65px;"></div>
+                <p class="nama-ttd">Ustadz M. Umar Al Faruq</p>
+            </td>
+            <td>
+                <p style="margin-bottom: 5px;">Kepala Ma'had</p>
+                <div style="height: 65px;"></div>
+                <p class="nama-ttd">Ustadz Faikurrahman, S.Ag</p>
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

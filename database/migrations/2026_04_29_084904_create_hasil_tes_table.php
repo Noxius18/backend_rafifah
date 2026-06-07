@@ -15,9 +15,9 @@ return new class extends Migration
             $table->char('id_hasil', 5)->primary();
             $table->enum('status', ['Belum Tes', 'Pertimbangan', 'Lulus', 'Tidak Lulus'])->default('Belum Tes');
             $table->text('catatan_penguji')->nullable();
-            $table->integer('nilai_tajwid')->nullable();
-            $table->integer('nilai_tahsin')->nullable();
-            $table->integer('nilai_kelancaran')->nullable();
+            $table->integer('nilai_bacaan_al_quran')->nullable();
+            $table->integer('nilai_tajwid_tahsin')->nullable();
+            $table->integer('nilai_hafalan')->nullable();
             $table->integer('nilai_wawancara')->nullable();
             $table->integer('total_nilai')->nullable();
             $table->char('id_mahasantri', 6);

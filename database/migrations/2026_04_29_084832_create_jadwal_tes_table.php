@@ -13,13 +13,21 @@ return new class extends Migration
     {
         Schema::create('jadwal_tes', function (Blueprint $table) {
             $table->char('id_jadwal', 5)->primary();
-            
+
             // Kolom baru sesuai restructure
             $table->char('id_mahasantri', 6);
             $table->date('tanggal');
             $table->time('jam')->nullable();
+            $table->unsignedInteger('interval_minutes')->default(30)->comment('Interval waktu dalam menit antar mahasantri');
             $table->string('link_zoom')->nullable();
+            // Reminder flag added from 2026_04_29_084833_add_zoom_reminder_sent_to_jadwal_tes_table.php
+            $table->boolean('zoom_reminder_sent')->default(false);
             $table->char('penanggung_jawab', 5)->nullable()->comment('Penanggung jawab (panitia)');
+            // Penguji columns added from 2026_06_03_121210_add_penguji_columns_to_jadwal_tes_and_drop_penguji_table.php
+            $table->char('penguji_bacaan_al_quran', 5)->nullable();
+            $table->char('penguji_tajwid_tahsin', 5)->nullable();
+            $table->char('penguji_hafalan', 5)->nullable();
+            $table->char('penguji_wawancara', 5)->nullable();
 
             // Foreign key ke tabel mahasantri
             $table->foreign('id_mahasantri')
@@ -30,6 +38,28 @@ return new class extends Migration
 
             // Foreign key ke tabel panitia
             $table->foreign('penanggung_jawab')
+                  ->references('id_panitia')
+                  ->on('panitia')
+                  ->onDelete('set null')
+                  ->onUpdate('cascade');
+
+            // Foreign key penguji columns ke tabel panitia
+            $table->foreign('penguji_bacaan_al_quran')
+                  ->references('id_panitia')
+                  ->on('panitia')
+                  ->onDelete('set null')
+                  ->onUpdate('cascade');
+            $table->foreign('penguji_tajwid_tahsin')
+                  ->references('id_panitia')
+                  ->on('panitia')
+                  ->onDelete('set null')
+                  ->onUpdate('cascade');
+            $table->foreign('penguji_hafalan')
+                  ->references('id_panitia')
+                  ->on('panitia')
+                  ->onDelete('set null')
+                  ->onUpdate('cascade');
+            $table->foreign('penguji_wawancara')
                   ->references('id_panitia')
                   ->on('panitia')
                   ->onDelete('set null')
