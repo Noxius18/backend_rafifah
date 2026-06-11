@@ -1,0 +1,75 @@
+steps:
+  ci_test_build:
+    image: php:8.3-cli-alpine
+    commands:
+      - apk add --no-cache nodejs npm curl git
+      - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+      - composer install --no-interaction --prefer-dist --optimize-autoloader
+      - npm ci
+      - |
+        cat > .env << EOF
+        APP_NAME="Panel Panitia - Ma'had Rafifah Andalusia Bogor MQ"
+        APP_ENV=testing
+        APP_KEY=${APP_KEY}
+        APP_DEBUG=true
+        DB_HOST=${DB_HOST}
+        DB_PORT=${DB_PORT}
+        DB_DATABASE=${DB_DATABASE}
+        DB_USERNAME=${DB_USERNAME}
+        DB_PASSWORD=${DB_PASSWORD}
+        MAIL_MAILER=log
+        QUEUE_CONNECTION=database
+        EOF
+      - php artisan config:clear
+      - php artisan migrate --force
+      - php artisan test
+      - npm run build
+    when:
+      branch: [devel]
+      event: [push, pull_request]
+
+  cd_deploy:
+    image: alpine:latest
+    commands:
+      - apk add --no-cache docker-cli docker-compose-plugin rsync
+      - mkdir -p /opt/stacks/staging_laravel/data/code
+      - |
+        cat > /opt/stacks/staging_laravel/data/code/.env << EOF
+        APP_NAME="Panel Panitia - Ma'had Rafifah Andalusia Bogor MQ"
+        APP_ENV=staging
+        APP_KEY=${APP_KEY}
+        APP_DEBUG=false
+        DB_HOST=${DB_HOST}
+        DB_PORT=${DB_PORT}
+        DB_DATABASE=${DB_DATABASE}
+        DB_USERNAME=${DB_USERNAME}
+        DB_PASSWORD=${DB_PASSWORD}
+        MAIL_MAILER=smtp
+        MAIL_HOST=mailpit
+        MAIL_PORT=1025
+        MAIL_USERNAME=null
+        MAIL_PASSWORD=null
+        MAIL_ENCRYPTION=null
+        MAIL_FROM_ADDRESS=noreply@adminrafifah.test
+        MAIL_FROM_NAME="Admin Rafifah"
+        QUEUE_CONNECTION=database
+        GOOGLE_DRIVE_CREDENTIALS_PATH=/var/www/html/config/google/credentials.json
+        EOF
+      - rsync -avz --delete \
+          --exclude='vendor' \
+          --exclude='node_modules' \
+          --exclude='.git' \
+          --exclude='storage' \
+          --exclude='bootstrap/cache' \
+          --exclude='.env' \
+          ./ /opt/stacks/staging_laravel/data/code/
+      - chown -R 82:82 /opt/stacks/staging_laravel/data/code/storage /opt/stacks/staging_laravel/data/code/bootstrap/cache
+      - cd /opt/stacks/staging_laravel && docker compose up -d --remove-orphans
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/stacks/staging_laravel:/opt/stacks/staging_laravel
+    environment:
+      COMPOSE_PROJECT_NAME: staging_laravel
+    when:
+      branch: [devel]
+      event: [push]
