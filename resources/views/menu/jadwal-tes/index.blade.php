@@ -445,7 +445,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         </x-slot>
         <x-slot name="footer">
             <button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('sendBulkModal').close()">Batal</button>
-            <button type="submit" form="sendBulkModal-form" class="btn bg-blue-600 hover:bg-blue-700 text-white btn-sm border-none" onclick="this.innerHTML='<span class=\'loading loading-spinner loading-xs\'></span> Menjadwalkan...'">Jadwalkan Email</button>
+            <button type="submit" form="sendBulkModal-form" class="btn bg-emerald-600 hover:bg-emerald-700 text-white btn-sm border-none" onclick="this.innerHTML='<span class=\'loading loading-spinner loading-xs\'></span> Menjadwalkan...'">Jadwalkan Email</button>
         </x-slot>
     </x-ui.modal-form>
 
