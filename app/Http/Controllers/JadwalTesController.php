@@ -110,9 +110,10 @@ class JadwalTesController extends Controller
                 'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
             ]);
 
-            // Kirim email reminder Zoom otomatis setelah jadwal dibuat
+            // Jadwalkan email reminder Zoom 3 hari sebelum hari ujian (jam yang sama dengan jam ujian)
             if ($newJadwal->link_zoom && $mhs->email) {
-                Mail::to($mhs->email)->send(new ZoomLinkReminder($newJadwal, $mhs));
+                $waktuKirim = Carbon::parse($newJadwal->tanggal . ' ' . $newJadwal->jam)->subDays(3);
+                Mail::to($mhs->email)->later($waktuKirim, new ZoomLinkReminder($newJadwal, $mhs));
             }
 
             $jamMulai->addMinutes($interval);
