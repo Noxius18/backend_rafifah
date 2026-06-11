@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Pengingat Jadwal Ujian</title>
+    <title>Pengingat Jadwal Seleksi</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -43,7 +43,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.3px;">Pengingat Jadwal Ujian</h1>
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.3px;">Pengingat Jadwal Seleksi</h1>
                             <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 0;">Notifikasi resmi dari sistem kami</p>
                         </td>
                     </tr>
@@ -57,14 +57,14 @@
                                 Halo, {{ $mahasantri->nama_lengkap }} 👋
                             </p>
                             <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 0 0 28px 0;">
-                                Jadwal ujian Anda telah ditetapkan. Pastikan Anda bersiap sebelum waktu ujian dimulai dan koneksi internet Anda stabil.
+                                Jadwal seleksi Anda telah ditetapkan. Pastikan Anda bersiap sebelum waktu seleksi dimulai dan koneksi internet Anda stabil.
                             </p>
 
                             <!-- Info card -->
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 28px;">
                                 <tr>
                                     <td style="padding: 24px 24px 8px 24px;">
-                                        <p style="color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin: 0 0 16px 0;">Jadwal Ujian</p>
+                                        <p style="color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin: 0 0 16px 0;">Jadwal Seleksi</p>
                                     </td>
                                 </tr>
 
@@ -74,7 +74,7 @@
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                                             <tr>
                                                 <td style="padding: 12px 0; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px; width: 45%; vertical-align: middle;">
-                                                    📅&nbsp; Tanggal Ujian
+                                                    📅&nbsp; Tanggal Seleksi
                                                 </td>
                                                 <td style="padding: 12px 0; border-top: 1px solid #e2e8f0; color: #064e3b; font-size: 14px; font-weight: 600; vertical-align: middle;">
                                                     {{ $jadwalTes->tanggal }}
