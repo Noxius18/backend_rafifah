@@ -3,6 +3,15 @@
 @section('content')
 
 @php
+    // Helper: pastikan URL memiliki protocol (https://)
+    $formatLinkZoom = function($link) {
+        if (!$link) return null;
+        if (!preg_match('#^https?://#i', $link)) {
+            return 'https://' . $link;
+        }
+        return $link;
+    };
+
     $aspekList = ['Bacaan Al-Qur\'an', 'Tajwid dan Tahsin', 'Hafalan', 'Wawancara'];
     $aspekMapping = [
         'Bacaan Al-Qur\'an'                => 'bacaan_al_quran',
@@ -27,7 +36,7 @@
         ['label' => 'Aksi',             'field' => 'id_jadwal',    'html' => 'aksi_html', 'class' => 'text-right'],
     ];
 
-    $rows = $jadwals->map(function($j) use ($isPengawas, $isPanitia) {
+    $rows = $jadwals->map(function($j) use ($isPengawas, $isPanitia, $formatLinkZoom) {
         $hasil = \App\Models\HasilTes::where('id_jadwal', $j->id_jadwal)->first();
         $statusHasil = $hasil ? $hasil->status : 'Belum Tes';
         
@@ -68,7 +77,7 @@
             'tgl_html'    => "<span class='text-xs text-black'>" . \Carbon\Carbon::parse($j->tanggal)->format('d/m/Y') . "</span>",
             'jam_html'    => $j->jam ? "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 ring-1 ring-slate-200'>" . \Carbon\Carbon::parse($j->jam)->format('H:i') . "</span>" : "<span class='text-slate-400 text-xs'>-</span>",
             'pj_html'     => $j->penanggungJawab ? "<span class='inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200'><svg xmlns='http://www.w3.org/2000/svg' class='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z'/></svg>" . e($j->penanggungJawab->nama_lengkap) . "</span>" : "<span class='text-black/50 text-xs'>-</span>",
-            'link_html'   => $j->link_zoom ? "<a href='" . e($j->link_zoom) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>" : "<span class='text-black/50 text-xs'>-</span>",
+            'link_html'   => $j->link_zoom ? "<a href='" . e($formatLinkZoom($j->link_zoom)) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>" : "<span class='text-black/50 text-xs'>-</span>",
             'aksi_html'   => $aksiHtml,
         ];
     })->toArray();

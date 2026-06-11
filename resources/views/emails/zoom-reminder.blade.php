@@ -15,6 +15,13 @@
     </noscript>
     <![endif]-->
 </head>
+@php
+    // Helper: pastikan URL memiliki protocol (https://)
+    $linkZoom = $jadwalTes->link_zoom;
+    if ($linkZoom && !preg_match('#^https?://#i', $linkZoom)) {
+        $linkZoom = 'https://' . $linkZoom;
+    }
+@endphp
 <body style="margin: 0; padding: 0; background-color: #eef2f7; font-family: Arial, Helvetica, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
 
     <!-- Outer wrapper -->
@@ -101,7 +108,7 @@
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                             <tr>
                                                 <td style="background: linear-gradient(135deg, #059669, #065f46); border-radius: 8px; text-align: center;">
-                                                    <a href="{{ $jadwalTes->link_zoom }}" style="display: inline-block; padding: 14px 36px; color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; letter-spacing: 0.3px;">
+                                                    <a href="{{ $linkZoom }}" style="display: inline-block; padding: 14px 36px; color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; letter-spacing: 0.3px;">
                                                         🎥&nbsp; Gabung Zoom Meeting
                                                     </a>
                                                 </td>
@@ -116,7 +123,7 @@
                                 <tr>
                                     <td style="padding: 14px 16px; color: #64748b; font-size: 13px; line-height: 1.6;">
                                         Atau buka link berikut di browser:<br>
-                                        <a href="{{ $jadwalTes->link_zoom }}" style="color: #059669; font-size: 13px; word-break: break-all; text-decoration: underline;">{{ $jadwalTes->link_zoom }}</a>
+                                        <a href="{{ $linkZoom }}" style="color: #059669; font-size: 13px; word-break: break-all; text-decoration: underline;">{{ $linkZoom }}</a>
                                     </td>
                                 </tr>
                             </table>
