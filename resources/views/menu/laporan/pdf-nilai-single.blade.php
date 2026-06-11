@@ -64,7 +64,11 @@
         $tempat_lahir = $mahasantri->tempat_lahir ?? '-';
         $tgl_lahir = $mahasantri->tanggal_lahir ? \Carbon\Carbon::parse($mahasantri->tanggal_lahir)->locale('id')->translatedFormat('d F Y') : '-';
         
-        $alamat = $mahasantri->alamat ?? 'Bogor, Jawa Barat'; 
+        $alamat = $mahasantri->alamat ?? '-';
+
+        // Cari nama Ketua Panitia dari user dengan jabatan Pengawas
+        $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Pengawas')->first();
+        $namaKetuaPanitia = $ketuaPanitia ? $ketuaPanitia->nama_lengkap : '-';
 
         $tahun = date('Y');
         $idNum = preg_replace('/[^0-9]/', '', $mahasantri->id_mahasantri ?? '001');
@@ -189,7 +193,7 @@
             <td>
                 <p style="margin-bottom: 5px;">Ketua Panitia PMB</p>
                 <div style="height: 65px;"></div>
-                <p class="nama-ttd">Ustadz M. Umar Al Faruq</p>
+                <p class="nama-ttd">{{ $namaKetuaPanitia }}</p>
             </td>
             <td>
                 <p style="margin-bottom: 5px;">Kepala Ma'had</p>
