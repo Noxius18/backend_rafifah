@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('nisn', 10)->comment('Nomor Induk Siswa Nasional')->nullable();
             $table->enum("jenis_kelamin", ["L", "P"])->nullable();
             $table->string("tempat_lahir", 50)->nullable();
+            $table->string('alamat', 255)->nullable();
             $table->date("tanggal_lahir")->nullable();
 
             // Status pendaftaran

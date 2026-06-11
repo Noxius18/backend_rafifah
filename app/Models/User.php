@@ -26,6 +26,7 @@ class User extends Authenticatable
         'nisn',
         'jenis_kelamin',
         'tempat_lahir',
+        'alamat',
         'tanggal_lahir',
         'status',
         'tanggal_daftar',

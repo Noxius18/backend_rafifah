@@ -71,6 +71,7 @@ class MahasantriController extends Controller
             'nisn'          => 'nullable|size:10|unique:mahasantri,nisn',
             'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
+            'alamat'        => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
@@ -81,6 +82,7 @@ class MahasantriController extends Controller
             'nisn.unique'           => 'NISN sudah terdaftar.',
             'jenis_kelamin.in'      => 'Jenis kelamin harus L atau P.',
             'tempat_lahir.max'      => 'Tempat lahir maksimal 50 karakter.',
+            'alamat.max'            => 'Alamat maksimal 255 karakter.',
             'tanggal_lahir.date'    => 'Format tanggal lahir tidak valid.',
         ]);
 
@@ -181,6 +183,7 @@ class MahasantriController extends Controller
             'nisn'          => 'nullable|size:10|unique:mahasantri,nisn,' . $mahasantri->id_mahasantri . ',id_mahasantri',
             'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
+            'alamat'        => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
             'status'        => 'nullable|in:Pendaftar Baru,Terverifikasi,Lulus,Tidak Lulus',
         ]);
@@ -879,10 +882,16 @@ class MahasantriController extends Controller
                     // ── 1h. Validasi Tempat Lahir ───────────────────────────
                     $tempatLahir = $this->validateTempatLahir($data['Tempat Lahir'] ?? null);
 
-                    // ── 1i. Parse tanggal lahir ─────────────────────────────
+                    // ── 1i. Parse alamat tempat tinggal ──────────────────────
+                    $alamat = trim($data['Alamat tempat tinggal'] ?? '');
+                    if ($alamat !== '') {
+                        $this->validateStringLength($alamat, 255, 'Alamat tempat tinggal');
+                    }
+
+                    // ── 1j. Parse tanggal lahir ─────────────────────────────
                     $tanggalLahir = $this->parseExcelSerialNumber($data['Tanggal Lahir'] ?? null);
 
-                    // ── 1j. Validasi data Orangtua (koleksi + validasi) ─────
+                    // ── 1k. Validasi data Orangtua (koleksi + validasi) ─────
                     $seenPhones = [];
                     $orangtuaDefinitions = [];
 
@@ -1004,6 +1013,7 @@ class MahasantriController extends Controller
                         'nisn'           => $nisn,
                         'jenis_kelamin'  => $jenisKelamin,
                         'tempat_lahir'   => $tempatLahir,
+                        'alamat'         => $alamat ?: null,
                         'tanggal_lahir'  => $tanggalLahir ? $tanggalLahir->format('Y-m-d') : null,
                         'status'         => 'Pendaftar Baru',
                         'tanggal_daftar' => $tanggalDaftar,

@@ -284,6 +284,10 @@ x-init="
                             </dd>
                         </div>
                         <div>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Alamat</dt>
+                            <dd class="mt-1 text-sm text-slate-700">{{ $m->alamat ?? '-' }}</dd>
+                        </div>
+                        <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Status</dt>
                             <dd class="mt-1">
                                 @switch($m->status)
@@ -502,6 +506,7 @@ x-init="
                 <x-ui.form-input name="nisn"         label="NISN"          placeholder="10 digit NISN"       maxlength="10" value="{{ old('nisn', $m->nisn) }}" />
                 <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin', $m->jenis_kelamin)" />
                 <x-ui.form-input name="tempat_lahir" label="Tempat Lahir"  placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir', $m->tempat_lahir) }}" />
+                <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat', $m->alamat) }}" />
                 <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir', $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}" />
                 <x-ui.form-select name="status" label="Status" :options="$statusOptions" :selected="old('status', $m->status)" />
             </form>
