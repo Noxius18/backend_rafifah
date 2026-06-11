@@ -96,7 +96,7 @@ class JadwalTesController extends Controller
             $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
 
-            JadwalTes::create([
+            $newJadwal = JadwalTes::create([
                 'id_jadwal'         => $idJadwal,
                 'id_mahasantri'     => $mhs->id_mahasantri,
                 'tanggal'           => $validated['tanggal'],
@@ -109,6 +109,11 @@ class JadwalTesController extends Controller
                 'penguji_hafalan'         => $validated['penguji_hafalan'] ?? null,
                 'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
             ]);
+
+            // Kirim email reminder Zoom otomatis setelah jadwal dibuat
+            if ($newJadwal->link_zoom && $mhs->email) {
+                Mail::to($mhs->email)->send(new ZoomLinkReminder($newJadwal, $mhs));
+            }
 
             $jamMulai->addMinutes($interval);
             $count++;
