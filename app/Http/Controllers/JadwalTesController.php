@@ -92,6 +92,9 @@ class JadwalTesController extends Controller
         $last = JadwalTes::where('id_jadwal', 'LIKE', 'JDT%')->orderBy('id_jadwal', 'desc')->first();
         $urut = $last ? (int) substr($last->id_jadwal, 3) + 1 : 1;
 
+        // Tentukan waktu kirim reminder: 3 hari sebelum hari ujian, jam mulai pertama
+        $waktuKirim = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai'])->subDays(3);
+
         foreach ($verifiedMahasantri as $mhs) {
             $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
@@ -110,9 +113,8 @@ class JadwalTesController extends Controller
                 'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
             ]);
 
-            // Jadwalkan email reminder Zoom 3 hari sebelum hari ujian (jam yang sama dengan jam ujian)
+            // Kirim email reminder Zoom serentak 3 hari sebelum hari ujian (jam mulai pertama)
             if ($newJadwal->link_zoom && $mhs->email) {
-                $waktuKirim = Carbon::parse($newJadwal->tanggal . ' ' . $newJadwal->jam)->subDays(3);
                 Mail::to($mhs->email)->later($waktuKirim, new ZoomLinkReminder($newJadwal, $mhs));
             }
 
