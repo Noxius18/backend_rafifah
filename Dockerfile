@@ -1,34 +1,32 @@
-# Gunakan PHP 8.3 FPM
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 
-# Install dependensi sistem, ekstensi PHP, dan Node.js
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev default-mysql-client \
     curl gnupg \
     libpng-dev libjpeg-dev libfreetype6-dev \
-    libcurl4-openssl-dev libxml2-dev libicu-dev \
+    libcurl4-openssl-dev libxml2-dev libicu-dev libonig-dev \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    # Install dom dulu karena xmlreader & xmlwriter bergantung padanya
-    && docker-php-ext-install dom \
+    # Extract source dulu sebelum apapun di-install
+    && docker-php-source extract \
+    # Salin header dom SEBELUM install (source masih ada)
+    && cp -r /usr/src/php/ext/dom /usr/local/include/php/ext/ \
+    # Install dom, xmlreader, xmlwriter sekaligus
+    && docker-php-ext-install dom xmlreader xmlwriter \
     && docker-php-ext-install -j$(nproc) \
         pdo pdo_mysql zip gd curl \
-        xmlreader xmlwriter \
         mbstring bcmath intl
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy semua file project
 COPY . .
 
-# Install dependensi & Build frontend
+RUN git config --global --add safe.directory '*'
+
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 RUN npm install && npm run build
 
-# Set permission agar FPM bisa menulis file
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
