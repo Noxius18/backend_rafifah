@@ -1,0 +1,49 @@
+services:
+  # Container PHP-FPM
+  app:
+    build: .
+    container_name: rafifah_staging
+    restart: unless-stopped
+    volumes:
+      - ./.env:/var/www/html/.env
+      - static_files:/var/www/html/public
+      - app_storage:/var/www/html/storage/app
+    networks:
+      - server
+
+  # Container Web Server (Nginx)
+  webserver:
+    image: nginx:alpine
+    container_name: rafifah_nginx_staging
+    restart: unless-stopped
+    ports:
+      - "8003:80" # Akses tetap di port 8080 homeserver-mu
+    volumes:
+      # Nginx butuh akses ke file static (public) Laravel-mu
+      # Karena image Nginx terpisah, kita lakukan sedikit trik volume mounting antar container
+      - static_files:/var/www/html/public
+      # Mount konfigurasi Nginx yang tadi kita buat
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - server
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: rafifah_mailpit_staging
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - server
+
+networks:
+  server:
+    external: true
+
+volumes:
+  # Volume berbagi agar Nginx bisa membaca folder public dari dalam container app
+  static_files:
+  app_storage:
