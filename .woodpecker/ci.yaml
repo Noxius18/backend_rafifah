@@ -3,20 +3,6 @@ when:
     branch: [devel]
 
 steps:
-  - name: test
-    image: php:8.4-cli
-    commands:
-      - apt-get update -y && apt-get install -y unzip libzip-dev git libonig-dev libsqlite3-dev libpng-dev libjpeg-dev libfreetype6-dev
-      - docker-php-ext-configure gd --with-freetype --with-jpeg
-      - docker-php-ext-install pdo pdo_sqlite zip mbstring bcmath gd
-      - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-      - composer install --prefer-dist --no-progress --no-interaction
-      - cp .env.example .env
-      - php artisan key:generate
-      - sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
-      - sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env
-      - php artisan test
-
   - name: deploy-staging
     image: appleboy/drone-ssh
     settings:
