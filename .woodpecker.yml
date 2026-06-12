@@ -8,7 +8,7 @@ clone:
     image: woodpeckerci/plugin-git
     secrets: STAGING_SSH_KEY
     settings:
-      remote: ssh://git@git.noxius.my.id:222/Noxius/backend_rafifah.git
+      remote: ssh://git@forgejo:2222/Noxius/backend_rafifah.git
 
 steps:
   # --- TAHAP 1: CI (Pengujian Otomatis) ---
