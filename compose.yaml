@@ -19,6 +19,7 @@ services:
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
     volumes:
       - ./.env:/var/www/html/.env
+      - app_storage:/var/www/html/storage/app
     depends_on:
       - app
     networks:
@@ -32,6 +33,7 @@ services:
     command: php artisan schedule:work
     volumes:
       - ./.env:/var/www/html/.env
+      - app_storage:/var/www/html/storage/app
     depends_on:
       - app
     networks:
