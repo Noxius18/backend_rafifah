@@ -14,14 +14,9 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     container:
-      image: php:8.4-cli # Berjalan di dalam container PHP 8.4 persis seperti Woodpecker
+      image: php:8.4-fpm # Berjalan di dalam container PHP 8.4 persis seperti Woodpecker
       options: --dns 1.1.1.1 --dns 8.8.8.8
     steps:
-      - name: Setup Prerequisites (Node.js & Git)
-        run: |
-          apt-get update -y && apt-get install -y curl git
-          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-          apt-get install -y nodejs
       # Jauh lebih simpel dari Woodpecker! Tidak perlu atur SSH Clone.
       # Action ini otomatis mengambil kodemu menggunakan token internal Forgejo.
       - name: Checkout Code
