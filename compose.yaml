@@ -11,6 +11,32 @@ services:
     networks:
       - server
 
+  # Container Worker Laravel Queue
+  worker: 
+    build: .
+    container_name: rafifah_worker_staging
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - ./.env:/var/www/html/.env
+    depends_on:
+      - app
+    networks:
+      - server
+
+  # Scheduler Laravel
+  scheduler: 
+    build: .
+    container_name: rafifah_scheduler_staging
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - ./.env:/var/www/html/.env
+    depends_on:
+      - app
+    networks:
+      - server
+
   # Container Web Server (Nginx)
   webserver:
     image: nginx:alpine
