@@ -17,6 +17,7 @@ steps:
         - cd /srv/projects/backend_rafifah
         - git checkout devel
         - git pull origin devel
+        - docker compose down
         - docker compose up -d --build
         - docker compose exec -T app php artisan optimize:clear
         - docker compose exec -T app php artisan migrate --force
