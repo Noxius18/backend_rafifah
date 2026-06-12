@@ -10,11 +10,12 @@ RUN apt-get update && apt-get install -y \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    # Install dom dulu karena xmlreader & xmlwriter bergantung padanya
+    && docker-php-ext-install dom \
     && docker-php-ext-install -j$(nproc) \
         pdo pdo_mysql zip gd curl \
-        dom xmlreader xmlwriter \
+        xmlreader xmlwriter \
         mbstring bcmath intl
-
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
