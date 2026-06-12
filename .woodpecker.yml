@@ -9,6 +9,7 @@ clone:
     secrets: STAGING_SSH_KEY
     settings:
       remote: ssh://git@forgejo:2222/Noxius/backend_rafifah.git
+      ssh_no_verify: true
 
 steps:
   # --- TAHAP 1: CI (Pengujian Otomatis) ---
