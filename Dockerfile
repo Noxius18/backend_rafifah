@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y nodejs \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo pdo_mysql zip gd curl dom \
-    && docker-php-ext-install -j$(nproc) \
-        xmlreader xmlwriter mbstring bcmath intl
+        pdo pdo_mysql zip gd curl \
+        dom xmlreader xmlwriter \
+        mbstring bcmath intl
 
 
 # Install Composer
