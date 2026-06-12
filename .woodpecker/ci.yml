@@ -1,0 +1,57 @@
+when:
+  - event: [push, pull_request]
+    branch: [devel]
+
+steps:
+  # --- TAHAP 1: CI (Pengujian Otomatis) ---
+  - name: test
+    image: php:8.4-cli # Menggunakan PHP 8.4 sesuai dengan environment app
+    commands:
+      # Install dependensi sistem dasar untuk testing
+      - apt-get update -y && apt-get install -y unzip libzip-dev git libonig-dev libsqlite3-dev
+      - docker-php-ext-install pdo pdo_sqlite zip mbstring bcmath
+      # Install Composer
+      - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+      # Install dependensi Laravel (tanpa script post-install untuk keamanan testing)
+      - composer install --prefer-dist --no-progress --no-interaction
+      # Siapkan environment pengujian
+      - cp .env.example .env
+      - php artisan key:generate
+      # Ubah konfigurasi database menjadi SQLite In-Memory agar berjalan sangat cepat
+      - sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+      - sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env
+      # Jalankan PHPUnit / Pest
+      - php artisan test
+
+  # --- TAHAP 2: CD (Deployment Otomatis ke Server Staging) ---
+  - name: deploy-staging
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        from_secret: STAGING_HOST
+      username:
+        from_secret: STAGING_USER
+      key:
+        from_secret: STAGING_SSH_KEY
+      port: 22 # Ubah jika SSH homeserver menggunakan port selain 22
+      script:
+        # Masuk ke folder proyek di dalam mesin host homeserver
+        - cd /srv/projects/backend_rafifah
+        # Pastikan berada di branch devel dan tarik kode terbaru dari Forgejo
+        - git checkout devel
+        - git pull origin devel
+        
+        # --- PROSES DOCKER ---
+        # Build ulang image app (ini akan menjalankan composer install & npm build di dalam container)
+        # Lalu jalankan kembali seluruh container (app, webserver, worker, scheduler)
+        - docker compose up -d --build
+        
+        # --- PROSES LARAVEL ---
+        # Bersihkan cache aplikasi
+        - docker compose exec -T app php artisan optimize:clear
+        # Eksekusi file migrasi database terbaru
+        - docker compose exec -T app php artisan migrate --force
+    when:
+      # CD hanya berjalan saat push atau merge PR ke devel (tidak berjalan saat PR baru dibuka)
+      event: push
+      branch: devel
