@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\HasilTes;
 use App\Models\JadwalTes;
 use App\Models\User;
+use App\Models\Gelombang;
+use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -63,6 +65,13 @@ class LaporanController extends Controller
         $totalPertimbangan = HasilTes::where('status', 'Pertimbangan')->count();
         $totalBelumTes = HasilTes::where('status', 'Belum Tes')->count();
 
+        // Mahasantri belum tes (tidak ada di tabel hasil_tes)
+        $mahasantriBelumTes = User::where('status', 'Terverifikasi')
+            ->whereNotIn('id_mahasantri', function($query) {
+                $query->select('id_mahasantri')->from('hasil_tes');
+            })
+            ->get();
+
         $summary = [
             'total_mahasantri'   => $totalMahasantri,
             'total_lulus'        => $totalLulus,
@@ -89,26 +98,37 @@ class LaporanController extends Controller
             $mhs = $hasil->jadwalTes->mahasantri ?? $hasil->mahasantri;
             if (!$mhs) continue;
 
-            $gelombang = User::extractGelombangNama($mhs->id_mahasantri);
+            $gelombangNama = User::extractGelombangNama($mhs->id_mahasantri);
 
-            if (!isset($gelombangData[$gelombang])) {
-                $gelombangData[$gelombang] = [
-                    'nama' => $gelombang,
+            if (!isset($gelombangData[$gelombangNama])) {
+                $gelombangData[$gelombangNama] = [
+                    'nama' => $gelombangNama,
                     'penanggung_jawab' => $hasil->jadwalTes->penanggungJawab?->nama_lengkap ?? '-',
                     'mahasantri' => [],
+                    'periode' => '',
                 ];
             }
 
-            $gelombangData[$gelombang]['mahasantri'][] = $hasil;
+            $gelombangData[$gelombangNama]['mahasantri'][] = $hasil;
         }
 
         // Urutkan gelombang
         ksort($gelombangData);
 
+        // Tambahkan periode ke setiap gelombang
+        foreach ($gelombangData as $gelombangNama => &$data) {
+            $gelombang = Gelombang::where('nama', $gelombangNama)->first();
+            if ($gelombang) {
+                $data['periode'] = Carbon::parse($gelombang->start_date)->format('d F Y') . ' - ' .
+                                   Carbon::parse($gelombang->end_date)->format('d F Y');
+            }
+        }
+
         $html = view('menu.laporan.pdf-overall', [
-            'summary'       => $summary,
-            'gelombangData' => $gelombangData,
-            'date'          => now()->format('d/m/Y H:i'),
+            'summary'          => $summary,
+            'gelombangData'    => $gelombangData,
+            'mahasantriBelumTes' => $mahasantriBelumTes,
+            'date'             => now()->format('d/m/Y H:i'),
         ])->render();
 
         $options = new Options();

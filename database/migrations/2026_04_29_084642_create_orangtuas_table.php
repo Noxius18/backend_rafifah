@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('tipe_hubungan', ['Ayah', 'Ibu', 'Wali']);
             $table->string('nama_lengkap', 25);
             $table->string('pekerjaan', 20)->nullable();
+            $table->string('alamat', 255)->nullable();
             $table->string('no_wa', 13)->nullable()->unique();
 
             $table->foreign('id_mahasantri')

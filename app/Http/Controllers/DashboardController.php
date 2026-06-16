@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Berkas;
 use App\Models\Panitia;
 use App\Models\Gelombang;
+use App\Models\JadwalTes;
+use App\Models\HasilTes;
 
 class DashboardController extends Controller
 {
@@ -55,6 +57,39 @@ class DashboardController extends Controller
             ? round(($successfulBerkas / $totalBerkas) * 100, 1)
             : 0;
 
+        // Statistik beban kerja per panitia
+        $bebanKerja = Panitia::where('jabatan', 'Panitia')
+            ->get()
+            ->map(function ($pj) {
+                $jumlahJadwal = JadwalTes::where('penanggung_jawab', $pj->id_panitia)->count();
+                $jumlahNilai = HasilTes::whereHas('jadwalTes', function ($q) use ($pj) {
+                    $q->where('penanggung_jawab', $pj->id_panitia);
+                })->whereIn('status', ['Lulus', 'Tidak Lulus'])->count();
+                $sisaKuota = max(0, $jumlahJadwal - $jumlahNilai);
+                return [
+                    'nama_lengkap'  => $pj->nama_lengkap,
+                    'jumlah_jadwal' => $jumlahJadwal,
+                    'sudah_dinilai' => $jumlahNilai,
+                    'sisa_kuota'    => $sisaKuota,
+                ];
+            })
+            ->sortByDesc('jumlah_jadwal')
+            ->values()
+            ->toArray();
+
+        // Statistik per gelombang: kuota vs terdaftar
+        $gelombangStats = Gelombang::orderBy('id')->get()->map(function ($g) {
+            $prefix = date('y', strtotime($g->start_date)) . str_pad($g->id, 2, '0', STR_PAD_LEFT);
+            $terdaftar = User::where('id_mahasantri', 'LIKE', $prefix . '%')->count();
+            return [
+                'nama'      => $g->nama,
+                'periode'   => \Carbon\Carbon::parse($g->start_date)->format('d F Y') . ' - ' . \Carbon\Carbon::parse($g->end_date)->format('d F Y'),
+                'kuota'     => $g->kuota,
+                'terdaftar' => $terdaftar,
+                'sisa_kuota' => max(0, $g->kuota - $terdaftar),
+            ];
+        })->toArray();
+
         return [
             'total_mahasantri' => $totalMahasantri,
             'total_berkas' => $totalBerkas,
@@ -67,6 +102,8 @@ class DashboardController extends Controller
             'failed_berkas' => $berkasByStatus['error'] ?? 0,
             'pending_berkas' => $berkasByStatus['pending'] ?? 0,
             'gelombang' => Gelombang::orderBy('id')->get(),
+            'beban_kerja' => $bebanKerja,
+            'gelombang_stats' => $gelombangStats,
         ];
     }
 

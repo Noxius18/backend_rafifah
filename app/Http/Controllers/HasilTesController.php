@@ -56,27 +56,28 @@ class HasilTesController extends Controller
         ]);
 
         // Calculate total (average of 4 aspects)
-        $nilai = array_filter([
-            $validated['nilai_bacaan_al_quran'],
-            $validated['nilai_tajwid_tahsin'],
-            $validated['nilai_hafalan'],
-            $validated['nilai_wawancara'],
-        ], function($v) { return $v !== null; });
+        $nilaiFields = ['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'];
+        $nilaiArr = array_filter(array_map(fn($f) => $validated[$f] ?? null, $nilaiFields), fn($v) => $v !== null);
 
-        $totalNilai = count($nilai) > 0 ? round(array_sum($nilai) / count($nilai)) : null;
+        $totalNilai = count($nilaiArr) > 0 ? round(array_sum($nilaiArr) / count($nilaiArr)) : null;
 
-        // Determine status
+        // Determine status with new logic:
+        // - Ada nilai < 70 → Tidak Lulus (termasuk kasus ada yang 70 + ada yang < 70)
+        // - Semua >= 70 & ada yang tepat 70 → Pertimbangan
+        // - Semua > 70 → Lulus
+        // - Selain itu → Tidak Lulus
         $status = 'Belum Tes';
         if ($totalNilai !== null) {
-            $hasPertimbangan = false;
-            foreach (['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'] as $aspek) {
-                if ($validated[$aspek] !== null && $validated[$aspek] == 70) {
-                    $hasPertimbangan = true;
-                    break;
-                }
+            $hasBelow70 = false;
+            $hasExactly70 = false;
+            foreach ($nilaiArr as $n) {
+                if ($n < 70) $hasBelow70 = true;
+                if ($n == 70) $hasExactly70 = true;
             }
 
-            if ($hasPertimbangan) {
+            if ($hasBelow70) {
+                $status = 'Tidak Lulus';
+            } elseif ($hasExactly70) {
                 $status = 'Pertimbangan';
             } elseif ($totalNilai >= 70) {
                 $status = 'Lulus';

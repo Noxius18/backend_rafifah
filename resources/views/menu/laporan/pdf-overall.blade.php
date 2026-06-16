@@ -14,12 +14,13 @@
         .section h2 { font-size: 13px; color: #065f46; border-bottom: 2px solid #a7f3d0; padding-bottom: 5px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* ── Header Gelombang ── */
-        .gelombang-header { 
+        .gelombang-header {
             display: flex; justify-content: space-between; align-items: center;
             background: #f0fdf4; border: 1.5px solid #059669; border-radius: 6px;
             padding: 8px 14px; margin: 16px 0 8px; page-break-after: avoid;
         }
         .gelombang-header .gelombang-nama { font-size: 14px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; }
+        .gelombang-header .periode { font-size: 11px; color: #475569; }
         .gelombang-header .penanggung-jawab { font-size: 11px; color: #047857; }
         .gelombang-header .penanggung-jawab span { font-weight: 600; }
 
@@ -72,7 +73,7 @@
             {{-- Header Gelombang --}}
             <div class="gelombang-header">
                 <div class="gelombang-nama">{{ $gelombang['nama'] }}</div>
-                <div class="penanggung-jawab">Penanggung Jawab: <span>{{ $gelombang['penanggung_jawab'] }}</span></div>
+                <div class="periode">Periode: {{ $gelombang['periode'] }}</div>
             </div>
 
             {{-- Tabel Mahasantri per Gelombang --}}

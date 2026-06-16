@@ -243,7 +243,7 @@ x-init="
                 <div class="p-5">
                     <dl class="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">ID Mahasantri</dt>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">KD Mahasantri</dt>
                             <dd class="mt-1">
                                 <code class="rounded bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium text-black">{{ $m->id_mahasantri }}</code>
                             </dd>
@@ -253,28 +253,8 @@ x-init="
                             <dd class="mt-1 text-sm font-semibold text-slate-800">{{ $m->nama_lengkap }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">NIK</dt>
-                            <dd class="mt-1 text-sm text-slate-700">{{ $m->nik ?? '-' }}</dd>
-                        </div>
-                        <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Email</dt>
                             <dd class="mt-1 text-sm text-slate-700">{{ $m->email ?? '-' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">NISN</dt>
-                            <dd class="mt-1 text-sm text-slate-700">{{ $m->nisn ?? '-' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Jenis Kelamin</dt>
-                            <dd class="mt-1">
-                                @if($m->jenis_kelamin === 'L')
-                                    <span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">Laki-laki</span>
-                                @elseif($m->jenis_kelamin === 'P')
-                                    <span class="rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200">Perempuan</span>
-                                @else
-                                    <span class="text-sm text-slate-400">-</span>
-                                @endif
-                            </dd>
                         </div>
                         <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Tempat Lahir</dt>
@@ -287,8 +267,28 @@ x-init="
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Alamat</dt>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">NIK</dt>
+                            <dd class="mt-1 text-sm text-slate-700">{{ $m->nik ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">NISN</dt>
+                            <dd class="mt-1 text-sm text-slate-700">{{ $m->nisn ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Alamat Tempat Tinggal</dt>
                             <dd class="mt-1 text-sm text-slate-700">{{ $m->alamat ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Jenis Kelamin</dt>
+                            <dd class="mt-1">
+                                @if($m->jenis_kelamin === 'L')
+                                    <span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">Laki-laki</span>
+                                @elseif($m->jenis_kelamin === 'P')
+                                    <span class="rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200">Perempuan</span>
+                                @else
+                                    <span class="text-sm text-slate-400">-</span>
+                                @endif
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Status</dt>
@@ -336,7 +336,7 @@ x-init="
                                             {{ $ort->tipe_hubungan }}
                                         </span>
                                     </div>
-                                    <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+                                    <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
                                         <div>
                                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Nama Lengkap</dt>
                                             <dd class="mt-0.5 text-sm font-medium text-slate-800">{{ $ort->nama_lengkap }}</dd>
@@ -358,6 +358,10 @@ x-init="
                                                     <span class="text-sm text-slate-400">-</span>
                                                 @endif
                                             </dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Alamat</dt>
+                                            <dd class="mt-0.5 text-sm text-slate-700">{{ $ort->alamat ?? '-' }}</dd>
                                         </div>
                                     </dl>
                                 </div>
@@ -493,24 +497,25 @@ x-init="
                 @csrf
                 @method('PUT')
 
-                {{-- ID readonly --}}
+                {{-- KD readonly --}}
                 <div class="form-control">
                     <label class="label">
-                        <span class="label-text font-semibold text-sm">ID Mahasantri</span>
+                        <span class="label-text font-semibold text-sm">KD Mahasantri</span>
                     </label>
                     <input type="text" value="{{ $m->id_mahasantri }}" class="input input-bordered input-sm bg-base-200" disabled />
                     <label class="label">
-                        <span class="label-text-alt text-base-content/50">ID tidak dapat diubah</span>
+                        <span class="label-text-alt text-base-content/50">KD tidak dapat diubah</span>
                     </label>
                 </div>
 
                 <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required value="{{ old('nama_lengkap', $m->nama_lengkap) }}" />
+                <x-ui.form-input name="email" label="Email" placeholder="Masukkan email" maxlength="100" type="email" value="{{ old('email', $m->email) }}" />
+                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir"  placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir', $m->tempat_lahir) }}" />
+                <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir', $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}" />
                 <x-ui.form-input name="nik"          label="NIK"           placeholder="16 digit NIK"        maxlength="16" value="{{ old('nik', $m->nik) }}" />
                 <x-ui.form-input name="nisn"         label="NISN"          placeholder="10 digit NISN"       maxlength="10" value="{{ old('nisn', $m->nisn) }}" />
-                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin', $m->jenis_kelamin)" />
-                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir"  placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir', $m->tempat_lahir) }}" />
                 <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat', $m->alamat) }}" />
-                <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir', $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}" />
+                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin', $m->jenis_kelamin)" />
                 <x-ui.form-select name="status" label="Status" :options="$statusOptions" :selected="old('status', $m->status)" />
             </form>
         </x-slot>

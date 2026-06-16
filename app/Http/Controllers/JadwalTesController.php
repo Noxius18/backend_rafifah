@@ -162,19 +162,22 @@ class JadwalTesController extends Controller
     public function update(Request $request, JadwalTes $jadwalTes)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
-        
-        // SUDAH DIPERBAIKI: Penamaan validation disesuaikan dengan DB
+
+        // Auto-lock: cek jika jadwal sudah lewat
+        $jadwalDate = Carbon::parse($jadwalTes->tanggal);
+        if ($jadwalDate->lt(Carbon::today())) {
+            return redirect()->route('seleksi.index')->with('error', 'Jadwal tidak dapat diubah karena sudah berlangsung');
+        }
+
+        // Hanya terima jam dan link_zoom untuk edit
         $validated = $request->validate([
-            'tanggal'                 => 'required|date', 
-            'jam'                     => 'nullable|date_format:H:i', 
-            'link_zoom'               => 'nullable|string',
-            'penguji_bacaan_al_quran' => 'nullable|exists:panitia,id_panitia', 
-            'penguji_tajwid_tahsin'   => 'nullable|exists:panitia,id_panitia',
-            'penguji_hafalan'         => 'nullable|exists:panitia,id_panitia', 
-            'penguji_wawancara'       => 'nullable|exists:panitia,id_panitia',
+            'jam'       => 'nullable|date_format:H:i',
+            'link_zoom' => 'nullable|string',
         ]);
 
         $jadwalTes->update($validated);
+
+        // TODO: kirim notifikasi ke pengawas tentang perubahan jadwal
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
     }
 
@@ -192,8 +195,27 @@ class JadwalTesController extends Controller
     public function destroy(Request $request, JadwalTes $jadwalTes)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
-        $jadwalTes->delete();
-        return redirect()->route('seleksi.index')->with('success', 'Jadwal tes dihapus');
+
+        $request->validate([
+            'alasan_pembatalan' => 'required|string',
+            'jenis_pembatalan' => 'required|in:Dibatalkan,Rescheduled'
+        ]);
+
+        // Auto-lock: cek jika jadwal sudah lewat
+        $jadwalDate = Carbon::parse($jadwalTes->tanggal);
+        if ($jadwalDate->lt(Carbon::today())) {
+            return redirect()->route('seleksi.index')->with('error', 'Jadwal tidak dapat dibatalkan karena sudah berlangsung');
+        }
+
+        // Instead of deleting, change status to Dibatalkan or Rescheduled
+        $jadwalTes->update([
+            'status' => $request->jenis_pembatalan,
+            'alasan_pembatalan' => $request->alasan_pembatalan,
+            'dibatalkan_oleh' => auth()->user()->id_panitia,
+            'dibatalkan_pada' => now(),
+        ]);
+
+        return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil di' . strtolower($request->jenis_pembatalan));
     }
 
     /**
