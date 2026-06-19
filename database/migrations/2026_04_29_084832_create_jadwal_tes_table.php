@@ -68,6 +68,17 @@ return new class extends Migration
             // Status jadwal tes: Aktif, Dibatalkan, Rescheduled
             $table->enum('status', ['Aktif', 'Dibatalkan', 'Rescheduled'])->default('Aktif');
 
+            // Digital Handshake: konfirmasi jadwal oleh Ketua Panitia
+            $table->enum('status_konfirmasi', ['Menunggu', 'Disetujui', 'Perlu Revisi'])->default('Menunggu');
+            $table->text('catatan_ketua')->nullable()->comment('Catatan dari Ketua Panitia saat approve/reject');
+            $table->char('dikonfirmasi_oleh', 5)->nullable();
+            $table->timestamp('dikonfirmasi_pada')->nullable();
+            $table->foreign('dikonfirmasi_oleh')
+                  ->references('id_panitia')
+                  ->on('panitia')
+                  ->onDelete('set null')
+                  ->onUpdate('cascade');
+
             // Audit trail untuk pembatalan
             $table->text('alasan_pembatalan')->nullable();
             $table->char('dibatalkan_oleh', 5)->nullable();

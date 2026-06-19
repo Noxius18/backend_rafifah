@@ -66,8 +66,8 @@
         
         $alamat = $mahasantri->alamat ?? '-';
 
-        // Cari nama Ketua Panitia dari user dengan jabatan Pengawas
-        $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Pengawas')->first();
+        // Cari nama Ketua Panitia dari user dengan jabatan Ketua Panitia
+        $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Ketua Panitia')->first();
         $namaKetuaPanitia = $ketuaPanitia ? $ketuaPanitia->nama_lengkap : '-';
 
         $tahun = date('Y');

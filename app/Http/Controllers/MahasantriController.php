@@ -257,12 +257,12 @@ class MahasantriController extends Controller
 
     /**
      * ── Hapus semua mahasantri di tahun ajaran aktif (gelombang 1 + 2) ─────
-     * Hanya Pengawas yang bisa menjalankan.
+     * Hanya Ketua Panitia yang bisa menjalankan.
      */
     public function destroyByTahunAjaran(Request $request)
     {
-        if (auth()->user()->jabatan !== 'Pengawas') {
-            abort(403, 'Hanya pengawas yang bisa menghapus data mahasantri secara massal.');
+        if (auth()->user()->jabatan !== 'Ketua Panitia') {
+            abort(403, 'Hanya Ketua Panitia yang bisa menghapus data mahasantri secara massal.');
         }
 
         $validated = $request->validate([

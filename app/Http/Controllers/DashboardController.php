@@ -57,23 +57,44 @@ class DashboardController extends Controller
             ? round(($successfulBerkas / $totalBerkas) * 100, 1)
             : 0;
 
-        // Statistik beban kerja per panitia
+        // Statistik beban kerja per panitia (berdasarkan penguji per aspek)
+        $aspekMapping = [
+            'penguji_bacaan_al_quran' => 'Bacaan Al-Qur\'an',
+            'penguji_tajwid_tahsin' => 'Tajwid & Tahsin',
+            'penguji_hafalan' => 'Hafalan',
+            'penguji_wawancara' => 'Wawancara',
+        ];
+
         $bebanKerja = Panitia::where('jabatan', 'Panitia')
             ->get()
-            ->map(function ($pj) {
-                $jumlahJadwal = JadwalTes::where('penanggung_jawab', $pj->id_panitia)->count();
-                $jumlahNilai = HasilTes::whereHas('jadwalTes', function ($q) use ($pj) {
-                    $q->where('penanggung_jawab', $pj->id_panitia);
-                })->whereIn('status', ['Lulus', 'Tidak Lulus'])->count();
-                $sisaKuota = max(0, $jumlahJadwal - $jumlahNilai);
+            ->map(function ($pj) use ($aspekMapping) {
+                $totalTugas = 0;
+                $sudahDinilai = 0;
+
+                foreach ($aspekMapping as $field => $namaAspek) {
+                    // Hitung jadwal yang ditugaskan ke panitia ini untuk aspek tertentu
+                    $jadwalIds = JadwalTes::where($field, $pj->id_panitia)
+                        ->where('status_konfirmasi', 'Disetujui')
+                        ->pluck('id_jadwal');
+                    $jumlahJadwal = $jadwalIds->count();
+                    $totalTugas += $jumlahJadwal;
+
+                    // Hitung yang sudah dinilai
+                    $dinilai = HasilTes::whereIn('id_jadwal', $jadwalIds)
+                        ->whereIn('status', ['Lulus', 'Tidak Lulus'])
+                        ->count();
+                    $sudahDinilai += $dinilai;
+                }
+
                 return [
+                    'id_panitia'    => $pj->id_panitia,
                     'nama_lengkap'  => $pj->nama_lengkap,
-                    'jumlah_jadwal' => $jumlahJadwal,
-                    'sudah_dinilai' => $jumlahNilai,
-                    'sisa_kuota'    => $sisaKuota,
+                    'total_tugas'   => $totalTugas,
+                    'sudah_dinilai' => $sudahDinilai,
+                    'sisa_kuota'    => max(0, $totalTugas - $sudahDinilai),
                 ];
             })
-            ->sortByDesc('jumlah_jadwal')
+            ->sortByDesc('total_tugas')
             ->values()
             ->toArray();
 

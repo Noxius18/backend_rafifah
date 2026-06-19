@@ -3,7 +3,7 @@
 @section('content')
 
 @php
-    $jabatanOptions = ['Pengawas' => 'Pengawas', 'Panitia' => 'Panitia'];
+    $jabatanOptions = ['Ketua Panitia' => 'Ketua Panitia', 'Panitia' => 'Panitia'];
 
     $columns = [
         ['label' => 'ID',       'field' => 'id_panitia',   'html' => 'id_html'],
@@ -39,7 +39,7 @@
             'jabatan_html'  => match($p->jabatan) {
                 'Penguji'  => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>Penguji</span>",
                 'Panitia'  => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>Panitia</span>",
-                'Pengawas' => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Pengawas</span>",
+                'Ketua Panitia' => "<span class='rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200'>Ketua Panitia</span>",
                 default    => "<span class='text-black'>" . e($p->jabatan) . "</span>",
             },
             'aksi_html'     => "<div class='flex items-center justify-end gap-0.5'>

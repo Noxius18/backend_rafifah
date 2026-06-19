@@ -106,7 +106,7 @@
                     <button type="button" onclick="document.getElementById('importModal').showModal()" class="inline-flex items-center gap-1.5 rounded-lg border border-black/20 bg-white px-3.5 py-2 text-sm font-medium text-black transition hover:bg-black/[0.03] active:scale-95"><x-heroicon-s-arrow-up-tray class="h-4 w-4" /> Upload Excel</button>
                     @endif
 
-                    @if(auth()->user()->jabatan === 'Pengawas')
+                    @if(auth()->user()->jabatan === 'Ketua Panitia')
                     <button type="button" onclick="document.getElementById('hapusSemuaModal').showModal()"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-white shadow-md transition hover:bg-red-700 active:bg-red-800">
                         <x-heroicon-s-trash class="h-4 w-4" /> Hapus Semua Data

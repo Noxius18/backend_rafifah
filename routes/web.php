@@ -37,14 +37,19 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     Route::put('/seleksi/{jadwalTes}', [JadwalTesController::class, 'update'])->name('seleksi.update');
     Route::delete('/seleksi/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('seleksi.destroy');
     Route::post('/seleksi/update-link-zoom', [JadwalTesController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
-    
+
     // 👇 INI DIA ROUTENYA (Sekarang sudah aman terlindungi middleware Panitia)
     Route::post('/seleksi/send-bulk-results', [JadwalTesController::class, 'sendBulkResults'])->name('seleksi.send-bulk-results');
-    
+
     Route::post('/seleksi/{jadwalTes}/notify-update', [JadwalTesController::class, 'sendUpdateNotification'])->name('seleksi.notify-update');
+
+    // Bulk cancel (Panitia)
+    Route::post('/seleksi/bulk-cancel', [JadwalTesController::class, 'bulkCancel'])->name('seleksi.bulk-cancel');
 
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
+    Route::post('/hasil-tes/preview-hasil', [HasilTesController::class, 'previewHasil'])->name('hasil-tes.preview-hasil');
+    Route::post('/hasil-tes/simpan-hasil', [HasilTesController::class, 'simpanHasil'])->name('hasil-tes.simpan-hasil');
 
     // Berkas – update status, retry download & data mahasantri
     Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
@@ -52,9 +57,9 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
 });
 
 // ──────────────────────────────────────────────
-// GRUP BERSAMA – view-only (Panitia & Pengawas)
+// GRUP BERSAMA – view-only (Panitia & Ketua Panitia)
 // ──────────────────────────────────────────────
-Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(function () {
+Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(function () {
     Route::post('/logout', [PanitiaAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/refresh', [DashboardController::class, 'refresh'])->name('dashboard.refresh');
@@ -78,7 +83,7 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(funct
     // Hasil Tes – view nilai per jadwal
     Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('seleksi.nilai');
 
-    // Laporan – cetak PDF (Panitia & Pengawas)
+    // Laporan – cetak PDF (Panitia & Ketua Panitia)
     Route::prefix('laporan')->name('laporan.')->group(function () {
         Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
         Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
@@ -88,17 +93,25 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Pengawas'])->group(funct
 // ──────────────────────────────────────────────
 // GRUP PENGAWAS – supervisi & review
 // ──────────────────────────────────────────────
-Route::middleware(['auth:panitia', 'cek_jabatan:Pengawas'])->group(function () {
+Route::middleware(['auth:panitia', 'cek_jabatan:Ketua Panitia'])->group(function () {
     // Panitia Management (full CRUD)
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
 
     // Hasil Tes – review pertimbangan
     Route::post('/hasil-tes/{hasilTes}/review', [HasilTesController::class, 'review'])->name('hasil-tes.review');
 
-    // Pengaturan Gelombang – hanya untuk Pengawas
+    // Digital Handshake: Ketua Panitia approve/reject jadwal
+    Route::post('/seleksi/{jadwalTes}/approve', [JadwalTesController::class, 'approve'])->name('seleksi.approve');
+    Route::post('/seleksi/{jadwalTes}/reject', [JadwalTesController::class, 'reject'])->name('seleksi.reject');
+
+    // Bulk approve/reject (Ketua Panitia)
+    Route::post('/seleksi/approve-all', [JadwalTesController::class, 'approveAll'])->name('seleksi.approve-all');
+    Route::post('/seleksi/reject-all', [JadwalTesController::class, 'rejectAll'])->name('seleksi.reject-all');
+
+    // Pengaturan Gelombang – hanya untuk Ketua Panitia
     Route::get('/pengaturan-gelombang', [GelombangController::class, 'index'])->name('gelombang.index');
     Route::put('/pengaturan-gelombang/{gelombang}', [GelombangController::class, 'update'])->name('gelombang.update');
 
-    // Hapus massal mahasantri – hanya Pengawas
+    // Hapus massal mahasantri – hanya Ketua Panitia
     Route::post('/mahasantri/hapus/semua', [MahasantriController::class, 'destroyByTahunAjaran'])->name('mahasantri.destroy-by-tahun-ajaran');
 });
