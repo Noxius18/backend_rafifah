@@ -922,10 +922,17 @@ class MahasantriController extends Controller
                             $validationErrors
                         );
 
+                        // ── Alamat Ayah ──────────────────────────────────────
+                        $alamatAyah = trim($data['Alamat Ayah'] ?? '');
+                        if ($alamatAyah !== '') {
+                            $this->validateStringLength($alamatAyah, 255, 'Alamat Ayah');
+                        }
+
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Ayah',
                             'nama_lengkap'  => $namaAyah,
                             'pekerjaan'     => $pekerjaanAyah ?: null,
+                            'alamat'        => $alamatAyah ?: null,
                             'no_wa'         => $phoneAyah,
                         ];
                     }
@@ -957,10 +964,17 @@ class MahasantriController extends Controller
                             $validationErrors
                         );
 
+                        // ── Alamat Ibu ───────────────────────────────────────
+                        $alamatIbu = trim($data['Alamat Ibu'] ?? '');
+                        if ($alamatIbu !== '') {
+                            $this->validateStringLength($alamatIbu, 255, 'Alamat Ibu');
+                        }
+
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Ibu',
                             'nama_lengkap'  => $namaIbu,
                             'pekerjaan'     => $pekerjaanIbu ?: null,
+                            'alamat'        => $alamatIbu ?: null,
                             'no_wa'         => $phoneIbu,
                         ];
                     }
@@ -992,10 +1006,17 @@ class MahasantriController extends Controller
                             $validationErrors
                         );
 
+                        // ── Alamat Wali ──────────────────────────────────────
+                        $alamatWali = trim($data['Alamat Wali'] ?? '');
+                        if ($alamatWali !== '') {
+                            $this->validateStringLength($alamatWali, 255, 'Alamat Wali');
+                        }
+
                         $orangtuaDefinitions[] = [
                             'tipe_hubungan' => 'Wali',
                             'nama_lengkap'  => $namaWali,
                             'pekerjaan'     => $pekerjaanWali ?: null,
+                            'alamat'        => $alamatWali ?: null,
                             'no_wa'         => $phoneWali,
                         ];
                     }
@@ -1030,6 +1051,7 @@ class MahasantriController extends Controller
                             'tipe_hubungan' => $ort['tipe_hubungan'],
                             'nama_lengkap'  => $ort['nama_lengkap'],
                             'pekerjaan'     => $ort['pekerjaan'] ?: null,
+                            'alamat'        => $ort['alamat'] ?: null,
                             'no_wa'         => $ort['no_wa'] ?: null,
                         ]);
                     }
