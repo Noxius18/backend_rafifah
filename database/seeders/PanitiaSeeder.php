@@ -15,8 +15,8 @@ class PanitiaSeeder extends Seeder
     {
         $data = [
             [
-                'id_panitia' => 'PNG01',
-                'nama_lengkap' => 'Budi Spakbor',
+                'id_panitia' => 'KPN01',
+                'nama_lengkap' => 'Budi Budiansyah',
                 'username' => 'budi',
                 'email' => 'budi@rafifah.com',
                 'no_hp' => '0819287365',
@@ -25,7 +25,7 @@ class PanitiaSeeder extends Seeder
             ],
             [
                 'id_panitia' => 'PNT01',
-                'nama_lengkap' => 'Farhan Kebab',
+                'nama_lengkap' => 'Farhan Antonius',
                 'username' => 'farhan',
                 'email' => 'farhan@rafifah.com',
                 'no_hp' => '081726541767',
@@ -33,7 +33,7 @@ class PanitiaSeeder extends Seeder
                 'jabatan' => 'Panitia',
             ],
             [
-                'id_panitia' => 'PNG02',
+                'id_panitia' => 'KPN02',
                 'nama_lengkap' => 'Ahmad Wijaya',
                 'username' => 'ahmad',
                 'email' => 'ahmad@rafifah.com',
