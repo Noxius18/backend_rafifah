@@ -47,7 +47,7 @@
 
                             <!-- Greeting -->
                             <p style="color: #064e3b; font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">
-                                Halo,
+                                Halo{{ $namaPenerima ? ', ' . $namaPenerima : '' }}
                             </p>
                             <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 0 0 28px 0;">
                                 Jadwal seleksi perlu diperbaiki sesuai catatan dari ketua panitia berikut.

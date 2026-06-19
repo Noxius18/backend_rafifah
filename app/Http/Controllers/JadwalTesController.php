@@ -134,7 +134,7 @@ class JadwalTesController extends Controller
             // Kirim ke semua ketua panitia
             foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $kp) {
                 Mail::to($kp->email)->send(new JadwalCreatedNotification(
-                    $newJadwal, $pembuat, $count
+                    $newJadwal, $pembuat, $count, $kp->nama_lengkap
                 ));
             }
         }
@@ -210,12 +210,12 @@ class JadwalTesController extends Controller
             ->where('status_konfirmasi', 'Disetujui')
             ->count();
 
-        // Kirim notifikasi ke semua Panitia yang terlibat
+        // Kirim notifikasi ke Panitia yang membuat jadwal
         $pembuat = Panitia::find($jadwalTes->penanggung_jawab);
         if ($pembuat && $pembuat->email) {
             $ketua = auth()->user();
             Mail::to($pembuat->email)->send(new JadwalApprovedNotification(
-                $jadwalTes->tanggal, $ketua, $jumlah
+                $jadwalTes->tanggal, $ketua, $jumlah, $pembuat->nama_lengkap
             ));
         }
 
@@ -247,7 +247,7 @@ class JadwalTesController extends Controller
         $pembuat = Panitia::find($jadwalTes->penanggung_jawab);
         if ($pembuat && $pembuat->email) {
             Mail::to($pembuat->email)->send(new JadwalRejectedNotification(
-                $jadwalTes->tanggal, $request->catatan_ketua
+                $jadwalTes->tanggal, $request->catatan_ketua, $pembuat->nama_lengkap
             ));
         }
 
@@ -302,7 +302,8 @@ class JadwalTesController extends Controller
                 $tanggalLabel,
                 auth()->user()->nama_lengkap,
                 $request->alasan_pembatalan,
-                $request->jenis_pembatalan
+                $request->jenis_pembatalan,
+                $ketua->nama_lengkap
             ));
         }
 
@@ -333,12 +334,12 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : 'semua tanggal';
 
-        // Kirim notifikasi ke semua Panitia yang terlibat
+        // Kirim notifikasi ke semua Panitia
         $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalApprovedNotification(
-                    $tanggalLabel, auth()->user(), $updated
+                    $tanggalLabel, auth()->user(), $updated, $p->nama_lengkap
                 ));
             }
         }
@@ -380,7 +381,7 @@ class JadwalTesController extends Controller
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalRejectedNotification(
-                    $tanggalLabel, $request->catatan_ketua
+                    $tanggalLabel, $request->catatan_ketua, $p->nama_lengkap
                 ));
             }
         }

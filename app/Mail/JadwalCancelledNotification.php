@@ -15,13 +15,15 @@ class JadwalCancelledNotification extends Mailable implements ShouldQueue
     public $pembatal;
     public $alasan;
     public $jenis;
+    public $namaPenerima;
 
-    public function __construct(string $tanggal, string $pembatal, string $alasan, string $jenis)
+    public function __construct(string $tanggal, string $pembatal, string $alasan, string $jenis, ?string $namaPenerima = null)
     {
         $this->tanggal = $tanggal;
         $this->pembatal = $pembatal;
         $this->alasan = $alasan;
         $this->jenis = $jenis;
+        $this->namaPenerima = $namaPenerima;
     }
 
     public function build()

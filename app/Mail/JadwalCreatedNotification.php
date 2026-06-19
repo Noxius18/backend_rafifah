@@ -16,12 +16,14 @@ class JadwalCreatedNotification extends Mailable implements ShouldQueue
     public $jadwal;
     public $pembuat;
     public $jumlahMahasantri;
+    public $namaPenerima;
 
-    public function __construct(JadwalTes $jadwal, Panitia $pembuat, int $jumlahMahasantri)
+    public function __construct(JadwalTes $jadwal, Panitia $pembuat, int $jumlahMahasantri, ?string $namaPenerima = null)
     {
         $this->jadwal = $jadwal;
         $this->pembuat = $pembuat;
         $this->jumlahMahasantri = $jumlahMahasantri;
+        $this->namaPenerima = $namaPenerima;
     }
 
     public function build()

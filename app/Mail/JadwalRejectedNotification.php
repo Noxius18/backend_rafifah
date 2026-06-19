@@ -13,11 +13,13 @@ class JadwalRejectedNotification extends Mailable implements ShouldQueue
 
     public $tanggal;
     public $catatan;
+    public $namaPenerima;
 
-    public function __construct(string $tanggal, string $catatan)
+    public function __construct(string $tanggal, string $catatan, ?string $namaPenerima = null)
     {
         $this->tanggal = $tanggal;
         $this->catatan = $catatan;
+        $this->namaPenerima = $namaPenerima;
     }
 
     public function build()
