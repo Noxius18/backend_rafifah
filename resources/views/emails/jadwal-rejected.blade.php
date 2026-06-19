@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Ajuan Perubahan Jadwal</title>
+    <title>{{ $title ?? 'Ajuan Perubahan Jadwal' }}</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -36,8 +36,8 @@
                                     </td>
                                 </tr>
                             </table>
-                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.3px;">Ajuan Perubahan Jadwal</h1>
-                            <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 0;">Notifikasi resmi dari sistem kami</p>
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.3px;">{{ $title ?? 'Ajuan Perubahan Jadwal' }}</h1>
+                            <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 0;">{{ $subtitle ?? 'Notifikasi resmi dari sistem kami' }}</p>
                         </td>
                     </tr>
 
@@ -113,7 +113,7 @@
                                 Email ini dikirim secara otomatis oleh sistem. Mohon tidak membalas email ini.
                             </p>
                             <p style="color: #cbd5e1; font-size: 12px; margin: 0;">
-                                &copy; {{ date('Y') }} Rafifah. All rights reserved.
+                                &copy; {{ date('Y') }} {{ config('app.name', 'Rafifah') }}. All rights reserved.
                             </p>
                         </td>
                     </tr>

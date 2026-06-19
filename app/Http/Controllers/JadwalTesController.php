@@ -286,10 +286,20 @@ class JadwalTesController extends Controller
             ]);
 
         // Kirim notifikasi ke Ketua Panitia
+        // Ambil rentang tanggal dari jadwal yang dibatalkan
+        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Disetujui')
+            ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
+            ->first();
+        $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
+            ? ($tanggalRange->tgl_awal === $tanggalRange->tgl_akhir
+                ? $tanggalRange->tgl_awal
+                : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
+            : 'semua tanggal';
+
         $ketua = Panitia::where('jabatan', 'Ketua Panitia')->first();
         if ($ketua && $ketua->email) {
             Mail::to($ketua->email)->send(new \App\Mail\JadwalCancelledNotification(
-                'semua tanggal',
+                $tanggalLabel,
                 auth()->user()->nama_lengkap,
                 $request->alasan_pembatalan,
                 $request->jenis_pembatalan
@@ -313,12 +323,22 @@ class JadwalTesController extends Controller
                 'dikonfirmasi_pada' => now(),
             ]);
 
+        // Ambil rentang tanggal dari jadwal yang disetujui
+        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Disetujui')
+            ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
+            ->first();
+        $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
+            ? ($tanggalRange->tgl_awal === $tanggalRange->tgl_akhir
+                ? $tanggalRange->tgl_awal
+                : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
+            : 'semua tanggal';
+
         // Kirim notifikasi ke semua Panitia yang terlibat
         $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalApprovedNotification(
-                    'semua tanggal', auth()->user(), $updated
+                    $tanggalLabel, auth()->user(), $updated
                 ));
             }
         }
@@ -345,12 +365,22 @@ class JadwalTesController extends Controller
                 'dikonfirmasi_pada' => now(),
             ]);
 
+        // Ambil rentang tanggal dari jadwal yang perlu revisi
+        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Perlu Revisi')
+            ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
+            ->first();
+        $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
+            ? ($tanggalRange->tgl_awal === $tanggalRange->tgl_akhir
+                ? $tanggalRange->tgl_awal
+                : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
+            : 'semua tanggal';
+
         // Kirim notifikasi ke semua Panitia
         $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalRejectedNotification(
-                    'semua tanggal', $request->catatan_ketua
+                    $tanggalLabel, $request->catatan_ketua
                 ));
             }
         }
