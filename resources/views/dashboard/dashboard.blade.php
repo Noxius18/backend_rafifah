@@ -147,18 +147,17 @@
         </div>
       </div>
 
-      {{-- Statistik Beban Kerja Panitia (per Penguji Aspek) --}}
+      {{-- Statistik Beban Kerja Panitia --}}
       <div class="card bg-white border border-emerald-100 shadow-sm">
         <div class="card-body p-4">
-          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Beban Kerja Panitia (per Aspek)</h3>
+          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Beban Kerja Panitia</h3>
           <div class="overflow-x-auto">
             <table class="table table-sm w-full">
               <thead class="bg-emerald-50">
                 <tr class="text-xs font-semibold uppercase tracking-wider text-emerald-800">
                   <th class="text-left">Nama Panitia</th>
-                  <th class="text-center">Total Tugas</th>
-                  <th class="text-center">Sudah Dinilai</th>
-                  <th class="text-center">Sisa Kuota</th>
+                  <th class="text-center">Total Ditugaskan</th>
+                  <th class="text-center">Selesai Dinilai</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,37 +166,30 @@
                     <td class="font-medium text-slate-800" x-text="item.nama_lengkap"></td>
                     <td class="text-center text-slate-600" x-text="item.total_tugas"></td>
                     <td class="text-center text-emerald-600 font-semibold" x-text="item.sudah_dinilai"></td>
-                    <td class="text-center">
-                      <span class="px-2 py-1 rounded-md text-xs font-medium" :class="item.sisa_kuota > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'" x-text="item.sisa_kuota + ' sisa'"></span></td>
                   </tr>
                 </template>
                 <tr x-show="!stats.beban_kerja || !stats.beban_kerja.length">
-                  <td colspan="4" class="text-center py-4 text-slate-400">Belum ada data beban kerja</td>
+                  <td colspan="3" class="text-center py-4 text-slate-400">Belum ada data beban kerja</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p class="text-xs text-slate-400 mt-3">* Total tugas = jumlah jadwal yang ditugaskan ke masing-masing panitia untuk tiap aspek (Bacaan, Tajwid, Hafalan, Wawancara)</p>
         </div>
       </div>
 
-      {{-- Statistik Kuota per Gelombang --}}
+      {{-- Statistik Pendaftar per Gelombang --}}
       <div class="card bg-white border border-emerald-100 shadow-sm">
         <div class="card-body p-4">
-          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Kuota per Gelombang</h3>
+          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Pendaftar per Gelombang</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <template x-for="item in stats.gelombang_stats || []" :key="item.nama">
               <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-3">
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 mb-2">
                   <span class="font-semibold text-sm text-emerald-900" x-text="item.nama"></span>
-                  <span class="text-xs px-2 py-0.5 rounded-full" :class="item.sisa_kuota > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'" x-text="item.sisa_kuota + ' kuota'"></span>
                 </div>
                 <div class="text-xs text-slate-600 space-y-1">
                   <div x-text="'Periode: ' + item.periode"></div>
-                  <div class="flex justify-between">
-                    <span>Terdaftar: <strong x-text="item.terdaftar"></strong></span>
-                    <span>Kuota: <strong x-text="item.kuota"></strong></span>
-                  </div>
+                  <div>Jumlah Pendaftar: <strong x-text="item.terdaftar"></strong></div>
                 </div>
               </div>
             </template>

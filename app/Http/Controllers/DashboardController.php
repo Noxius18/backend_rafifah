@@ -58,40 +58,29 @@ class DashboardController extends Controller
             : 0;
 
         // Statistik beban kerja per panitia (berdasarkan penguji per aspek)
-        $aspekMapping = [
-            'penguji_bacaan_al_quran' => 'Bacaan Al-Qur\'an',
-            'penguji_tajwid_tahsin' => 'Tajwid & Tahsin',
-            'penguji_hafalan' => 'Hafalan',
-            'penguji_wawancara' => 'Wawancara',
-        ];
-
         $bebanKerja = Panitia::where('jabatan', 'Panitia')
             ->get()
-            ->map(function ($pj) use ($aspekMapping) {
-                $totalTugas = 0;
-                $sudahDinilai = 0;
+            ->map(function ($pj) {
+                $jadwalIds = JadwalTes::where(function ($q) use ($pj) {
+                        $q->where('penguji_bacaan_al_quran', $pj->id_panitia)
+                          ->orWhere('penguji_tajwid_tahsin', $pj->id_panitia)
+                          ->orWhere('penguji_hafalan', $pj->id_panitia)
+                          ->orWhere('penguji_wawancara', $pj->id_panitia);
+                    })
+                    ->where('status_konfirmasi', 'Disetujui')
+                    ->pluck('id_jadwal');
 
-                foreach ($aspekMapping as $field => $namaAspek) {
-                    // Hitung jadwal yang ditugaskan ke panitia ini untuk aspek tertentu
-                    $jadwalIds = JadwalTes::where($field, $pj->id_panitia)
-                        ->where('status_konfirmasi', 'Disetujui')
-                        ->pluck('id_jadwal');
-                    $jumlahJadwal = $jadwalIds->count();
-                    $totalTugas += $jumlahJadwal;
+                $totalTugas = $jadwalIds->count();
 
-                    // Hitung yang sudah dinilai
-                    $dinilai = HasilTes::whereIn('id_jadwal', $jadwalIds)
-                        ->whereIn('status', ['Lulus', 'Tidak Lulus'])
-                        ->count();
-                    $sudahDinilai += $dinilai;
-                }
+                $sudahDinilai = HasilTes::whereIn('id_jadwal', $jadwalIds)
+                    ->whereIn('status', ['Lulus', 'Tidak Lulus'])
+                    ->count();
 
                 return [
                     'id_panitia'    => $pj->id_panitia,
                     'nama_lengkap'  => $pj->nama_lengkap,
                     'total_tugas'   => $totalTugas,
                     'sudah_dinilai' => $sudahDinilai,
-                    'sisa_kuota'    => max(0, $totalTugas - $sudahDinilai),
                 ];
             })
             ->sortByDesc('total_tugas')
@@ -104,7 +93,7 @@ class DashboardController extends Controller
             $terdaftar = User::where('id_mahasantri', 'LIKE', $prefix . '%')->count();
             return [
                 'nama'      => $g->nama,
-                'periode'   => \Carbon\Carbon::parse($g->start_date)->format('d F Y') . ' - ' . \Carbon\Carbon::parse($g->end_date)->format('d F Y'),
+                'periode'   => \Carbon\Carbon::parse($g->start_date)->isoFormat('D MMMM Y') . ' - ' . \Carbon\Carbon::parse($g->end_date)->isoFormat('D MMMM Y'),
                 'kuota'     => $g->kuota,
                 'terdaftar' => $terdaftar,
                 'sisa_kuota' => max(0, $g->kuota - $terdaftar),
