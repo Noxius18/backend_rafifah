@@ -177,6 +177,11 @@ class JadwalTesController extends Controller
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
 
+        // Guard: cegah update jadwal yang sudah disetujui
+        if ($jadwalTes->status_konfirmasi === 'Disetujui') {
+            return redirect()->route('seleksi.index')->with('error', 'Jadwal sudah disetujui, tidak bisa diubah');
+        }
+
         // Auto-lock: cek jika jadwal sudah lewat
         $jadwalDate = Carbon::parse($jadwalTes->tanggal);
         if ($jadwalDate->lt(Carbon::today())) {
@@ -189,12 +194,12 @@ class JadwalTesController extends Controller
             'link_zoom' => 'nullable|string',
         ]);
 
-        // Reset status ke 'Menunggu' agar Ketua bisa review ulang
-        // Gabung dalam satu update agar atomic — tidak perlu cek kondisi karena
-        // guard di edit() sudah mencegah akses ke jadwal "Disetujui"
-        $jadwalTes->update(array_merge($validated, ['status_konfirmasi' => 'Menunggu']));
+        // Reset status ke 'Menunggu' + hapus catatan_ketua agar Ketua bisa review ulang
+        $jadwalTes->update(array_merge($validated, [
+            'status_konfirmasi' => 'Menunggu',
+            'catatan_ketua'     => null,
+        ]));
 
-        // TODO: kirim notifikasi ke pengawas tentang perubahan jadwal
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
     }
 

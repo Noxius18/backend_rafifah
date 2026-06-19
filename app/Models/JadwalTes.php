@@ -26,6 +26,14 @@ class JadwalTes extends Model
         'penguji_hafalan',
         'penguji_wawancara',
         'zoom_reminder_sent',
+        'status_konfirmasi',
+        'catatan_ketua',
+        'dikonfirmasi_oleh',
+        'dikonfirmasi_pada',
+        'status',
+        'alasan_pembatalan',
+        'dibatalkan_oleh',
+        'dibatalkan_pada',
     ];
 
     public function hasilTes() {
