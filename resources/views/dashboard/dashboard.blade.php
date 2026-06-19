@@ -81,12 +81,8 @@
             @foreach($jadwalMenunggu as $jm)
             <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
               <div>
-                <span class="font-medium text-amber-800">{{ \Carbon\Carbon::parse($jm->tanggal)->format('d F Y') }}</span>
+                <span class="font-medium text-amber-800">{{ \Carbon\Carbon::parse($jm->tanggal)->isoFormat('D MMMM Y') }}</span>
                 <span class="text-sm text-amber-600 ml-2">({{ $jm->jumlah }} mahasantri)</span>
-              </div>
-              <div class="flex gap-2">
-                <button onclick="document.getElementById('approveSemuaModal').showModal()" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">✅ Setujui Semua</button>
-                <button onclick="document.getElementById('rejectSemuaModal').showModal()" class="btn btn-sm bg-amber-500 text-white hover:bg-amber-600">📝 Ajukan Perubahan</button>
               </div>
             </div>
             @endforeach
