@@ -164,6 +164,11 @@ class JadwalTesController extends Controller
 
     public function edit(JadwalTes $jadwalTes)
     {
+        // Guard: cegah edit jika sudah disetujui
+        if ($jadwalTes->status_konfirmasi === 'Disetujui') {
+            return redirect()->route('seleksi.index')->with('error', 'Jadwal sudah disetujui, tidak bisa diedit');
+        }
+
         $jadwalTes->load(['penanggungJawab', 'mahasantri', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara']);
         return view('menu.jadwal-tes.edit', ['jadwalTes' => $jadwalTes, 'gelombangs' => Gelombang::orderBy('start_date')->get()]);
     }
@@ -184,7 +189,10 @@ class JadwalTesController extends Controller
             'link_zoom' => 'nullable|string',
         ]);
 
-        $jadwalTes->update($validated);
+        // Reset status ke 'Menunggu' agar Ketua bisa review ulang
+        // Gabung dalam satu update agar atomic — tidak perlu cek kondisi karena
+        // guard di edit() sudah mencegah akses ke jadwal "Disetujui"
+        $jadwalTes->update(array_merge($validated, ['status_konfirmasi' => 'Menunggu']));
 
         // TODO: kirim notifikasi ke pengawas tentang perubahan jadwal
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
@@ -199,7 +207,7 @@ class JadwalTesController extends Controller
 
         // Approve semua jadwal di tanggal yang sama
         JadwalTes::where('tanggal', $jadwalTes->tanggal)
-            ->where('status_konfirmasi', 'Menunggu')
+            ->whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
             ->update([
                 'status_konfirmasi' => 'Disetujui',
                 'dikonfirmasi_oleh' => auth()->user()->id_panitia,
@@ -235,20 +243,20 @@ class JadwalTesController extends Controller
 
         // Reject semua jadwal di tanggal yang sama
         $updated = JadwalTes::where('tanggal', $jadwalTes->tanggal)
-            ->where('status_konfirmasi', 'Menunggu')
+            ->whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
             ->update([
                 'status_konfirmasi' => 'Perlu Revisi',
                 'catatan_ketua' => $request->catatan_ketua,
-                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
-                'dikonfirmasi_pada' => now(),
             ]);
 
-        // Kirim notifikasi ke Panitia yang membuat jadwal
-        $pembuat = Panitia::find($jadwalTes->penanggung_jawab);
-        if ($pembuat && $pembuat->email) {
-            Mail::to($pembuat->email)->send(new JadwalRejectedNotification(
-                $jadwalTes->tanggal, $request->catatan_ketua, $pembuat->nama_lengkap
-            ));
+        // Kirim notifikasi ke semua Panitia
+        $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
+        foreach ($panitiaList as $p) {
+            if ($p->email) {
+                Mail::to($p->email)->send(new JadwalRejectedNotification(
+                    $jadwalTes->tanggal, $request->catatan_ketua, $p->nama_lengkap
+                ));
+            }
         }
 
         return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal diajukan perubahan, menunggu Panitia merespon");
@@ -326,7 +334,7 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::where('status_konfirmasi', 'Menunggu')
+        $updated = JadwalTes::whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
             ->update([
                 'status_konfirmasi' => 'Disetujui',
                 'dikonfirmasi_oleh' => auth()->user()->id_panitia,
@@ -367,12 +375,10 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::where('status_konfirmasi', 'Menunggu')
+        $updated = JadwalTes::whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
             ->update([
                 'status_konfirmasi' => 'Perlu Revisi',
                 'catatan_ketua' => $request->catatan_ketua,
-                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
-                'dikonfirmasi_pada' => now(),
             ]);
 
         // Kirim notifikasi ke semua Panitia
