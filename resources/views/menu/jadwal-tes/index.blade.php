@@ -21,7 +21,7 @@
     ];
     $gelombangList = [1 => 'Gelombang 1', 2 => 'Gelombang 2'];
 
-    $isPengawas = auth()->user()->jabatan === 'Pengawas';
+    $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
     $isPanitia = auth()->user()->jabatan === 'Panitia';
 
     // Kolom dibalikin komplit
@@ -31,19 +31,19 @@
         ['label' => 'Gelombang',        'field' => 'gelombang',    'html' => 'gelombang_html'],
         ['label' => 'Tanggal',          'field' => 'tanggal',      'html' => 'tgl_html'],
         ['label' => 'Jam',              'field' => 'jam',          'html' => 'jam_html'],
-        ['label' => 'Penanggung Jawab', 'field' => 'pj',           'html' => 'pj_html',   'class' => 'hidden md:table-cell'],
+        ['label' => 'Status',           'field' => 'status_konfirmasi', 'html' => 'status_konfirmasi_html'],
         ['label' => 'Link Zoom',        'field' => 'link_zoom',    'html' => 'link_html', 'class' => 'hidden lg:table-cell'],
         ['label' => 'Aksi',             'field' => 'id_jadwal',    'html' => 'aksi_html', 'class' => 'text-right'],
     ];
 
-    $rows = $jadwals->map(function($j) use ($isPengawas, $isPanitia, $formatLinkZoom) {
+    $rows = $jadwals->map(function($j) use ($isKetuaPanitia, $isPanitia, $formatLinkZoom) {
         $hasil = \App\Models\HasilTes::where('id_jadwal', $j->id_jadwal)->first();
         $statusHasil = $hasil ? $hasil->status : 'Belum Tes';
         
         $aksiHtml = "<div class='flex items-center justify-end gap-0.5'>";
         
-        // 1. TOMBOL NILAI (MATA untuk Pengawas, NOTES/KERTAS untuk Panitia)
-        if ($isPengawas) {
+        // 1. TOMBOL NILAI (MATA untuk Ketua Panitia, NOTES/KERTAS untuk Panitia)
+        if ($isKetuaPanitia) {
             $aksiHtml .= "<button type='button' onclick='window.dispatchEvent(new CustomEvent(\"open-nilai-modal\", { detail: { id_jadwal: \"{$j->id_jadwal}\", id_mahasantri: \"{$j->mahasantri?->id_mahasantri}\", nama: \"" . addslashes($j->mahasantri?->nama_lengkap) . "\", status: \"{$statusHasil}\", hasil: " . ($hasil ? json_encode($hasil) : 'null') . "} }))' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-emerald-600 hover:bg-emerald-50' title='Lihat Nilai'>
                             <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
                           </button>";
@@ -53,30 +53,44 @@
                           </button>";
         }
 
-        // 2. TOMBOL REVIEW (Hanya Pengawas & Status Pertimbangan)
-        if ($isPengawas && $statusHasil === 'Pertimbangan' && $hasil) {
+        // 2. TOMBOL REVIEW (Hanya Ketua Panitia & Status Pertimbangan)
+        if ($isKetuaPanitia && $statusHasil === 'Pertimbangan' && $hasil) {
             $hasilJson = htmlspecialchars(json_encode($hasil), ENT_QUOTES, 'UTF-8');
             $aksiHtml .= "<button type='button' @click=\"openReviewModal('{$hasil->id_hasil}', 'Lulus', {$hasilJson})\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-emerald-600 hover:bg-emerald-50' title='Setujui (Lulus)'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg></button>
                           <button type='button' @click=\"openReviewModal('{$hasil->id_hasil}', 'Tidak Lulus', {$hasilJson})\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Tolak (Tidak Lulus)'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg></button>";
         }
 
-        // 3. TOMBOL EDIT/HAPUS (Hanya Panitia)
+        // 3. TOMBOL EDIT & NILAI (dalam tabel - hanya edit per-jadwal)
         if ($isPanitia) {
-            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', tanggal: '{$j->tanggal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', penguji_bacaan_al_quran: '" . e($j->penguji_bacaan_al_quran ?? '') . "', penguji_tajwid_tahsin: '" . e($j->penguji_tajwid_tahsin ?? '') . "', penguji_hafalan: '" . e($j->penguji_hafalan ?? '') . "', penguji_wawancara: '" . e($j->penguji_wawancara ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>
-                          <button type='button' onclick=\"openConfirmModal('/seleksi/{$j->id_jadwal}', '" . e($j->mahasantri?->nama_lengkap ?? $j->id_jadwal) . "')\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Hapus'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'/></svg></button>";
+            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>";
         }
         $aksiHtml .= "</div>";
+
+        // Status konfirmasi badge
+        $statusKonfirmasi = $j->status_konfirmasi ?? 'Menunggu';
+        $statusKonfirmasiHtml = match($statusKonfirmasi) {
+            'Menunggu' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>⏳ Menunggu</span>",
+            'Disetujui' => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>✅ Disetujui</span>",
+            'Perlu Revisi' => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>❌ Perlu Revisi</span>",
+            default => "<span class='text-xs text-slate-500'>{$statusKonfirmasi}</span>",
+        };
+
+        // Catatan dari Ketua Panitia (jika ada)
+        if ($statusKonfirmasi == 'Perlu Revisi' && $j->catatan_ketua) {
+            $statusKonfirmasiHtml .= "<br><span class='text-[10px] text-rose-600 mt-1 inline-block'>📝 " . e($j->catatan_ketua) . "</span>";
+        }
 
         return [
             'id_jadwal'   => $j->id_jadwal,
             'gelombang'   => $j->mahasantri ? \App\Models\User::extractGelombangNama($j->mahasantri->id_mahasantri) : '-',
-            'search'      => strtolower("{$j->id_jadwal} {$j->mahasantri?->nama_lengkap} {$j->tanggal}"),
+            'status_konfirmasi' => $statusKonfirmasi,
+            'search'      => strtolower("{$j->id_jadwal} {$j->mahasantri?->nama_lengkap} {$j->tanggal} {$statusKonfirmasi}"),
             'id_html'     => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$j->id_jadwal}</code>",
             'mhs_html'    => $j->mahasantri ? "<span class='font-medium text-black'>" . e($j->mahasantri->nama_lengkap) . "</span><br><span class='text-[10px] text-black/60'>" . e($j->mahasantri->id_mahasantri) . "</span>" : "<span class='text-black/50 text-xs'>-</span>",
             'gelombang_html' => $j->mahasantri ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e(\App\Models\User::extractGelombangNama($j->mahasantri->id_mahasantri)) . "</span>" : "<span class='text-slate-400'>-</span>",
             'tgl_html'    => "<span class='text-xs text-black'>" . \Carbon\Carbon::parse($j->tanggal)->format('d/m/Y') . "</span>",
             'jam_html'    => $j->jam ? "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 ring-1 ring-slate-200'>" . \Carbon\Carbon::parse($j->jam)->format('H:i') . "</span>" : "<span class='text-slate-400 text-xs'>-</span>",
-            'pj_html'     => $j->penanggungJawab ? "<span class='inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200'><svg xmlns='http://www.w3.org/2000/svg' class='h-3.5 w-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z'/></svg>" . e($j->penanggungJawab->nama_lengkap) . "</span>" : "<span class='text-black/50 text-xs'>-</span>",
+            'status_konfirmasi_html' => $statusKonfirmasiHtml,
             'link_html'   => $j->link_zoom ? "<a href='" . e($formatLinkZoom($j->link_zoom)) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>" : "<span class='text-black/50 text-xs'>-</span>",
             'aksi_html'   => $aksiHtml,
         ];
@@ -110,7 +124,7 @@
         } catch(e) { this.showToast('Gagal menyimpan nilai', 'error'); } finally { this.saving = false; }
     },
 
-    {{-- Logic untuk Review Pengawas & Edit Nilai Khusus yang 70 --}}
+    {{-- Logic untuk Review Ketua Panitia & Edit Nilai Khusus yang 70 --}}
     reviewId: null, reviewAction: null,
     reviewData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
     originalData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
@@ -179,6 +193,11 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
                 @if(auth()->user()->jabatan === 'Panitia')
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="document.getElementById('cancelBulkModal').showModal()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3.5 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:scale-95 shadow-sm">
+                        <x-heroicon-s-x-circle class="h-4 w-4" />
+                        Batalkan Jadwal
+                    </button>
                     <button type="button" onclick="document.getElementById('sendBulkModal').showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95 shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -188,6 +207,20 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     <button type="button" onclick="document.getElementById('addModal').showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
                         <x-heroicon-s-plus class="h-4 w-4" /> Buat Jadwal
+                    </button>
+                </div>
+                @endif
+                @if(auth()->user()->jabatan === 'Ketua Panitia')
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="document.getElementById('approveSemuaModal').showModal()"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
+                        <x-heroicon-s-check-circle class="h-4 w-4" />
+                        Setujui Semua Jadwal
+                    </button>
+                    <button type="button" onclick="document.getElementById('rejectSemuaModal').showModal()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 active:scale-95 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
+                        Ajukan Perubahan
                     </button>
                 </div>
                 @endif
@@ -262,14 +295,14 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             <div class="flex items-center justify-between w-full pr-4">
                 <div class="flex items-center gap-3">
                     <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
-                        @if(auth()->user()->jabatan === 'Pengawas')
+                        @if(auth()->user()->jabatan === 'Ketua Panitia')
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         @else
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         @endif
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-800">{{ auth()->user()->jabatan === 'Pengawas' ? 'Lihat Nilai' : 'Input Nilai' }}</h3>
+                        <h3 class="text-lg font-semibold text-slate-800">{{ auth()->user()->jabatan === 'Ketua Panitia' ? 'Lihat Nilai' : 'Input Nilai' }}</h3>
                         <p class="text-xs text-slate-500 mt-0.5">Mahasantri: <span class="font-medium" x-text="selectedMhsNama"></span></p>
                     </div>
                 </div>
@@ -489,16 +522,10 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             </div>
             <form id="editModal-form" action="" method="POST" class="space-y-3" onsubmit="return validateEditGelombangDate(this)">
                 @csrf @method('PUT')
-                <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
-                <x-ui.form-input name="jam" label="Jam" type="time" />
+                <x-ui.form-input name="jam" label="Jam Mulai" type="time" required />
                 <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." />
                 <div class="border-t border-slate-100 pt-3">
-                    <p class="mb-2 text-sm font-semibold text-slate-700">Tentukan Penguji per Aspek</p>
-                    <div class="grid grid-cols-1 gap-4">
-                        @foreach ($aspekMapping as $aspek => $field)
-                            <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
-                        @endforeach
-                    </div>
+                    <p class="text-sm text-slate-500">*Tanggal tidak dapat diubah (diatur saat pembuatan jadwal)</p>
                 </div>
             </form>
         </x-slot>
@@ -508,7 +535,133 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         </x-slot>
     </x-ui.modal-form>
 
-    <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Hapus jadwal seleksi untuk" confirm-label="Hapus" />
+    <x-ui.modal-form id="cancelModal" title="Batalkan Jadwal">
+        <x-slot name="body">
+            <form id="cancelModal-form" action="" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="space-y-3">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Jenis Pembatalan</span></label>
+                        <select name="jenis_pembatalan" class="select select-bordered select-sm" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="Dibatalkan">Dibatalkan</option>
+                            <option value="Rescheduled">Dijadwalkan Ulang</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Alasan Pembatalan</span></label>
+                        <textarea name="alasan_pembatalan" class="textarea textarea-bordered" rows="3" placeholder="Masukkan alasan pembatalan..." required></textarea>
+                    </div>
+                </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('cancelModal').close()">Batal</button>
+            <button type="submit" form="cancelModal-form" class="btn btn-error btn-sm">Batalkan Jadwal</button>
+        </x-slot>
+    </x-ui.modal-form>
+
+    <!-- Modal Approve Jadwal (Hanya Ketua Panitia) -->
+    <x-ui.modal-form id="approveModal" title="Terima Jadwal">
+        <x-slot name="body">
+            <form id="approveModal-form" action="" method="POST">
+                @csrf
+                <p class="text-sm">Apakah Anda yakin ingin menyetujui jadwal ini?</p>
+                <p class="text-xs text-slate-500">Setelah disetujui, jadwal tidak dapat diubah kecuali melalui pembatalan.</p>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('approveModal').close()">Batal</button>
+            <button type="submit" form="approveModal-form" class="btn btn-success btn-sm">Terima Jadwal</button>
+        </x-slot>
+    </x-ui.modal-form>
+
+    <!-- Modal Reject Jadwal (Hanya Ketua Panitia) -->
+    <x-ui.modal-form id="rejectModal" title="Ajukan Perubahan Jadwal">
+        <x-slot name="body">
+            <form id="rejectModal-form" action="" method="POST">
+                @csrf
+                <div class="space-y-3">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Catatan Perubahan</span></label>
+                        <textarea name="catatan_ketua" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan alasan perubahan jadwal..." required></textarea>
+                    </div>
+                </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('rejectModal').close()">Batal</button>
+            <button type="submit" form="rejectModal-form" class="btn btn-warning btn-sm">Ajukan Perubahan</button>
+        </x-slot>
+    </x-ui.modal-form>
+
+    {{-- MODAL BATCH CANCEL (Panitia) --}}
+    <x-ui.modal-form id="cancelBulkModal" title="Batalkan Semua Jadwal">
+        <x-slot name="body">
+            <form id="cancelBulkModal-form" action="{{ route('seleksi.bulk-cancel') }}" method="POST">
+                @csrf
+                <div class="space-y-3">
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                        <p class="font-medium">Hanya jadwal yang sudah <strong>Disetujui</strong> yang akan dibatalkan.</p>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Jenis</span></label>
+                        <select name="jenis_pembatalan" class="select select-bordered select-sm" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="Dibatalkan">Dibatalkan</option>
+                            <option value="Rescheduled">Dijadwalkan Ulang</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Alasan Pembatalan</span></label>
+                        <textarea name="alasan_pembatalan" class="textarea textarea-bordered" rows="3" placeholder="Masukkan alasan..." required></textarea>
+                    </div>
+                </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('cancelBulkModal').close()">Batal</button>
+            <button type="submit" form="cancelBulkModal-form" class="btn btn-error btn-sm">Batalkan Semua</button>
+        </x-slot>
+    </x-ui.modal-form>
+
+    {{-- MODAL APPROVE SEMUA (Ketua Panitia) --}}
+    <x-ui.modal-form id="approveSemuaModal" title="Setujui Semua Jadwal">
+        <x-slot name="body">
+            <form id="approveSemuaForm" action="{{ route('seleksi.approve-all') }}" method="POST">
+                @csrf
+                <p class="text-sm">Setujui <strong>SEMUA</strong> jadwal yang masih <strong>Menunggu</strong> persetujuan?</p>
+                <p class="text-xs text-slate-500 mt-2">Ini akan menyetujui semua jadwal yang belum di-approve sekaligus.</p>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('approveSemuaModal').close()">Batal</button>
+            <button type="submit" form="approveSemuaForm" class="btn btn-success btn-sm">Setujui Semua</button>
+        </x-slot>
+    </x-ui.modal-form>
+
+    {{-- MODAL REJECT SEMUA (Ketua Panitia) --}}
+    <x-ui.modal-form id="rejectSemuaModal" title="Ajukan Perubahan Semua Jadwal">
+        <x-slot name="body">
+            <form id="rejectSemuaForm" action="{{ route('seleksi.reject-all') }}" method="POST">
+                @csrf
+                <div class="space-y-3">
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                        <p class="font-medium">Ajukan perubahan untuk SEMUA jadwal yang masih <strong>Menunggu</strong>?</p>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Catatan Perubahan (sama untuk semua)</span></label>
+                        <textarea name="catatan_ketua" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan catatan perubahan..." required></textarea>
+                    </div>
+                </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('rejectSemuaModal').close()">Batal</button>
+            <button type="submit" form="rejectSemuaForm" class="btn btn-warning btn-sm">Ajukan Perubahan</button>
+        </x-slot>
+    </x-ui.modal-form>
 
     {{-- MODAL PERINGATAN MAHASISWA BELUM TERVERIFIKASI --}}
     <x-ui.modal id="unscheduledModal" size="lg">
@@ -563,23 +716,26 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             @endif
         });
 
-        function openEditModal({ id, tanggal, jam, link_zoom, penguji_bacaan_al_quran, penguji_tajwid_tahsin, penguji_hafalan, penguji_wawancara }) {
+        function openEditModal({ id, jam, link_zoom }) {
             document.getElementById('editModal-form').action = `/seleksi/${id}`;
-            document.querySelector('#editModal-form [name="tanggal"]').value = tanggal;
             document.querySelector('#editModal-form [name="jam"]').value = jam;
             document.querySelector('#editModal-form [name="link_zoom"]').value = link_zoom;
-            document.querySelector('#editModal-form [name="penguji_bacaan_al_quran"]').value = penguji_bacaan_al_quran;
-            document.querySelector('#editModal-form [name="penguji_tajwid_tahsin"]').value = penguji_tajwid_tahsin;
-            document.querySelector('#editModal-form [name="penguji_hafalan"]').value = penguji_hafalan;
-            document.querySelector('#editModal-form [name="penguji_wawancara"]').value = penguji_wawancara;
             document.getElementById('editModal').showModal();
         }
 
-        function openConfirmModal(url, name) {
-            document.getElementById('deleteModal-name').textContent = name;
-            let form = document.getElementById('deleteModal-form');
-            form.action = url;
-            document.getElementById('deleteModal').showModal();
+        function openCancelModal(id, nama) {
+            document.getElementById('cancelModal-form').action = `/seleksi/${id}`;
+            document.getElementById('cancelModal').showModal();
+        }
+
+        function openApproveModal(id) {
+            document.getElementById('approveModal-form').action = `/seleksi/${id}/approve`;
+            document.getElementById('approveModal').showModal();
+        }
+
+        function openRejectModal(id) {
+            document.getElementById('rejectModal-form').action = `/seleksi/${id}/reject`;
+            document.getElementById('rejectModal').showModal();
         }
 
         const gelombangs = @json($gelombangs->map(function($g) {

@@ -12,6 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TestResultPdf;
 use App\Mail\ZoomLinkReminder;
+use App\Mail\JadwalCreatedNotification;
+use App\Mail\JadwalApprovedNotification;
+use App\Mail\JadwalRejectedNotification;
 
 class JadwalTesController extends Controller
 {
@@ -95,6 +98,7 @@ class JadwalTesController extends Controller
         // Tentukan waktu kirim reminder: 3 hari sebelum hari ujian, jam mulai pertama
         $waktuKirim = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai'])->subDays(3);
 
+        // Buat jadwal per mahasantri dengan status_konfirmasi = 'Menunggu'
         foreach ($verifiedMahasantri as $mhs) {
             $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
@@ -111,9 +115,10 @@ class JadwalTesController extends Controller
                 'penguji_tajwid_tahsin'   => $validated['penguji_tajwid_tahsin'] ?? null,
                 'penguji_hafalan'         => $validated['penguji_hafalan'] ?? null,
                 'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
+                'status_konfirmasi' => 'Menunggu',
             ]);
 
-            // Kirim email reminder Zoom serentak 3 hari sebelum hari ujian (jam mulai pertama)
+            // Kirim email reminder Zoom 3 hari sebelum ujian
             if ($newJadwal->link_zoom && $mhs->email) {
                 Mail::to($mhs->email)->later($waktuKirim, new ZoomLinkReminder($newJadwal, $mhs));
             }
@@ -122,13 +127,17 @@ class JadwalTesController extends Controller
             $count++;
         }
 
-        // Prepare unscheduled mahasantri data for modal (only id and name)
-        $unscheduledData = $unverifiedMahasantri->map(function ($mhs) {
-            return [
-                'id_mahasantri' => $mhs->id_mahasantri,
-                'nama_lengkap' => $mhs->nama_lengkap,
-            ];
-        });
+        // Kirim notifikasi ke Ketua Panitia tentang jadwal baru yang perlu approval
+        $ketuaPanitia = Panitia::where('jabatan', 'Ketua Panitia')->first();
+        if ($ketuaPanitia && $ketuaPanitia->email) {
+            $pembuat = auth()->user();
+            // Kirim ke semua ketua panitia
+            foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $kp) {
+                Mail::to($kp->email)->send(new JadwalCreatedNotification(
+                    $newJadwal, $pembuat, $count
+                ));
+            }
+        }
 
         // Prepare unscheduled mahasantri data for modal (only id and name)
         $unscheduledData = $unverifiedMahasantri->map(function ($mhs) {
@@ -162,20 +171,87 @@ class JadwalTesController extends Controller
     public function update(Request $request, JadwalTes $jadwalTes)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
-        
-        // SUDAH DIPERBAIKI: Penamaan validation disesuaikan dengan DB
+
+        // Auto-lock: cek jika jadwal sudah lewat
+        $jadwalDate = Carbon::parse($jadwalTes->tanggal);
+        if ($jadwalDate->lt(Carbon::today())) {
+            return redirect()->route('seleksi.index')->with('error', 'Jadwal tidak dapat diubah karena sudah berlangsung');
+        }
+
+        // Hanya terima jam dan link_zoom untuk edit
         $validated = $request->validate([
-            'tanggal'                 => 'required|date', 
-            'jam'                     => 'nullable|date_format:H:i', 
-            'link_zoom'               => 'nullable|string',
-            'penguji_bacaan_al_quran' => 'nullable|exists:panitia,id_panitia', 
-            'penguji_tajwid_tahsin'   => 'nullable|exists:panitia,id_panitia',
-            'penguji_hafalan'         => 'nullable|exists:panitia,id_panitia', 
-            'penguji_wawancara'       => 'nullable|exists:panitia,id_panitia',
+            'jam'       => 'nullable|date_format:H:i',
+            'link_zoom' => 'nullable|string',
         ]);
 
         $jadwalTes->update($validated);
+
+        // TODO: kirim notifikasi ke pengawas tentang perubahan jadwal
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
+    }
+
+    /**
+     * Ketua Panitia: Approve semua jadwal di tanggal yang sama (digital handshake)
+     */
+    public function approve(Request $request, JadwalTes $jadwalTes)
+    {
+        if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403, 'Hanya Ketua Panitia yang bisa menyetujui jadwal');
+
+        // Approve semua jadwal di tanggal yang sama
+        JadwalTes::where('tanggal', $jadwalTes->tanggal)
+            ->where('status_konfirmasi', 'Menunggu')
+            ->update([
+                'status_konfirmasi' => 'Disetujui',
+                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
+                'dikonfirmasi_pada' => now(),
+            ]);
+
+        $jumlah = JadwalTes::where('tanggal', $jadwalTes->tanggal)
+            ->where('status_konfirmasi', 'Disetujui')
+            ->count();
+
+        // Kirim notifikasi ke semua Panitia yang terlibat
+        $pembuat = Panitia::find($jadwalTes->penanggung_jawab);
+        if ($pembuat && $pembuat->email) {
+            $ketua = auth()->user();
+            Mail::to($pembuat->email)->send(new JadwalApprovedNotification(
+                $jadwalTes->tanggal, $ketua, $jumlah
+            ));
+        }
+
+        return redirect()->route('seleksi.index')->with('success', 'Semua jadwal di tanggal ' . $jadwalTes->tanggal . ' berhasil disetujui');
+    }
+
+    /**
+     * Ketua Panitia: Ajukan perubahan untuk semua jadwal di tanggal yang sama
+     */
+    public function reject(Request $request, JadwalTes $jadwalTes)
+    {
+        if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403, 'Hanya Ketua Panitia yang bisa mengajukan perubahan');
+
+        $request->validate([
+            'catatan_ketua' => 'required|string',
+        ]);
+
+        // Reject semua jadwal di tanggal yang sama
+        $updated = JadwalTes::where('tanggal', $jadwalTes->tanggal)
+            ->where('status_konfirmasi', 'Menunggu')
+            ->update([
+                'status_konfirmasi' => 'Perlu Revisi',
+                'catatan_ketua' => $request->catatan_ketua,
+                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
+                'dikonfirmasi_pada' => now(),
+            ]);
+
+        // Kirim notifikasi ke Panitia yang membuat jadwal
+        $pembuat = Panitia::find($jadwalTes->penanggung_jawab);
+        if ($pembuat && $pembuat->email) {
+            Mail::to($pembuat->email)->send(new JadwalRejectedNotification(
+                $jadwalTes->tanggal, $request->catatan_ketua
+            ));
+        }
+
+        return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal diajukan perubahan, menunggu Panitia merespon");
     }
 
     public function sendUpdateNotification(Request $request, JadwalTes $jadwalTes)
@@ -183,17 +259,103 @@ class JadwalTesController extends Controller
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
         $mahasantri = $jadwalTes->mahasantri;
         if (!$mahasantri || !$mahasantri->email) return redirect()->back()->with('error', 'Mahasiswa tidak memiliki email');
-        
+
         $jadwalTes->update(['zoom_reminder_sent' => false]);
         Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $mahasantri));
         return redirect()->back()->with('success', 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap);
     }
 
-    public function destroy(Request $request, JadwalTes $jadwalTes)
+    /**
+     * Bulk cancel semua jadwal yang sudah Disetujui (Panitia)
+     */
+    public function bulkCancel(Request $request)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
-        $jadwalTes->delete();
-        return redirect()->route('seleksi.index')->with('success', 'Jadwal tes dihapus');
+
+        $request->validate([
+            'jenis_pembatalan' => 'required|in:Dibatalkan,Rescheduled',
+            'alasan_pembatalan' => 'required|string',
+        ]);
+
+        $updated = JadwalTes::where('status_konfirmasi', 'Disetujui')
+            ->update([
+                'status' => $request->jenis_pembatalan,
+                'alasan_pembatalan' => $request->alasan_pembatalan,
+                'dibatalkan_oleh' => auth()->user()->id_panitia,
+                'dibatalkan_pada' => now(),
+            ]);
+
+        // Kirim notifikasi ke Ketua Panitia
+        $ketua = Panitia::where('jabatan', 'Ketua Panitia')->first();
+        if ($ketua && $ketua->email) {
+            Mail::to($ketua->email)->send(new \App\Mail\JadwalCancelledNotification(
+                'semua tanggal',
+                auth()->user()->nama_lengkap,
+                $request->alasan_pembatalan,
+                $request->jenis_pembatalan
+            ));
+        }
+
+        return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal berhasil di" . strtolower($request->jenis_pembatalan));
+    }
+
+    /**
+     * Ketua Panitia: Approve semua jadwal yang Menunggu
+     */
+    public function approveAll(Request $request)
+    {
+        if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403);
+
+        $updated = JadwalTes::where('status_konfirmasi', 'Menunggu')
+            ->update([
+                'status_konfirmasi' => 'Disetujui',
+                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
+                'dikonfirmasi_pada' => now(),
+            ]);
+
+        // Kirim notifikasi ke semua Panitia yang terlibat
+        $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
+        foreach ($panitiaList as $p) {
+            if ($p->email) {
+                Mail::to($p->email)->send(new JadwalApprovedNotification(
+                    'semua tanggal', auth()->user(), $updated
+                ));
+            }
+        }
+
+        return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal berhasil disetujui");
+    }
+
+    /**
+     * Ketua Panitia: Reject semua jadwal yang Menunggu
+     */
+    public function rejectAll(Request $request)
+    {
+        if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403);
+
+        $request->validate([
+            'catatan_ketua' => 'required|string',
+        ]);
+
+        $updated = JadwalTes::where('status_konfirmasi', 'Menunggu')
+            ->update([
+                'status_konfirmasi' => 'Perlu Revisi',
+                'catatan_ketua' => $request->catatan_ketua,
+                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
+                'dikonfirmasi_pada' => now(),
+            ]);
+
+        // Kirim notifikasi ke semua Panitia
+        $panitiaList = Panitia::where('jabatan', 'Panitia')->get();
+        foreach ($panitiaList as $p) {
+            if ($p->email) {
+                Mail::to($p->email)->send(new JadwalRejectedNotification(
+                    'semua tanggal', $request->catatan_ketua
+                ));
+            }
+        }
+
+        return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal diajukan perubahan");
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\HasilTes;
 use App\Models\JadwalTes;
 use App\Models\User;
+use App\Models\Panitia;
 use Illuminate\Http\Request;
 
 class HasilTesController extends Controller
@@ -14,15 +15,17 @@ class HasilTesController extends Controller
      */
     public function index(JadwalTes $jadwalTes)
     {
-        $jadwalTes->load(['pengujiList.panitia', 'mahasantri']);
+        $jadwalTes->load([
+            'penanggungJawab', 'mahasantri',
+            'pengujiBacaanAlquran', 'pengujiTajwidTahsin',
+            'pengujiHafalan', 'pengujiWawancara'
+        ]);
 
-        // Get the mahasantri related to this jadwal
         $mahasantris = collect();
         if ($jadwalTes->mahasantri) {
             $mahasantris = collect([$jadwalTes->mahasantri]);
         }
 
-        // Get existing hasil tes for this jadwal
         $hasilTes = HasilTes::where('id_jadwal', $jadwalTes->id_jadwal)
             ->get()
             ->keyBy('id_mahasantri');
@@ -35,12 +38,12 @@ class HasilTesController extends Controller
     }
 
     /**
-     * Store/update hasil tes for a mahasantri
-     * Hanya Panitia & Penguji yang bisa input/edit nilai
+     * Store nilai individual per panitia
+     * Cuma bisa input aspek yang ditugaskan
+     * Jangan hitung status/total (kecuali creator) - itu via previewHasil + simpanHasil
      */
     public function store(Request $request)
     {
-        // Cek role: hanya Panitia yang bisa input nilai
         if (auth()->user()->jabatan !== 'Panitia') {
             abort(403, 'Hanya panitia yang bisa input nilai');
         }
@@ -55,105 +58,146 @@ class HasilTesController extends Controller
             'catatan_penguji' => 'nullable|string',
         ]);
 
-        // Calculate total (average of 4 aspects)
-        $nilai = array_filter([
-            $validated['nilai_bacaan_al_quran'],
-            $validated['nilai_tajwid_tahsin'],
-            $validated['nilai_hafalan'],
-            $validated['nilai_wawancara'],
-        ], function($v) { return $v !== null; });
+        // Cek aspek yang ditugaskan ke panitia ini
+        $jadwal = JadwalTes::findOrFail($validated['id_jadwal']);
+        $userId = auth()->user()->id_panitia;
+        $isCreator = $jadwal->penanggung_jawab == $userId;
 
-        $totalNilai = count($nilai) > 0 ? round(array_sum($nilai) / count($nilai)) : null;
+        $tugas = [];
+        if ($jadwal->penguji_bacaan_al_quran == $userId) $tugas[] = 'nilai_bacaan_al_quran';
+        if ($jadwal->penguji_tajwid_tahsin == $userId) $tugas[] = 'nilai_tajwid_tahsin';
+        if ($jadwal->penguji_hafalan == $userId) $tugas[] = 'nilai_hafalan';
+        if ($jadwal->penguji_wawancara == $userId) $tugas[] = 'nilai_wawancara';
 
-        // Determine status
-        $status = 'Belum Tes';
-        if ($totalNilai !== null) {
-            $hasPertimbangan = false;
-            foreach (['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'] as $aspek) {
-                if ($validated[$aspek] !== null && $validated[$aspek] == 70) {
-                    $hasPertimbangan = true;
-                    break;
-                }
-            }
-
-            if ($hasPertimbangan) {
-                $status = 'Pertimbangan';
-            } elseif ($totalNilai >= 70) {
-                $status = 'Lulus';
-            } else {
-                $status = 'Tidak Lulus';
+        // Creator bisa input semua, selainnya cuma aspek yang ditugaskan
+        $nilaiFields = ['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'];
+        $updateData = [];
+        foreach ($nilaiFields as $field) {
+            if ($isCreator || in_array($field, $tugas)) {
+                $updateData[$field] = $validated[$field] ?? null;
             }
         }
+        $updateData['catatan_penguji'] = $validated['catatan_penguji'] ?? null;
 
-        // Check if already exists — then update, else create
+        // Jangan hitung total/status saat store individual
+        $updateData['total_nilai'] = null;
+        $updateData['status'] = 'Belum Tes';
+
         $existing = HasilTes::where('id_mahasantri', $validated['id_mahasantri'])
             ->where('id_jadwal', $validated['id_jadwal'])
             ->first();
 
         if ($existing) {
-            // Only update nilai if status is not 'Pertimbangan' or if the user is pengawas updating
-            // For now, allow overwrite
-            $existing->update([
-                'nilai_bacaan_al_quran'     => $validated['nilai_bacaan_al_quran'],
-                'nilai_tajwid_tahsin'     => $validated['nilai_tajwid_tahsin'],
-                'nilai_hafalan' => $validated['nilai_hafalan'],
-                'nilai_wawancara'  => $validated['nilai_wawancara'],
-                'total_nilai'      => $totalNilai,
-                'status'           => $status,
-                'catatan_penguji'  => $validated['catatan_penguji'],
-            ]);
+            $existing->update($updateData);
         } else {
-            // Generate ID
             $last = HasilTes::where('id_hasil', 'LIKE', 'HTL%')
-                ->orderBy('id_hasil', 'desc')
-                ->first();
+                ->orderBy('id_hasil', 'desc')->first();
             $urut = $last ? (int) substr($last->id_hasil, 3) + 1 : 1;
 
-            HasilTes::create([
-                'id_hasil'         => 'HTL' . str_pad($urut, 2, '0', STR_PAD_LEFT),
-                'id_mahasantri'    => $validated['id_mahasantri'],
-                'id_jadwal'        => $validated['id_jadwal'],
-                'nilai_bacaan_al_quran'     => $validated['nilai_bacaan_al_quran'],
-                'nilai_tajwid_tahsin'     => $validated['nilai_tajwid_tahsin'],
-                'nilai_hafalan' => $validated['nilai_hafalan'],
-                'nilai_wawancara'  => $validated['nilai_wawancara'],
-                'total_nilai'      => $totalNilai,
-                'status'           => $status,
-                'catatan_penguji'  => $validated['catatan_penguji'],
-            ]);
+            HasilTes::create(array_merge([
+                'id_hasil'      => 'HTL' . str_pad($urut, 2, '0', STR_PAD_LEFT),
+                'id_mahasantri' => $validated['id_mahasantri'],
+                'id_jadwal'     => $validated['id_jadwal'],
+            ], $updateData));
         }
 
-        // =========================================================================
-        // SINKRONISASI STATUS MAHASANTRI 
-        // =========================================================================
-        // Jika status hasil tes Lulus / Tidak Lulus -> Ubah status mahasantri
-        // Jika Pertimbangan / Belum Tes -> Kembalikan atau jadikan Terverifikasi
-        $mahasantriStatus = in_array($status, ['Lulus', 'Tidak Lulus']) ? $status : 'Terverifikasi';
-        
-        User::where('id_mahasantri', $validated['id_mahasantri'])->update([
-            'status' => $mahasantriStatus
-        ]);
-        // =========================================================================
-
-        // Return JSON for AJAX
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'message' => 'Nilai berhasil disimpan',
-                'status'  => $status,
-            ]);
+            return response()->json(['message' => 'Nilai berhasil disimpan']);
         }
 
         return redirect()->route('seleksi.nilai', $validated['id_jadwal'])
             ->with('success', 'Nilai berhasil disimpan');
     }
 
+    /**
+     * Preview hasil (hitung) - TANPA simpan
+     * Hanya pembuat jadwal yang bisa
+     */
+    public function previewHasil(Request $request)
+    {
+        $jadwal = JadwalTes::findOrFail($request->id_jadwal);
+        if (auth()->user()->id_panitia !== $jadwal->penanggung_jawab) {
+            return response()->json(['error' => 'Hanya pembuat jadwal yang bisa menghitung hasil'], 403);
+        }
+
+        $hasil = HasilTes::where('id_mahasantri', $request->id_mahasantri)
+            ->where('id_jadwal', $jadwal->id_jadwal)->first();
+
+        if (!$hasil) return response()->json(['error' => 'Nilai tidak ditemukan'], 400);
+
+        $nilaiFields = ['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'];
+        $values = array_filter(array_map(fn($f) => $hasil->$f, $nilaiFields), fn($v) => $v !== null);
+
+        if (count($values) < 4) {
+            return response()->json([
+                'error' => 'Nilai belum lengkap (' . count($values) . '/4)',
+                'filled' => count($values), 'total' => 4,
+            ], 400);
+        }
+
+        $total = round(array_sum($values) / count($values));
+        $hasBelow70 = in_array(true, array_map(fn($n) => $n < 70, $values));
+        $hasExactly70 = in_array(true, array_map(fn($n) => $n == 70, $values));
+
+        if ($hasBelow70) $status = 'Tidak Lulus';
+        elseif ($hasExactly70) $status = 'Pertimbangan';
+        elseif ($total >= 70) $status = 'Lulus';
+        else $status = 'Tidak Lulus';
+
+        return response()->json([
+            'total_nilai' => $total, 'rata_rata' => $total,
+            'status' => $status, 'success' => true,
+            'message' => "Total: {$total} | Rata-rata: {$total} | Status: {$status}",
+        ]);
+    }
+
+    /**
+     * Simpan hasil final - hanya pembuat jadwal
+     */
+    public function simpanHasil(Request $request)
+    {
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
+        $jadwal = JadwalTes::findOrFail($request->id_jadwal);
+        if (auth()->user()->id_panitia !== $jadwal->penanggung_jawab) {
+            return response()->json(['error' => 'Hanya pembuat jadwal'], 403);
+        }
+
+        $hasil = HasilTes::where('id_mahasantri', $request->id_mahasantri)
+            ->where('id_jadwal', $jadwal->id_jadwal)->first();
+        if (!$hasil) return response()->json(['error' => 'Nilai tidak ditemukan'], 404);
+
+        $nilaiFields = ['nilai_bacaan_al_quran', 'nilai_tajwid_tahsin', 'nilai_hafalan', 'nilai_wawancara'];
+        $values = array_filter(array_map(fn($f) => $hasil->$f, $nilaiFields), fn($v) => $v !== null);
+        if (count($values) < 4) return response()->json(['error' => 'Nilai belum lengkap'], 400);
+
+        $total = round(array_sum($values) / 4);
+        $hasBelow70 = in_array(true, array_map(fn($n) => $n < 70, $values));
+        $hasExactly70 = in_array(true, array_map(fn($n) => $n == 70, $values));
+
+        if ($hasBelow70) $status = 'Tidak Lulus';
+        elseif ($hasExactly70) $status = 'Pertimbangan';
+        elseif ($total >= 70) $status = 'Lulus';
+        else $status = 'Tidak Lulus';
+
+        $hasil->update(['total_nilai' => $total, 'status' => $status]);
+
+        $mhsStatus = in_array($status, ['Lulus', 'Tidak Lulus']) ? $status : 'Terverifikasi';
+        User::where('id_mahasantri', $hasil->id_mahasantri)->update(['status' => $mhsStatus]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Hasil: Total {$total} | Rata-rata {$total} | {$status}",
+            'status' => $status, 'total_nilai' => $total,
+        ]);
+    }
+
    /**
-     * Pengawas: review and update status (Lulus/Tidak Lulus) beserta nilai perbaikannya
+     * Ketua Panitia: review and update status (Lulus/Tidak Lulus) beserta nilai perbaikannya
      */
     public function review(Request $request, HasilTes $hasilTes)
     {
-        if (auth()->user()->jabatan !== 'Pengawas') {
-            abort(403, 'Hanya pengawas yang bisa review pertimbangan');
+        if (auth()->user()->jabatan !== 'Ketua Panitia') {
+            abort(403, 'Hanya Ketua Panitia yang bisa review pertimbangan');
         }
 
         // Validasi: Status wajib, nilai juga ditangkap untuk di-update

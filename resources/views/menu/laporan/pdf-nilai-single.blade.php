@@ -66,8 +66,8 @@
         
         $alamat = $mahasantri->alamat ?? '-';
 
-        // Cari nama Ketua Panitia dari user dengan jabatan Pengawas
-        $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Pengawas')->first();
+        // Cari nama Ketua Panitia dari user dengan jabatan Ketua Panitia
+        $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Ketua Panitia')->first();
         $namaKetuaPanitia = $ketuaPanitia ? $ketuaPanitia->nama_lengkap : '-';
 
         $tahun = date('Y');
@@ -96,8 +96,13 @@
             <div class="teks-basmalah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
         @endif
 
-        <h3>SURAT KELULUSAN TEST</h3>
-        <h4>PENERIMAAN MAHASANTRI BARU</h4>
+        @if ($h && $h->status === 'Lulus')
+            <h3>SURAT KELULUSAN TEST</h3>
+            <h4>PENERIMAAN MAHASANTRI BARU</h4>
+        @else
+            <h3>SURAT KEPUTUSAN TEST</h3>
+            <h4>PENERIMAAN MAHASANTRI BARU</h4>
+        @endif
         <p>Nomor: {{ $nomorSurat }}</p>
     </div>
 
@@ -136,19 +141,23 @@
             @endif
         </div>
 
-        <p>Sebagai calon Mahasantri baru di:</p>
-        <table class="biodata" style="margin-bottom: 10px;">
-            <tr>
-                <td class="label">Nama Lembaga</td>
-                <td class="titikdua">:</td>
-                <td><strong>Pondok Pesantren Tahfidz Rafifah Andalusia MQ</strong></td>
-            </tr>
-            <tr>
-                <td class="label">Program</td>
-                <td class="titikdua">:</td>
-                <td><strong>Takhassus Al-Qur'an 30 Juz</strong></td>
-            </tr>
-        </table>
+        @if ($h && $h->status === 'Lulus')
+            <p>Sebagai calon Mahasantri baru di:</p>
+            <table class="biodata" style="margin-bottom: 10px;">
+                <tr>
+                    <td class="label">Nama Lembaga</td>
+                    <td class="titikdua">:</td>
+                    <td><strong>Pondok Pesantren Tahfidz Rafifah Andalusia MQ</strong></td>
+                </tr>
+                <tr>
+                    <td class="label">Program</td>
+                    <td class="titikdua">:</td>
+                    <td><strong>Takhassus Al-Qur'an 30 Juz</strong></td>
+                </tr>
+            </table>
+        @else
+            <p>Demikian hasil seleksi ini disampaikan. Semoga bisa menjadi motivasi untuk terus belajar dan berkembang.</p>
+        @endif
 
         @if($h)
         <table class="nilai">
@@ -184,7 +193,11 @@
         </table>
         @endif
 
-        <p>Demikian Surat kelulusan ini disampaikan untuk dipergunakan sebagaimana mestinya.</p>
+        @if ($h && $h->status === 'Lulus')
+            <p>Demikian Surat Kelulusan ini disampaikan untuk dipergunakan sebagaimana mestinya.</p>
+        @else
+            <p>Demikian hasil seleksi ini disampaikan. Semoga bisa menjadi motivasi untuk terus belajar dan berkembang.</p>
+        @endif
         <p><i>Wassalamu'alaikum warahmatullahi wabarakatuh</i></p>
     </div>
 

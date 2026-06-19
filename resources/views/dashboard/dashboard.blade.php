@@ -2,8 +2,8 @@
 
 @section('content')
   <x-ui.sidebar>
-    <div 
-      x-data="dashboard()" 
+    <div
+      x-data="dashboard()"
       x-init="init()"
       class="space-y-6"
     >
@@ -64,6 +64,40 @@
         </div>
       </div>
 
+      {{-- Jadwal Menunggu Persetujuan (Ketua Panitia) --}}
+      @if(auth()->user()->jabatan === 'Ketua Panitia')
+      <div class="card bg-white border border-amber-200 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="text-lg font-semibold text-amber-700 mb-4">⏳ Jadwal Menunggu Persetujuan</h3>
+          @php
+            $jadwalMenunggu = \App\Models\JadwalTes::where('status_konfirmasi', 'Menunggu')
+                ->select('tanggal', \DB::raw('COUNT(*) as jumlah'))
+                ->groupBy('tanggal')
+                ->orderBy('tanggal')
+                ->get();
+          @endphp
+          @if($jadwalMenunggu->count() > 0)
+          <div class="space-y-2">
+            @foreach($jadwalMenunggu as $jm)
+            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div>
+                <span class="font-medium text-amber-800">{{ \Carbon\Carbon::parse($jm->tanggal)->format('d F Y') }}</span>
+                <span class="text-sm text-amber-600 ml-2">({{ $jm->jumlah }} mahasantri)</span>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="document.getElementById('approveSemuaModal').showModal()" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">✅ Setujui Semua</button>
+                <button onclick="document.getElementById('rejectSemuaModal').showModal()" class="btn btn-sm bg-amber-500 text-white hover:bg-amber-600">📝 Ajukan Perubahan</button>
+              </div>
+            </div>
+            @endforeach
+          </div>
+          @else
+          <p class="text-center text-sm text-slate-400 py-4">Tidak ada jadwal yang menunggu persetujuan</p>
+          @endif
+        </div>
+      </div>
+      @endif
+
       {{-- Info Gelombang --}}
       <div class="card bg-white border border-emerald-100 shadow-sm">
         <div class="card-body p-4">
@@ -91,33 +125,89 @@
         </div>
       </div>
 
-      {{-- Charts and Details Section --}}
-      <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        {{-- Mahasantri Status Chart --}}
-        <div class="card bg-white border border-emerald-100 shadow-sm">
-          <div class="card-body p-4">
-            <h3 class="text-lg font-semibold text-emerald-900 mb-4">Status Mahasantri</h3>
-            <div class="space-y-3">
-              <template x-for="[status, count] in Object.entries(stats.mahasantri_by_status || {})" :key="status">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full" :class="getStatusColor(status)"></div>
-                    <span class="text-sm" x-text="status"></span>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium" x-text="count"></span>
-                    <span class="text-xs text-slate-500" 
-                      x-text="'(' + Math.round((count / stats.total_mahasantri) * 100) + '%)'">
-                    </span>
-                  </div>
+      {{-- Mahasantri Status Chart --}}
+      <div class="card bg-white border border-emerald-100 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Status Mahasantri</h3>
+          <div class="space-y-3">
+            <template x-for="[status, count] in Object.entries(stats.mahasantri_by_status || {})" :key="status">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full" :class="getStatusColor(status)"></div>
+                  <span class="text-sm" x-text="status"></span>
                 </div>
-              </template>
-              <div x-show="!Object.keys(stats.mahasantri_by_status || {}).length" class="text-center py-4 text-slate-400">
-                Tidak ada data status
+                <div class="flex items-center gap-3">
+                  <span class="text-sm font-medium" x-text="count"></span>
+                  <span class="text-xs text-slate-500"
+                    x-text="'(' + Math.round((count / stats.total_mahasantri) * 100) + '%)'">
+                  </span>
+                </div>
               </div>
+            </template>
+            <div x-show="!Object.keys(stats.mahasantri_by_status || {}).length" class="text-center py-4 text-slate-400">
+              Tidak ada data status
             </div>
           </div>
         </div>
+      </div>
+
+      {{-- Statistik Beban Kerja Panitia (per Penguji Aspek) --}}
+      <div class="card bg-white border border-emerald-100 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Beban Kerja Panitia (per Aspek)</h3>
+          <div class="overflow-x-auto">
+            <table class="table table-sm w-full">
+              <thead class="bg-emerald-50">
+                <tr class="text-xs font-semibold uppercase tracking-wider text-emerald-800">
+                  <th class="text-left">Nama Panitia</th>
+                  <th class="text-center">Total Tugas</th>
+                  <th class="text-center">Sudah Dinilai</th>
+                  <th class="text-center">Sisa Kuota</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="item in stats.beban_kerja || []" :key="item.id_panitia">
+                  <tr class="border-t border-emerald-100 text-sm">
+                    <td class="font-medium text-slate-800" x-text="item.nama_lengkap"></td>
+                    <td class="text-center text-slate-600" x-text="item.total_tugas"></td>
+                    <td class="text-center text-emerald-600 font-semibold" x-text="item.sudah_dinilai"></td>
+                    <td class="text-center">
+                      <span class="px-2 py-1 rounded-md text-xs font-medium" :class="item.sisa_kuota > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'" x-text="item.sisa_kuota + ' sisa'"></span></td>
+                  </tr>
+                </template>
+                <tr x-show="!stats.beban_kerja || !stats.beban_kerja.length">
+                  <td colspan="4" class="text-center py-4 text-slate-400">Belum ada data beban kerja</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-slate-400 mt-3">* Total tugas = jumlah jadwal yang ditugaskan ke masing-masing panitia untuk tiap aspek (Bacaan, Tajwid, Hafalan, Wawancara)</p>
+        </div>
+      </div>
+
+      {{-- Statistik Kuota per Gelombang --}}
+      <div class="card bg-white border border-emerald-100 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Kuota per Gelombang</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <template x-for="item in stats.gelombang_stats || []" :key="item.nama">
+              <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-semibold text-sm text-emerald-900" x-text="item.nama"></span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" :class="item.sisa_kuota > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'" x-text="item.sisa_kuota + ' kuota'"></span>
+                </div>
+                <div class="text-xs text-slate-600 space-y-1">
+                  <div x-text="'Periode: ' + item.periode"></div>
+                  <div class="flex justify-between">
+                    <span>Terdaftar: <strong x-text="item.terdaftar"></strong></span>
+                    <span>Kuota: <strong x-text="item.kuota"></strong></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
     </div>
   </x-ui.sidebar>
 
@@ -127,16 +217,14 @@
       return {
         loading: false,
         autoRefreshEnabled: true,
-        autoRefreshInterval: 30000, // 30 detik
+        autoRefreshInterval: 30000,
         refreshTimer: null,
         lastUpdated: '{{ now()->format("d M Y H:i") }}',
         stats: @json($stats),
-        
+
         init() {
           console.log('Dashboard initialized');
           this.startAutoRefresh();
-          
-          // Cleanup timer ketika component di-destroy
           Alpine.effect(() => {
             return () => {
               if (this.refreshTimer) {
@@ -146,87 +234,44 @@
             };
           });
         },
-        
+
         startAutoRefresh() {
-          if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
-          }
-          
+          if (this.refreshTimer) clearInterval(this.refreshTimer);
           this.refreshTimer = setInterval(() => {
-            if (this.autoRefreshEnabled && !this.loading) {
-              this.refreshStats();
-            }
+            if (this.autoRefreshEnabled && !this.loading) this.refreshStats();
           }, this.autoRefreshInterval);
-          
-          console.log('Auto-refresh started with interval:', this.autoRefreshInterval, 'ms');
         },
-        
+
         stopAutoRefresh() {
-          if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
-            this.refreshTimer = null;
-            console.log('Auto-refresh stopped');
-          }
+          if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
         },
-        
+
         async refreshStats() {
           if (this.loading) return;
-          
           this.loading = true;
           try {
             const response = await fetch('{{ route("dashboard.refresh") }}', {
               method: 'POST',
-              headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-              },
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             });
-            
             const data = await response.json();
-            if (data.success) {
-              this.stats = data.stats;
-              this.lastUpdated = data.timestamp;
-              // Show subtle visual feedback
-              this.showRefreshFeedback();
-            }
-          } catch (error) {
-            console.error('Failed to refresh stats:', error);
-          } finally {
-            this.loading = false;
-          }
+            if (data.success) { this.stats = data.stats; this.lastUpdated = data.timestamp; }
+          } catch (error) { console.error('Failed to refresh:', error); }
+          finally { this.loading = false; }
         },
-        
-        showRefreshFeedback() {
-          // Add a subtle animation to stats cards to show they were updated
-          const cards = document.querySelectorAll('.card');
-          cards.forEach(card => {
-            card.classList.add('ring-2', 'ring-emerald-200');
-            setTimeout(() => {
-              card.classList.remove('ring-2', 'ring-emerald-200');
-            }, 500);
-          });
-        },
-        
+
         toggleAutoRefresh() {
           this.autoRefreshEnabled = !this.autoRefreshEnabled;
-          if (this.autoRefreshEnabled) {
-            this.startAutoRefresh();
-          } else {
-            this.stopAutoRefresh();
-          }
+          this.autoRefreshEnabled ? this.startAutoRefresh() : this.stopAutoRefresh();
         },
-        
+
         getStatusColor(status) {
           const colors = {
-            'Pendaftar Baru': 'bg-blue-500',
-            'Lolos': 'bg-emerald-500',
-            'Tidak Lolos': 'bg-rose-500',
-            'Cadangan': 'bg-amber-500',
-            'default': 'bg-slate-500'
+            'Pendaftar Baru': 'bg-blue-500', 'Lulus': 'bg-emerald-500',
+            'Tidak Lulus': 'bg-rose-500', 'Pertimbangan': 'bg-amber-500', 'default': 'bg-slate-500'
           };
           return colors[status] || colors.default;
         },
-        
       }
     }
   </script>

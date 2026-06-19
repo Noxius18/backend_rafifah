@@ -125,7 +125,7 @@
           </a>
         </li>
 
-        @if(auth()->user()->jabatan === 'Pengawas')
+        @if(auth()->user()->jabatan === 'Ketua Panitia')
         <li class="w-full">
           <a
             href="{{ route('gelombang.index') }}"
@@ -148,8 +148,8 @@
         </li>
         @endif
 
-        {{-- Panitia — hanya untuk Pengawas --}}
-        @if(auth()->user()->jabatan === 'Pengawas')
+        {{-- Panitia — hanya untuk Ketua Panitia --}}
+        @if(auth()->user()->jabatan === 'Ketua Panitia')
         <li class="w-full">
           <a
             href="{{ route('panitia.index') }}"
@@ -173,7 +173,7 @@
         @endif
 
         {{-- Cetak Laporan — buka di tab baru --}}
-        @if(in_array(auth()->user()->jabatan, ['Pengawas', 'Panitia']))
+        @if(in_array(auth()->user()->jabatan, ['Ketua Panitia', 'Panitia']))
         <li class="w-full">
           <a
             href="{{ route('laporan.cetak-overall') }}"

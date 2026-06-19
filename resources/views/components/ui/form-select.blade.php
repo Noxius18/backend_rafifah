@@ -6,7 +6,7 @@
     <x-ui.form-select
         name="jabatan"
         label="Jabatan"
-        :options="['Pengawas' => 'Pengawas', 'Panitia' => 'Panitia', 'Penguji' => 'Penguji']"
+        :options="['Ketua Panitia' => 'Ketua Panitia', 'Panitia' => 'Panitia', 'Penguji' => 'Penguji']"
         required
     />
 
@@ -14,7 +14,7 @@
     <x-ui.form-select
         name="jabatan"
         label="Jabatan"
-        :options="['Pengawas' => 'Pengawas', 'Panitia' => 'Panitia', 'Penguji' => 'Penguji']"
+        :options="['Ketua Panitia' => 'Ketua Panitia', 'Panitia' => 'Panitia', 'Penguji' => 'Penguji']"
         :selected="$panitia->jabatan"
         required
     />

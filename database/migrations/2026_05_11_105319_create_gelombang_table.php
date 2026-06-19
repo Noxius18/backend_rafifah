@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('nama', 20);
             $table->date('start_date');
             $table->date('end_date');
+            $table->unsignedInteger('kuota')->default(0)->comment('Kuota maksimal mahasantri per gelombang');
             $table->char('updated_by', 5)->nullable();
             $table->foreign('updated_by')
                 ->references('id_panitia')

@@ -18,6 +18,7 @@ class Orangtua extends Model
         'tipe_hubungan',
         'nama_lengkap',
         'pekerjaan',
+        'alamat',
         'no_wa',
     ];
 
