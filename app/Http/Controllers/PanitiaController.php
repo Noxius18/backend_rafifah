@@ -51,7 +51,7 @@ class PanitiaController extends Controller
         ]);
 
         $kodeJabatan = [
-            'Ketua Panitia' => 'PNG',
+            'Ketua Panitia' => 'KPN',
             'Panitia' => 'PNT',
         ];
 
@@ -124,7 +124,7 @@ class PanitiaController extends Controller
         // LOGIKA BARU: Jika jabatan berubah, update Prefix ID dan urutannya
         if ($panitia->jabatan !== $validated['jabatan']) {
             $kodeJabatan = [
-                'Ketua Panitia' => 'PNG',
+                'Ketua Panitia' => 'KPN',
                 'Panitia'  => 'PNT',
             ];
 
