@@ -110,6 +110,7 @@
     {{-- Data untuk Logic Modal Input Nilai --}}
     selectedMhs: null, selectedJadwal: null, selectedMhsNama: '', statusHasil: '',
     formData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '', catatan_penguji: '' },
+    lastValidValue: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
     saving: false,
     async submitNilai() {
         this.saving = true;
@@ -123,6 +124,16 @@
             if (res.ok) { this.showToast(data.message, 'success'); setTimeout(() => location.reload(), 1000); }
             else { this.showToast(data.message || 'Gagal menyimpan', 'error'); }
         } catch(e) { this.showToast('Gagal menyimpan nilai', 'error'); } finally { this.saving = false; }
+    },
+    clampValue(field, event) {
+        const raw = event.target.value;
+        const parsed = parseInt(raw);
+        const isValid = (raw === '' || (!isNaN(parsed) && parsed >= 0 && parsed <= 100));
+        if (isValid) {
+            this.lastValidValue[field] = this.formData[field] = raw === '' ? '' : parsed;
+        } else {
+            this.$nextTick(() => { event.target.value = this.lastValidValue[field]; });
+        }
     },
 
     {{-- Logic untuk Review Ketua Panitia & Edit Nilai Khusus yang 70 --}}
@@ -325,19 +336,19 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         <tbody class="divide-y divide-slate-100">
                             <tr>
                                 <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Bacaan Al-Qur'an</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_bacaan_al_quran" @input="clampValue('nilai_bacaan_al_quran', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tajwid dan Tahsin</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_tajwid_tahsin" @input="clampValue('nilai_tajwid_tahsin', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Hafalan</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_hafalan" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_hafalan" @input="clampValue('nilai_hafalan', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">4</td><td class="py-2 font-medium text-slate-700">Wawancara</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_wawancara" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_wawancara" @input="clampValue('nilai_wawancara', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
                             </tr>
                         </tbody>
                     </table>
