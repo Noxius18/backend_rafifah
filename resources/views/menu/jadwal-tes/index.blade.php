@@ -321,33 +321,33 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2 space-y-4">
                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <table class="w-full text-sm">
-                        <thead><tr class="text-xs text-slate-500 border-b border-slate-200"><th class="pb-2 text-left font-medium">No</th><th class="pb-2 text-left font-medium">Aspek Penilaian</th><th class="pb-2 text-center font-medium">Nilai</th><th class="pb-2 text-left font-medium">Keterangan</th></tr></thead>
+                        <thead><tr class="text-xs text-slate-500 border-b border-slate-200"><th class="pb-2 text-left font-medium">No</th><th class="pb-2 text-left font-medium">Aspek Penilaian</th><th class="pb-2 text-center font-medium">Nilai</th></tr></thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr>
                                 <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Bacaan Al-Qur'an</td>
                                 <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai bacaan Al-Qur'an</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tajwid dan Tahsin</td>
                                 <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai tajwid dan tahsin</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Hafalan</td>
                                 <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_hafalan" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai hafalan</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">4</td><td class="py-2 font-medium text-slate-700">Wawancara</td>
                                 <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_wawancara" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                                <td class="py-2 text-xs text-slate-400">Nilai hasil wawancara</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="rounded-lg border border-slate-200 bg-white p-3">
+                <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-slate-700">Total Skor:</span>
+                        <span class="text-lg font-bold text-slate-700" x-text="(() => { const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? vals.reduce((a,b) => a+b, 0) : '-'; })()"></span>
+                    </div>
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-slate-700">Rata-rata:</span>
                         <span class="text-lg font-bold text-emerald-600" x-text="(() => { const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-'; })()"></span>
