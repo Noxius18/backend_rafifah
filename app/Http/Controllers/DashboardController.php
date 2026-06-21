@@ -63,7 +63,7 @@ class DashboardController extends Controller
             ->map(function ($pj) {
             $jadwalIds = \App\Models\JadwalPenguji::where('id_panitia', $pj->id_panitia)
                 ->whereHas('jadwalTes', function ($q) {
-                    $q->where('status_jadwal', 'Disetujui');
+                    $q->whereIn('status_jadwal', ['Disetujui', 'Aktif']);
                 })
                 ->pluck('id_jadwal');
 

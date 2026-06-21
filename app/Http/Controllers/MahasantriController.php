@@ -235,7 +235,9 @@ class MahasantriController extends Controller
         $deleted['orangtua']   = Orangtua::whereIn('id_mahasantri', $mahasantriIds)->count();
         $deleted['berkas']     = Berkas::whereIn('id_mahasantri', $mahasantriIds)->count();
         $deleted['jadwal']     = JadwalTes::whereIn('id_mahasantri', $mahasantriIds)->count();
-        $deleted['hasil_tes']  = HasilTes::whereIn('id_mahasantri', $mahasantriIds)->count();
+        $deleted['hasil_tes']  = HasilTes::whereHas('jadwalTes', function ($q) use ($mahasantriIds) {
+            $q->whereIn('id_mahasantri', $mahasantriIds);
+        })->count();
 
         if ($alsoDeleteFiles) {
             $berkasList = Berkas::whereIn('id_mahasantri', $mahasantriIds)
