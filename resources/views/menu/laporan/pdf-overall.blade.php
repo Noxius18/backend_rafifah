@@ -42,9 +42,10 @@
         /* Rincian Nilai */
         .rincian-nilai { font-size: 10px; color: #334155; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
         .rincian-nilai .baris { display: block; margin-bottom: 2px; }
-        .rincian-nilai .label-aspek { display: inline-block; width: 130px; font-weight: 600; }
+        .rincian-nilai .label-aspek { display: inline-block; width: 125px; font-weight: 600; }
         .rincian-nilai .nilai-aspek { font-weight: 700; color: #065f46; }
         .rincian-nilai .penguji-aspek { color: #64748b; font-size: 9px; }
+        .rincian-nilai .catatan-aspek { display: block; font-size: 9px; color: #6b7280; font-style: italic; margin: -1px 0 3px 130px; }
 
         /* ── Tabel Ringkasan (Paling Bawah) ── */
         .summary-wrapper { page-break-inside: avoid; margin-top: 30px; }
@@ -85,7 +86,7 @@
                         <th>Tgl Daftar</th>
                         <th>Tgl Ujian</th>
                         <th>Jam</th>
-                        <th style="width: 25%;">Hasil (Rata-rata & Rincian)</th>
+                        <th style="width: 30%;">Hasil (Rata-rata & Rincian)</th>
                         <th>Status</th>
                         <th style="width: 20%;">Keterangan</th>
                     </tr>
@@ -96,7 +97,7 @@
                             $mhs = $h->jadwalTes->mahasantri ?? $h->mahasantri;
                             $jadwal = $h->jadwalTes;
                             
-                            // Ambil nilai & penguji dari jadwal_penguji
+                            // Ambil nilai, penguji & catatan dari jadwal_penguji
                             $nilaiBacaan = '-';
                             $nilaiTajwid = '-';
                             $nilaiHafalan = '-';
@@ -105,25 +106,33 @@
                             $pengujiTajwidTahsin = '';
                             $pengujiHafalan = '';
                             $pengujiWawancara = '';
-                            
+                            $catatanBacaan = '';
+                            $catatanTajwid = '';
+                            $catatanHafalan = '';
+                            $catatanWawancara = '';
+
                             if ($jadwal && $jadwal->relationLoaded('jadwalPenguji')) {
                                 foreach ($jadwal->jadwalPenguji as $jp) {
                                     switch($jp->aspek_penguji) {
                                         case 'Bacaan Al-Quran':
                                             $nilaiBacaan = $jp->nilai ?? '-';
                                             $pengujiBacaanAlquran = $jp->panitia?->nama_lengkap ?? '';
+                                            $catatanBacaan = $jp->catatan_penguji ?? '';
                                             break;
                                         case 'Tajwid/Tahsin':
                                             $nilaiTajwid = $jp->nilai ?? '-';
                                             $pengujiTajwidTahsin = $jp->panitia?->nama_lengkap ?? '';
+                                            $catatanTajwid = $jp->catatan_penguji ?? '';
                                             break;
                                         case 'Hafalan':
                                             $nilaiHafalan = $jp->nilai ?? '-';
                                             $pengujiHafalan = $jp->panitia?->nama_lengkap ?? '';
+                                            $catatanHafalan = $jp->catatan_penguji ?? '';
                                             break;
                                         case 'Wawancara':
                                             $nilaiWawancara = $jp->nilai ?? '-';
                                             $pengujiWawancara = $jp->panitia?->nama_lengkap ?? '';
+                                            $catatanWawancara = $jp->catatan_penguji ?? '';
                                             break;
                                     }
                                 }
@@ -136,28 +145,40 @@
                             <td>{{ $h->jadwalTes->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
                             <td>{{ $h->jadwalTes->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
                             <td style="vertical-align: top;">
-                                <strong style="font-size: 13px; color: #065f46;">Nilai Akhir: {{ $h->total_nilai ?? '-' }}</strong>
+                                <strong style="font-size: 13px; color: #065f46;">Rata-rata: {{ $h->total_nilai ?? '-' }}</strong>
                                 <div class="rincian-nilai">
                                     <span class="baris">
                                         <span class="label-aspek">Bacaan Al-Qur'an</span>
-                                        <span class="nilai-aspek">{{ $h->nilai_bacaan_al_quran ?? '-' }}</span>
+                                        <span class="nilai-aspek">{{ $nilaiBacaan }}</span>
                                         @if($pengujiBacaanAlquran) <span class="penguji-aspek">({{ $pengujiBacaanAlquran }})</span> @endif
                                     </span>
+                                    @if($catatanBacaan)
+                                    <span class="catatan-aspek">› {{ $catatanBacaan }}</span>
+                                    @endif
                                     <span class="baris">
                                         <span class="label-aspek">Tajwid &amp; Tahsin</span>
-                                        <span class="nilai-aspek">{{ $h->nilai_tajwid_tahsin ?? '-' }}</span>
+                                        <span class="nilai-aspek">{{ $nilaiTajwid }}</span>
                                         @if($pengujiTajwidTahsin) <span class="penguji-aspek">({{ $pengujiTajwidTahsin }})</span> @endif
                                     </span>
+                                    @if($catatanTajwid)
+                                    <span class="catatan-aspek">› {{ $catatanTajwid }}</span>
+                                    @endif
                                     <span class="baris">
                                         <span class="label-aspek">Hafalan</span>
-                                        <span class="nilai-aspek">{{ $h->nilai_hafalan ?? '-' }}</span>
+                                        <span class="nilai-aspek">{{ $nilaiHafalan }}</span>
                                         @if($pengujiHafalan) <span class="penguji-aspek">({{ $pengujiHafalan }})</span> @endif
                                     </span>
+                                    @if($catatanHafalan)
+                                    <span class="catatan-aspek">› {{ $catatanHafalan }}</span>
+                                    @endif
                                     <span class="baris">
                                         <span class="label-aspek">Wawancara</span>
-                                        <span class="nilai-aspek">{{ $h->nilai_wawancara ?? '-' }}</span>
+                                        <span class="nilai-aspek">{{ $nilaiWawancara }}</span>
                                         @if($pengujiWawancara) <span class="penguji-aspek">({{ $pengujiWawancara }})</span> @endif
                                     </span>
+                                    @if($catatanWawancara)
+                                    <span class="catatan-aspek">› {{ $catatanWawancara }}</span>
+                                    @endif
                                 </div>
                             </td>
                             <td>
@@ -167,7 +188,7 @@
                                 @else <span class="badge-belum">Belum Tes</span>
                                 @endif
                             </td>
-                            <td>{{ $h->catatan_penguji ?? '-' }}</td>
+                            <td>{{ $h->jadwalTes->catatan_ketua ?? '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

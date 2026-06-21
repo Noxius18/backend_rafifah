@@ -130,10 +130,10 @@
                 </div>
             </div>
 
-            @if($h->catatan_penguji)
+            @if($jadwal?->catatan_ketua)
             <div class="catatan-box">
                 <div class="label">Catatan / Keterangan</div>
-                <div class="value">{{ $h->catatan_penguji }}</div>
+                <div class="value">{{ $jadwal->catatan_ketua }}</div>
             </div>
             @endif
         </div>

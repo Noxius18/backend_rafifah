@@ -115,13 +115,18 @@ class MahasantriController extends Controller
      */
     public function cetakPdf(User $mahasantri)
     {
-        $hasilTes = HasilTes::where('id_mahasantri', $mahasantri->id_mahasantri)
-            ->with('jadwalTes')
-            ->get();
+        $jadwal = JadwalTes::where('id_mahasantri', $mahasantri->id_mahasantri)
+            ->with('hasilTes', 'jadwalPenguji.panitia')
+            ->first();
+
+        $hasilTes = $jadwal && $jadwal->hasilTes
+            ? collect([$jadwal->hasilTes])
+            : collect();
 
         $html = view('menu.laporan.pdf-nilai-single', [
             'mahasantri' => $mahasantri,
             'hasilTes'   => $hasilTes,
+            'jadwal'     => $jadwal,
             'date'       => now()->format('d/m/Y H:i'),
         ])->render();
 

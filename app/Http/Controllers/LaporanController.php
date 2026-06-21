@@ -21,13 +21,13 @@ class LaporanController extends Controller
         $idJadwal = $request->get('id_jadwal');
 
         if ($idJadwal) {
-            $jadwal = JadwalTes::with(['penanggungJawab', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara', 'mahasantri'])->findOrFail($idJadwal);
+            $jadwal = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia'])->findOrFail($idJadwal);
             $hasilTes = HasilTes::where('id_jadwal', $idJadwal)
-                ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiBacaanAlquran', 'jadwalTes.pengujiTajwidTahsin', 'jadwalTes.pengujiHafalan', 'jadwalTes.pengujiWawancara'])
+                ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.jadwalPenguji.panitia'])
                 ->get();
         } else {
             $jadwal = null;
-            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.pengujiBacaanAlquran', 'jadwalTes.pengujiTajwidTahsin', 'jadwalTes.pengujiHafalan', 'jadwalTes.pengujiWawancara'])->get();
+            $hasilTes = HasilTes::with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.jadwalPenguji.panitia'])->get();
         }
 
         $html = view('menu.laporan.pdf-nilai', [
@@ -65,10 +65,12 @@ class LaporanController extends Controller
         $totalPertimbangan = HasilTes::where('status', 'Pertimbangan')->count();
         $totalBelumTes = HasilTes::where('status', 'Belum Tes')->count();
 
-        // Mahasantri belum tes (tidak ada di tabel hasil_tes)
+        // Mahasantri belum tes (tidak ada di hasil_seleksi)
         $mahasantriBelumTes = User::where('status', 'Terverifikasi')
             ->whereNotIn('id_mahasantri', function($query) {
-                $query->select('id_mahasantri')->from('hasil_tes');
+                $query->select('js.id_mahasantri')
+                    ->from('hasil_seleksi as hs')
+                    ->join('jadwal_seleksi as js', 'hs.id_jadwal', '=', 'js.id_jadwal');
             })
             ->get();
 
@@ -86,10 +88,7 @@ class LaporanController extends Controller
             'mahasantri',
             'jadwalTes.mahasantri',
             'jadwalTes.penanggungJawab',
-            'jadwalTes.pengujiBacaanAlquran',
-            'jadwalTes.pengujiTajwidTahsin',
-            'jadwalTes.pengujiHafalan',
-            'jadwalTes.pengujiWawancara',
+            'jadwalTes.jadwalPenguji.panitia',
         ])->get();
 
         // Kelompokkan per gelombang berdasarkan id_mahasantri

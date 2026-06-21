@@ -170,13 +170,13 @@
             </thead>
             <tbody>
                 @php
-                    // Ambil nilai dari jadwal_penguji jika ada
+                    // Ambil nilai dari jadwal_penguji (via $jadwal yang sudah di-load)
                     $nilaiBacaan = 0;
                     $nilaiTajwid = 0;
                     $nilaiHafalan = 0;
                     $nilaiWawancara = 0;
-                    if ($h && $h->jadwalTes && $h->jadwalTes->relationLoaded('jadwalPenguji')) {
-                        foreach ($h->jadwalTes->jadwalPenguji as $jp) {
+                    if ($jadwal && $jadwal->relationLoaded('jadwalPenguji')) {
+                        foreach ($jadwal->jadwalPenguji as $jp) {
                             match($jp->aspek_penguji) {
                                 'Bacaan Al-Quran' => $nilaiBacaan = $jp->nilai ?? 0,
                                 'Tajwid/Tahsin' => $nilaiTajwid = $jp->nilai ?? 0,
