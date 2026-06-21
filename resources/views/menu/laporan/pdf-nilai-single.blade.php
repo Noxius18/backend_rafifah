@@ -169,25 +169,43 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    // Ambil nilai dari jadwal_penguji jika ada
+                    $nilaiBacaan = 0;
+                    $nilaiTajwid = 0;
+                    $nilaiHafalan = 0;
+                    $nilaiWawancara = 0;
+                    if ($h && $h->jadwalTes && $h->jadwalTes->relationLoaded('jadwalPenguji')) {
+                        foreach ($h->jadwalTes->jadwalPenguji as $jp) {
+                            match($jp->aspek_penguji) {
+                                'Bacaan Al-Quran' => $nilaiBacaan = $jp->nilai ?? 0,
+                                'Tajwid/Tahsin' => $nilaiTajwid = $jp->nilai ?? 0,
+                                'Hafalan' => $nilaiHafalan = $jp->nilai ?? 0,
+                                'Wawancara' => $nilaiWawancara = $jp->nilai ?? 0,
+                                default => null,
+                            };
+                        }
+                    }
+                @endphp
                 <tr>
                     <td>1</td>
                     <td>Bacaan Al Qur'an</td>
-                    <td>{{ $h->nilai_bacaan_al_quran ?? 0 }}</td>
+                    <td>{{ $nilaiBacaan }}</td>
                 </tr>
                 <tr>
                     <td>2</td>
                     <td>Tajwid dan Tahsin</td>
-                    <td>{{ $h->nilai_tajwid_tahsin ?? 0 }}</td>
+                    <td>{{ $nilaiTajwid }}</td>
                 </tr>
                 <tr>
                     <td>3</td>
                     <td>Hafalan</td>
-                    <td>{{ $h->nilai_hafalan ?? 0 }}</td>
+                    <td>{{ $nilaiHafalan }}</td>
                 </tr>
                 <tr>
                     <td>4</td>
                     <td>Wawancara</td>
-                    <td>{{ $h->nilai_wawancara ?? 0 }}</td>
+                    <td>{{ $nilaiWawancara }}</td>
                 </tr>
             </tbody>
         </table>

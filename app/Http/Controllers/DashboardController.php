@@ -61,14 +61,11 @@ class DashboardController extends Controller
         $bebanKerja = Panitia::where('jabatan', 'Panitia')
             ->get()
             ->map(function ($pj) {
-                $jadwalIds = JadwalTes::where(function ($q) use ($pj) {
-                        $q->where('penguji_bacaan_al_quran', $pj->id_panitia)
-                          ->orWhere('penguji_tajwid_tahsin', $pj->id_panitia)
-                          ->orWhere('penguji_hafalan', $pj->id_panitia)
-                          ->orWhere('penguji_wawancara', $pj->id_panitia);
-                    })
-                    ->where('status_konfirmasi', 'Disetujui')
-                    ->pluck('id_jadwal');
+            $jadwalIds = \App\Models\JadwalPenguji::where('id_panitia', $pj->id_panitia)
+                ->whereHas('jadwalTes', function ($q) {
+                    $q->where('status_jadwal', 'Disetujui');
+                })
+                ->pluck('id_jadwal');
 
                 $totalTugas = $jadwalIds->count();
 

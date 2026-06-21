@@ -316,7 +316,7 @@ class MahasantriController extends Controller
 
         if ($lastJadwal) {
             // Ambil interval dari jadwal terakhir (sudah disimpan saat batch create)
-            $interval = $lastJadwal->interval_minutes ?? 30;
+            $interval = $lastJadwal->interval ?? 30;
 
             // Hitung jam baru berdasarkan interval yang tersimpan
             $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes($interval)->format('H:i:s');
@@ -327,18 +327,25 @@ class MahasantriController extends Controller
             $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
 
             $newJadwal = \App\Models\JadwalTes::create([
-                'id_jadwal'               => $newId,
-                'id_mahasantri'           => $mahasantri->id_mahasantri,
-                'tanggal'                 => $lastJadwal->tanggal,
-                'jam'                     => $newJam,
-                'interval_minutes'        => $interval,
-                'link_zoom'               => $lastJadwal->link_zoom,
-                'penanggung_jawab'        => $lastJadwal->penanggung_jawab,
-                'penguji_bacaan_al_quran' => $lastJadwal->penguji_bacaan_al_quran,
-                'penguji_tajwid_tahsin'   => $lastJadwal->penguji_tajwid_tahsin,
-                'penguji_hafalan'         => $lastJadwal->penguji_hafalan,
-                'penguji_wawancara'       => $lastJadwal->penguji_wawancara,
+                'id_jadwal'        => $newId,
+                'id_mahasantri'    => $mahasantri->id_mahasantri,
+                'tanggal'          => $lastJadwal->tanggal,
+                'jam'              => $newJam,
+                'interval'         => $interval,
+                'link_zoom'        => $lastJadwal->link_zoom,
+                'penanggung_jawab' => $lastJadwal->penanggung_jawab,
+                'status_jadwal'    => 'Menunggu',
             ]);
+
+            // Copy rows jadwal_penguji dari jadwal terakhir
+            $lastPengujiRows = \App\Models\JadwalPenguji::where('id_jadwal', $lastJadwal->id_jadwal)->get();
+            foreach ($lastPengujiRows as $pengujiRow) {
+                \App\Models\JadwalPenguji::create([
+                    'id_jadwal'     => $newId,
+                    'id_panitia'    => $pengujiRow->id_panitia,
+                    'aspek_penguji' => $pengujiRow->aspek_penguji,
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Mahasantri berhasil diverifikasi dan ditambahkan ke jadwal.');
         }

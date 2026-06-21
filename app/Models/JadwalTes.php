@@ -24,6 +24,7 @@ class JadwalTes extends Model
         'catatan_ketua',
         'status_jadwal',
         'diproses_oleh',
+        'zoom_reminder_sent',
     ];
 
     public function hasilTes() {
@@ -41,5 +42,36 @@ class JadwalTes extends Model
     // Relasi ke jadwal_penguji (hasil normalisasi)
     public function jadwalPenguji() {
         return $this->hasMany(JadwalPenguji::class, 'id_jadwal', 'id_jadwal');
+    }
+
+    // Helper: ambil panitia penguji berdasarkan aspek tertentu
+    public function getPengujiByAspek(string $aspek): ?Panitia
+    {
+        return $this->jadwalPenguji()
+            ->where('aspek_penguji', $aspek)
+            ->first()?->panitia;
+    }
+
+    // Helper: ambil nilai berdasarkan aspek tertentu
+    public function getNilaiByAspek(string $aspek): ?int
+    {
+        return $this->jadwalPenguji()
+            ->where('aspek_penguji', $aspek)
+            ->first()?->nilai;
+    }
+
+    // Helper: cek apakah seorang panitia ditugaskan sebagai penguji untuk aspek tertentu
+    public function isPenguji(string $idPanitia, string $aspek): bool
+    {
+        return $this->jadwalPenguji()
+            ->where('id_panitia', $idPanitia)
+            ->where('aspek_penguji', $aspek)
+            ->exists();
+    }
+
+    // Helper: cek apakah seorang panitia adalah pembuat jadwal ini
+    public function isCreator(string $idPanitia): bool
+    {
+        return $this->penanggung_jawab === $idPanitia;
     }
 }

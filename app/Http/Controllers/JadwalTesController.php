@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalTes;
+use App\Models\JadwalPenguji;
 use App\Models\Panitia;
 use App\Models\User;
 use App\Models\Gelombang;
@@ -23,7 +24,7 @@ class JadwalTesController extends Controller
      */
     public function index()
     {
-        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara'])->paginate(10);
+        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia'])->paginate(10);
         $panitias = Panitia::where('jabatan', 'Panitia')->get();
 
         $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
@@ -38,11 +39,27 @@ class JadwalTesController extends Controller
             $activeGelombang = $gelombangs->first();
         }
 
+        // Build nilaiPerAspek for each jadwal for the modal
+        $nilaiPerAspekByJadwal = [];
+        foreach ($jadwals as $j) {
+            $nilaiPerAspek = [];
+            foreach ($j->jadwalPenguji as $jp) {
+                $nilaiPerAspek[$jp->aspek_penguji] = [
+                    'nilai'    => $jp->nilai,
+                    'catatan'  => $jp->catatan_penguji,
+                    'penguji'  => $jp->panitia?->nama_lengkap,
+                    'id_panitia' => $jp->id_panitia,
+                ];
+            }
+            $nilaiPerAspekByJadwal[$j->id_jadwal] = $nilaiPerAspek;
+        }
+
         return view('menu.jadwal-tes.index', [
             'jadwals' => $jadwals,
             'panitias' => $panitias,
             'gelombangs' => $gelombangs,
             'activeGelombang' => $activeGelombang,
+            'nilaiPerAspekByJadwal' => $nilaiPerAspekByJadwal,
         ]);
     }
 
@@ -98,7 +115,26 @@ class JadwalTesController extends Controller
         // Tentukan waktu kirim reminder: 3 hari sebelum hari ujian, jam mulai pertama
         $waktuKirim = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai'])->subDays(3);
 
-        // Buat jadwal per mahasantri dengan status_konfirmasi = 'Menunggu'
+        // Mapping aspek penguji dari input form ke value di DB
+        $aspekMapping = [
+            'penguji_bacaan_al_quran' => 'Bacaan Al-Quran',
+            'penguji_tajwid_tahsin'   => 'Tajwid/Tahsin',
+            'penguji_hafalan'         => 'Hafalan',
+            'penguji_wawancara'       => 'Wawancara',
+        ];
+
+        // Kumpulkan panitia penguji dari input (hanya yang diisi)
+        $pengujiList = [];
+        foreach ($aspekMapping as $field => $aspek) {
+            if (!empty($validated[$field])) {
+                $pengujiList[] = [
+                    'id_panitia' => $validated[$field],
+                    'aspek'      => $aspek,
+                ];
+            }
+        }
+
+        // Buat jadwal per mahasantri
         foreach ($verifiedMahasantri as $mhs) {
             $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
@@ -108,15 +144,20 @@ class JadwalTesController extends Controller
                 'id_mahasantri'     => $mhs->id_mahasantri,
                 'tanggal'           => $validated['tanggal'],
                 'jam'               => $jamMulai->format('H:i'),
-                'interval_minutes'  => $interval,
+                'interval'          => $interval,
                 'link_zoom'         => $validated['link_zoom'] ?? null,
                 'penanggung_jawab'  => auth()->user()->id_panitia,
-                'penguji_bacaan_al_quran' => $validated['penguji_bacaan_al_quran'] ?? null,
-                'penguji_tajwid_tahsin'   => $validated['penguji_tajwid_tahsin'] ?? null,
-                'penguji_hafalan'         => $validated['penguji_hafalan'] ?? null,
-                'penguji_wawancara'       => $validated['penguji_wawancara'] ?? null,
-                'status_konfirmasi' => 'Menunggu',
+                'status_jadwal'     => 'Menunggu',
             ]);
+
+            // Buat rows jadwal_penguji untuk setiap penguji yang ditugaskan
+            foreach ($pengujiList as $penguji) {
+                JadwalPenguji::create([
+                    'id_jadwal'     => $idJadwal,
+                    'id_panitia'    => $penguji['id_panitia'],
+                    'aspek_penguji' => $penguji['aspek'],
+                ]);
+            }
 
             // Kirim email reminder Zoom 3 hari sebelum ujian
             if ($newJadwal->link_zoom && $mhs->email) {
@@ -134,7 +175,7 @@ class JadwalTesController extends Controller
             // Kirim ke semua ketua panitia
             foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $kp) {
                 Mail::to($kp->email)->send(new JadwalCreatedNotification(
-                    $newJadwal, $pembuat, $count, $kp->nama_lengkap
+                    $newJadwal ?? null, $pembuat, $count, $kp->nama_lengkap
                 ));
             }
         }
@@ -165,11 +206,11 @@ class JadwalTesController extends Controller
     public function edit(JadwalTes $jadwalTes)
     {
         // Guard: cegah edit jika sudah disetujui
-        if ($jadwalTes->status_konfirmasi === 'Disetujui') {
+        if ($jadwalTes->status_jadwal === 'Disetujui') {
             return redirect()->route('seleksi.index')->with('error', 'Jadwal sudah disetujui, tidak bisa diedit');
         }
 
-        $jadwalTes->load(['penanggungJawab', 'mahasantri', 'pengujiBacaanAlquran', 'pengujiTajwidTahsin', 'pengujiHafalan', 'pengujiWawancara']);
+        $jadwalTes->load(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia']);
         return view('menu.jadwal-tes.edit', ['jadwalTes' => $jadwalTes, 'gelombangs' => Gelombang::orderBy('start_date')->get()]);
     }
 
@@ -178,7 +219,7 @@ class JadwalTesController extends Controller
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
 
         // Guard: cegah update jadwal yang sudah disetujui
-        if ($jadwalTes->status_konfirmasi === 'Disetujui') {
+        if ($jadwalTes->status_jadwal === 'Disetujui') {
             return redirect()->route('seleksi.index')->with('error', 'Jadwal sudah disetujui, tidak bisa diubah');
         }
 
@@ -196,8 +237,8 @@ class JadwalTesController extends Controller
 
         // Reset status ke 'Menunggu' + hapus catatan_ketua agar Ketua bisa review ulang
         $jadwalTes->update(array_merge($validated, [
-            'status_konfirmasi' => 'Menunggu',
-            'catatan_ketua'     => null,
+            'status_jadwal' => 'Menunggu',
+            'catatan_ketua' => null,
         ]));
 
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
@@ -212,15 +253,14 @@ class JadwalTesController extends Controller
 
         // Approve semua jadwal di tanggal yang sama
         JadwalTes::where('tanggal', $jadwalTes->tanggal)
-            ->whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
+            ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
-                'status_konfirmasi' => 'Disetujui',
-                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
-                'dikonfirmasi_pada' => now(),
+                'status_jadwal' => 'Disetujui',
+                'diproses_oleh' => auth()->user()->id_panitia,
             ]);
 
         $jumlah = JadwalTes::where('tanggal', $jadwalTes->tanggal)
-            ->where('status_konfirmasi', 'Disetujui')
+            ->where('status_jadwal', 'Disetujui')
             ->count();
 
         // Kirim notifikasi ke Panitia yang membuat jadwal
@@ -248,9 +288,9 @@ class JadwalTesController extends Controller
 
         // Reject semua jadwal di tanggal yang sama
         $updated = JadwalTes::where('tanggal', $jadwalTes->tanggal)
-            ->whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
+            ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
-                'status_konfirmasi' => 'Perlu Revisi',
+                'status_jadwal' => 'Revisi',
                 'catatan_ketua' => $request->catatan_ketua,
             ]);
 
@@ -291,7 +331,7 @@ class JadwalTesController extends Controller
         ]);
 
         // Ambil rentang tanggal SEBELUM update
-        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Disetujui')
+        $tanggalRange = JadwalTes::where('status_jadwal', 'Disetujui')
             ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
             ->first();
         $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
@@ -300,12 +340,11 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::where('status_konfirmasi', 'Disetujui')
+        $updated = JadwalTes::where('status_jadwal', 'Disetujui')
             ->update([
-                'status' => $request->jenis_pembatalan,
-                'alasan_pembatalan' => $request->alasan_pembatalan,
-                'dibatalkan_oleh' => auth()->user()->id_panitia,
-                'dibatalkan_pada' => now(),
+                'status_jadwal' => $request->jenis_pembatalan,
+                'catatan_ketua' => $request->alasan_pembatalan,
+                'diproses_oleh' => auth()->user()->id_panitia,
             ]);
 
         $ketua = Panitia::where('jabatan', 'Ketua Panitia')->first();
@@ -330,7 +369,7 @@ class JadwalTesController extends Controller
         if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403);
 
         // Ambil rentang tanggal SEBELUM update
-        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Menunggu')
+        $tanggalRange = JadwalTes::where('status_jadwal', 'Menunggu')
             ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
             ->first();
         $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
@@ -339,11 +378,10 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
+        $updated = JadwalTes::whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
-                'status_konfirmasi' => 'Disetujui',
-                'dikonfirmasi_oleh' => auth()->user()->id_panitia,
-                'dikonfirmasi_pada' => now(),
+                'status_jadwal' => 'Disetujui',
+                'diproses_oleh' => auth()->user()->id_panitia,
             ]);
 
         // Kirim notifikasi ke semua Panitia
@@ -371,7 +409,7 @@ class JadwalTesController extends Controller
         ]);
 
         // Ambil rentang tanggal SEBELUM update
-        $tanggalRange = JadwalTes::where('status_konfirmasi', 'Menunggu')
+        $tanggalRange = JadwalTes::where('status_jadwal', 'Menunggu')
             ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
             ->first();
         $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
@@ -380,9 +418,9 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::whereIn('status_konfirmasi', ['Menunggu', 'Perlu Revisi'])
+        $updated = JadwalTes::whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
-                'status_konfirmasi' => 'Perlu Revisi',
+                'status_jadwal' => 'Revisi',
                 'catatan_ketua' => $request->catatan_ketua,
             ]);
 
@@ -400,13 +438,12 @@ class JadwalTesController extends Controller
     }
 
     /**
-     * PERBAIKAN: Jadwalkan pengiriman email otomatis berdasarkan Gelombang Aktif
+     * Jadwalkan pengiriman email otomatis berdasarkan Gelombang Aktif
      */
     public function sendBulkResults(Request $request)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403, 'Hanya panitia yang bisa kirim hasil test');
 
-        // Panitia sekarang HANYA menginput tanggal & jam kapan email mau diluncurkan
         $request->validate([
             'tanggal_kirim' => 'required|date',
             'jam_kirim'     => 'required',
@@ -414,13 +451,11 @@ class JadwalTesController extends Controller
 
         $waktuKirim = Carbon::parse($request->tanggal_kirim . ' ' . $request->jam_kirim);
 
-        // Cari Gelombang yang sedang aktif hari ini (Auto-detect)
         $today = Carbon::today();
         $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->first();
 
-        // Kalau tidak ada yang aktif (misal pendaftaran sudah tutup), jadikan gelombang paling terakhir sebagai patokan
         if (!$activeGelombang) {
             $activeGelombang = Gelombang::orderBy('end_date', 'desc')->first();
         }
@@ -429,7 +464,6 @@ class JadwalTesController extends Controller
             return back()->with('error', 'Gagal: Belum ada konfigurasi gelombang di sistem.');
         }
 
-        // Ambil SEMUA jadwal ujian yang berada dalam RENTANG TANGGAL gelombang tersebut
         $scheduled = JadwalTes::with(['mahasantri', 'hasilTes'])
             ->whereBetween('tanggal', [$activeGelombang->start_date, $activeGelombang->end_date])
             ->get();
@@ -443,16 +477,12 @@ class JadwalTesController extends Controller
         foreach ($scheduled as $jadwal) {
             $mahasantri = $jadwal->mahasantri;
             
-            $hasil = $jadwal->hasilTes instanceof \Illuminate\Database\Eloquent\Collection 
-                ? $jadwal->hasilTes->first() 
-                : $jadwal->hasilTes;
+            $hasil = $jadwal->hasilTes;
 
-            // Filter ganda: Skip jika mahasantri kosong atau status belum direview (belum final)
             if (!$mahasantri || !$hasil || !in_array($mahasantri->status, ['Lulus', 'Tidak Lulus'])) {
                 continue;
             }
 
-            // Titipkan tugas pengiriman email ke queue (antrean) background
             Mail::to($mahasantri->email)
                 ->later($waktuKirim, new TestResultPdf($mahasantri, $hasil));
             

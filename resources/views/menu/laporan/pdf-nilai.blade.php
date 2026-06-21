@@ -52,6 +52,27 @@
     @php
         // Tarik data mahasantri lewat jadwal agar lebih akurat relasinya
         $mhs = $h->jadwalTes->mahasantri ?? $h->mahasantri;
+        $jadwal = $h->jadwalTes;
+        
+        // Ambil nilai per aspek dari jadwal_penguji
+        $nilaiPerAspek = [];
+        $pengujiPerAspek = [];
+        if ($jadwal && $jadwal->relationLoaded('jadwalPenguji')) {
+            foreach ($jadwal->jadwalPenguji as $jp) {
+                $nilaiPerAspek[$jp->aspek_penguji] = $jp->nilai;
+                $pengujiPerAspek[$jp->aspek_penguji] = $jp->panitia?->nama_lengkap ?? '-';
+            }
+        }
+        
+        $nilaiBacaan = $nilaiPerAspek['Bacaan Al-Quran'] ?? '-';
+        $nilaiTajwid = $nilaiPerAspek['Tajwid/Tahsin'] ?? '-';
+        $nilaiHafalan = $nilaiPerAspek['Hafalan'] ?? '-';
+        $nilaiWawancara = $nilaiPerAspek['Wawancara'] ?? '-';
+        
+        $pengujiBacaan = $pengujiPerAspek['Bacaan Al-Quran'] ?? '-';
+        $pengujiTajwid = $pengujiPerAspek['Tajwid/Tahsin'] ?? '-';
+        $pengujiHafalan = $pengujiPerAspek['Hafalan'] ?? '-';
+        $pengujiWawancara = $pengujiPerAspek['Wawancara'] ?? '-';
     @endphp
     <div class="card">
         <div class="card-header">HASIL TES — {{ strtoupper($mhs->nama_lengkap ?? 'MAHASANTRI') }}</div>
@@ -67,33 +88,33 @@
                     <td class="label">Gelombang</td>
                     <td class="value">{{ $mhs->gelombang ?? '-' }}</td>
                     <td class="label">Tanggal Ujian</td>
-                    <td class="value">{{ $h->jadwalTes?->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
+                    <td class="value">{{ $jadwal?->tanggal ? \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') : '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Jam Pelaksanaan</td>
-                    <td class="value">{{ $h->jadwalTes?->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
+                    <td class="value">{{ $jadwal?->jam ? \Carbon\Carbon::parse($jadwal->jam)->format('H:i') : '-' }}</td>
                     <td class="label">ID Jadwal</td>
                     <td class="value">{{ $h->id_jadwal ?? '-' }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Penguji Tajwid</td>
-                    <td class="value">{{ $h->jadwalTes?->pengujiTajwid?->nama_lengkap ?? '-' }}</td>
-                    <td class="label">Penguji Tahsin</td>
-                    <td class="value">{{ $h->jadwalTes?->pengujiTahsin?->nama_lengkap ?? '-' }}</td>
+                    <td class="label">Penguji Bacaan Al-Qur'an</td>
+                    <td class="value">{{ $pengujiBacaan }}</td>
+                    <td class="label">Penguji Tajwid/Tahsin</td>
+                    <td class="value">{{ $pengujiTajwid }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Penguji Kelancaran</td>
-                    <td class="value">{{ $h->jadwalTes?->pengujiKelancaran?->nama_lengkap ?? '-' }}</td>
+                    <td class="label">Penguji Hafalan</td>
+                    <td class="value">{{ $pengujiHafalan }}</td>
                     <td class="label">Penguji Wawancara</td>
-                    <td class="value">{{ $h->jadwalTes?->pengujiWawancara?->nama_lengkap ?? '-' }}</td>
+                    <td class="value">{{ $pengujiWawancara }}</td>
                 </tr>
             </table>
 
             <div class="nilai-grid">
-                <div class="nilai-item"><div class="label">Tajwid</div><div class="value">{{ $h->nilai_tajwid ?? '-' }}</div></div>
-                <div class="nilai-item"><div class="label">Tahsin</div><div class="value">{{ $h->nilai_tahsin ?? '-' }}</div></div>
-                <div class="nilai-item"><div class="label">Kelancaran</div><div class="value">{{ $h->nilai_kelancaran ?? '-' }}</div></div>
-                <div class="nilai-item"><div class="label">Wawancara</div><div class="value">{{ $h->nilai_wawancara ?? '-' }}</div></div>
+                <div class="nilai-item"><div class="label">Bacaan Al-Qur'an</div><div class="value">{{ $nilaiBacaan }}</div></div>
+                <div class="nilai-item"><div class="label">Tajwid/Tahsin</div><div class="value">{{ $nilaiTajwid }}</div></div>
+                <div class="nilai-item"><div class="label">Hafalan</div><div class="value">{{ $nilaiHafalan }}</div></div>
+                <div class="nilai-item"><div class="label">Wawancara</div><div class="value">{{ $nilaiWawancara }}</div></div>
             </div>
 
             <div class="result-row">

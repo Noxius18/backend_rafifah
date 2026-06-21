@@ -94,10 +94,40 @@
                     @foreach ($gelombang['mahasantri'] as $index => $h)
                         @php
                             $mhs = $h->jadwalTes->mahasantri ?? $h->mahasantri;
-                            $pengujiBacaanAlquran = $h->jadwalTes->pengujiBacaanAlquran?->nama_lengkap ?? '';
-                            $pengujiTajwidTahsin = $h->jadwalTes->pengujiTajwidTahsin?->nama_lengkap ?? '';
-                            $pengujiHafalan = $h->jadwalTes->pengujiHafalan?->nama_lengkap ?? '';
-                            $pengujiWawancara = $h->jadwalTes->pengujiWawancara?->nama_lengkap ?? '';
+                            $jadwal = $h->jadwalTes;
+                            
+                            // Ambil nilai & penguji dari jadwal_penguji
+                            $nilaiBacaan = '-';
+                            $nilaiTajwid = '-';
+                            $nilaiHafalan = '-';
+                            $nilaiWawancara = '-';
+                            $pengujiBacaanAlquran = '';
+                            $pengujiTajwidTahsin = '';
+                            $pengujiHafalan = '';
+                            $pengujiWawancara = '';
+                            
+                            if ($jadwal && $jadwal->relationLoaded('jadwalPenguji')) {
+                                foreach ($jadwal->jadwalPenguji as $jp) {
+                                    switch($jp->aspek_penguji) {
+                                        case 'Bacaan Al-Quran':
+                                            $nilaiBacaan = $jp->nilai ?? '-';
+                                            $pengujiBacaanAlquran = $jp->panitia?->nama_lengkap ?? '';
+                                            break;
+                                        case 'Tajwid/Tahsin':
+                                            $nilaiTajwid = $jp->nilai ?? '-';
+                                            $pengujiTajwidTahsin = $jp->panitia?->nama_lengkap ?? '';
+                                            break;
+                                        case 'Hafalan':
+                                            $nilaiHafalan = $jp->nilai ?? '-';
+                                            $pengujiHafalan = $jp->panitia?->nama_lengkap ?? '';
+                                            break;
+                                        case 'Wawancara':
+                                            $nilaiWawancara = $jp->nilai ?? '-';
+                                            $pengujiWawancara = $jp->panitia?->nama_lengkap ?? '';
+                                            break;
+                                    }
+                                }
+                            }
                         @endphp
                         <tr>
                             <td>{{ $loop->iteration }}</td>

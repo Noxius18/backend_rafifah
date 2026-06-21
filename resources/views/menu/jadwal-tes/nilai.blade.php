@@ -6,12 +6,13 @@
     $userId = auth()->user()->id_panitia;
     $isCreator = $jadwalTes->penanggung_jawab == $userId;
 
-    // Cek aspek yang ditugaskan ke panitia ini
+    // Cek aspek yang ditugaskan ke panitia ini dari jadwalPenguji
     $tugas = [];
-    if ($jadwalTes->penguji_bacaan_al_quran == $userId || $isCreator) $tugas[] = 'bacaan';
-    if ($jadwalTes->penguji_tajwid_tahsin == $userId || $isCreator) $tugas[] = 'tajwid';
-    if ($jadwalTes->penguji_hafalan == $userId || $isCreator) $tugas[] = 'hafalan';
-    if ($jadwalTes->penguji_wawancara == $userId || $isCreator) $tugas[] = 'wawancara';
+    foreach ($jadwalTes->jadwalPenguji as $jp) {
+        if ($jp->id_panitia == $userId || $isCreator) {
+            $tugas[] = $jp->aspek_penguji;
+        }
+    }
 
     $canInput = count($tugas) > 0;
     $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
@@ -30,17 +31,15 @@
 
     openNilaiModal(mhs, mhsNama, hasil = null) {
         this.selectedMhs = mhs; this.selectedMhsNama = mhsNama; this.previewResult = null;
-        if (hasil) {
-            this.formData = {
-                nilai_bacaan_al_quran: hasil.nilai_bacaan_al_quran || '',
-                nilai_tajwid_tahsin: hasil.nilai_tajwid_tahsin || '',
-                nilai_hafalan: hasil.nilai_hafalan || '',
-                nilai_wawancara: hasil.nilai_wawancara || '',
-                catatan_penguji: hasil.catatan_penguji || ''
-            };
-        } else {
-            this.formData = { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '', catatan_penguji: '' };
-        }
+        // Load existing values from jadwalPenguji via nilaiPerAspek
+        const nilaiData = @json($nilaiPerAspek);
+        this.formData = {
+            nilai_bacaan_al_quran: (nilaiData['Bacaan Al-Quran']?.nilai ?? '') + '',
+            nilai_tajwid_tahsin: (nilaiData['Tajwid/Tahsin']?.nilai ?? '') + '',
+            nilai_hafalan: (nilaiData['Hafalan']?.nilai ?? '') + '',
+            nilai_wawancara: (nilaiData['Wawancara']?.nilai ?? '') + '',
+            catatan_penguji: (nilaiData['Bacaan Al-Quran']?.catatan ?? '') || (nilaiData['Tajwid/Tahsin']?.catatan ?? '') || ''
+        };
         nilaiModal.showModal();
     },
 
@@ -97,10 +96,18 @@
     },
     async confirmReview() {
         try {
+            const nilaiData = @json($nilaiPerAspek);
+            const dataToSend = {
+                status: this.reviewPertimbanganAction,
+                nilai_bacaan_al_quran: nilaiData['Bacaan Al-Quran']?.nilai || 0,
+                nilai_tajwid_tahsin: nilaiData['Tajwid/Tahsin']?.nilai || 0,
+                nilai_hafalan: nilaiData['Hafalan']?.nilai || 0,
+                nilai_wawancara: nilaiData['Wawancara']?.nilai || 0,
+            };
             const res = await fetch('/hasil-tes/' + this.reviewPertimbanganId + '/review', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify({ status: this.reviewPertimbanganAction }),
+                body: JSON.stringify(dataToSend),
             });
             const data = await res.json();
             if (res.ok) { this.showToast(data.message, 'success'); setTimeout(() => location.reload(), 1000); }
@@ -132,7 +139,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 <p class="font-medium">Aspek yang Anda tugaskan:</p>
                 <div class="mt-1 flex flex-wrap gap-2">
                     @foreach($tugas as $t)
-                        <span class="inline-block rounded-md bg-white px-2 py-0.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-200">{{ ucfirst($t) }}</span>
+                        <span class="inline-block rounded-md bg-white px-2 py-0.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-200">{{ $t }}</span>
                     @endforeach
                 </div>
                 @if(!$isCreator && !$isKetuaPanitia)
@@ -149,10 +156,11 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-700">
                 <p class="font-medium">Penguji:</p>
                 <div class="mt-1 space-y-1 text-xs">
-                    @if($jadwalTes->pengujiBacaanAlquran) <div><strong>Bacaan Al-Qur'an:</strong> {{ $jadwalTes->pengujiBacaanAlquran->nama_lengkap }} @if($jadwalTes->pengujiBacaanAlquran->id_panitia == $userId) <span class="text-indigo-400">(Anda)</span> @endif</div> @endif
-                    @if($jadwalTes->pengujiTajwidTahsin) <div><strong>Tajwid:</strong> {{ $jadwalTes->pengujiTajwidTahsin->nama_lengkap }} @if($jadwalTes->pengujiTajwidTahsin->id_panitia == $userId) <span class="text-indigo-400">(Anda)</span> @endif</div> @endif
-                    @if($jadwalTes->pengujiHafalan) <div><strong>Hafalan:</strong> {{ $jadwalTes->pengujiHafalan->nama_lengkap }} @if($jadwalTes->pengujiHafalan->id_panitia == $userId) <span class="text-indigo-400">(Anda)</span> @endif</div> @endif
-                    @if($jadwalTes->pengujiWawancara) <div><strong>Wawancara:</strong> {{ $jadwalTes->pengujiWawancara->nama_lengkap }} @if($jadwalTes->pengujiWawancara->id_panitia == $userId) <span class="text-indigo-400">(Anda)</span> @endif</div> @endif
+                    @foreach($nilaiPerAspek as $aspek => $data)
+                        @if($data['penguji'])
+                        <div><strong>{{ $aspek }}:</strong> {{ $data['penguji'] }} @if($data['id_panitia'] == $userId) <span class="text-indigo-400">(Anda)</span> @endif</div>
+                        @endif
+                    @endforeach
                 </div>
             </div>
 
@@ -185,7 +193,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         @if($hasil && $hasil->total_nilai !== null)
-                                            <span class="text-sm">{{ $hasil->rata_rata ?? $hasil->total_nilai }}</span>
+                                            <span class="text-sm">{{ $hasil->total_nilai }}</span>
                                         @else
                                             <span class="text-xs text-slate-300">-</span>
                                         @endif
@@ -250,23 +258,23 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         <tbody class="divide-y divide-slate-100">
                             <tr>
                                 <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Bacaan Al-Qur'an</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('bacaan', $tugas) ? '' : 'disabled' }}></td>
-                                <td class="py-2 text-xs text-slate-400">{{ $jadwalTes->pengujiBacaanAlquran?->nama_lengkap ?? '-' }}</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_bacaan_al_quran" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('Bacaan Al-Quran', $tugas) || $isCreator ? '' : 'disabled' }}></td>
+                                <td class="py-2 text-xs text-slate-400">{{ $nilaiPerAspek['Bacaan Al-Quran']['penguji'] ?? '-' }}</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tajwid & Tahsin</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('tajwid', $tugas) ? '' : 'disabled' }}></td>
-                                <td class="py-2 text-xs text-slate-400">{{ $jadwalTes->pengujiTajwidTahsin?->nama_lengkap ?? '-' }}</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_tajwid_tahsin" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('Tajwid/Tahsin', $tugas) || $isCreator ? '' : 'disabled' }}></td>
+                                <td class="py-2 text-xs text-slate-400">{{ $nilaiPerAspek['Tajwid/Tahsin']['penguji'] ?? '-' }}</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Hafalan</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_hafalan" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('hafalan', $tugas) ? '' : 'disabled' }}></td>
-                                <td class="py-2 text-xs text-slate-400">{{ $jadwalTes->pengujiHafalan?->nama_lengkap ?? '-' }}</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_hafalan" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('Hafalan', $tugas) || $isCreator ? '' : 'disabled' }}></td>
+                                <td class="py-2 text-xs text-slate-400">{{ $nilaiPerAspek['Hafalan']['penguji'] ?? '-' }}</td>
                             </tr>
                             <tr>
                                 <td class="py-2 text-slate-500">4</td><td class="py-2 font-medium text-slate-700">Wawancara</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_wawancara" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('wawancara', $tugas) ? '' : 'disabled' }}></td>
-                                <td class="py-2 text-xs text-slate-400">{{ $jadwalTes->pengujiWawancara?->nama_lengkap ?? '-' }}</td>
+                                <td class="py-2 text-center"><input type="number" min="0" max="100" x-model="formData.nilai_wawancara" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none" {{ in_array('Wawancara', $tugas) || $isCreator ? '' : 'disabled' }}></td>
+                                <td class="py-2 text-xs text-slate-400">{{ $nilaiPerAspek['Wawancara']['penguji'] ?? '-' }}</td>
                             </tr>
                         </tbody>
                     </table>
