@@ -148,7 +148,7 @@ class MahasantriController extends Controller
 
     public function show(User $mahasantri)
     {
-        $mahasantri->load(['orangtuas', 'berkas']);
+        $mahasantri->load(['orangtuas', 'berkas.riwayatUnduhan']);
 
         if (request()->wantsJson()) {
             return response()->json($mahasantri);
@@ -408,14 +408,16 @@ class MahasantriController extends Controller
      */
     public function retryDownload(Request $request, Berkas $berkas)
     {
-        if ($berkas->download_status === 'success') {
+        $latest = $berkas->riwayatUnduhan;
+
+        if ($latest && $latest->download_status === 'success') {
             if ($request->wantsJson()) {
                 return response()->json(['message' => 'Berkas ini sudah berhasil diunduh.'], 400);
             }
             return redirect()->back()->with('info', 'Berkas ini sudah berhasil diunduh.');
         }
 
-        $berkas->update([
+        $berkas->riwayatUnduhan()->create([
             'download_status' => 'pending',
             'error_message' => null,
         ]);
@@ -430,12 +432,12 @@ class MahasantriController extends Controller
     }
 
     /**
-     * Update the specified berkas (is_valid, NIK, NISN, dll)
+     * Update the specified berkas (status_verifikasi, NIK, NISN, dll)
      */
     public function updateBerkas(Request $request, Berkas $berkas)
     {
         $validated = $request->validate([
-            'is_valid'      => 'required|boolean',
+            'status_verifikasi' => 'required|boolean',
             'nik'           => 'nullable|size:16|unique:mahasantri,nik,' . $berkas->id_mahasantri . ',id_mahasantri',
             'nisn'          => 'nullable|size:10|unique:mahasantri,nisn,' . $berkas->id_mahasantri . ',id_mahasantri',
             'tempat_lahir'  => 'nullable|string|max:50',
@@ -450,7 +452,7 @@ class MahasantriController extends Controller
         ]);
 
         $berkas->update([
-            'is_valid' => $validated['is_valid'],
+            'status_verifikasi' => $validated['status_verifikasi'],
         ]);
 
         // Update data mahasantri terkait jika ada field yg diisi
@@ -468,8 +470,10 @@ class MahasantriController extends Controller
         $mahasantri = $berkas->mahasantri;
         if ($mahasantri && $mahasantri->status === 'Pendaftar Baru') {
             $allBerkasValid = $mahasantri->berkas()
-                ->where('download_status', 'success')
-                ->where('is_valid', false)
+                ->where('status_verifikasi', false)
+                ->whereHas('riwayatUnduhan', function ($q) {
+                    $q->where('download_status', 'success');
+                })
                 ->doesntExist(); // tidak ada berkas success yang belum terverifikasi
 
             $dataLengkap = !empty($mahasantri->nik)
@@ -485,7 +489,7 @@ class MahasantriController extends Controller
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'Data dokumen dan mahasantri berhasil diperbarui',
-                'is_valid' => (bool) $validated['is_valid'],
+                'status_verifikasi' => (bool) $validated['status_verifikasi'],
             ]);
         }
 
@@ -1089,11 +1093,14 @@ class MahasantriController extends Controller
                             $berkas = Berkas::create([
                                 'id_berkas'      => $idDkm,
                                 'id_mahasantri'  => $idMahasantri,
-                                'tipe_dokumen'   => $tipeDokumen,
-                                'original_url'   => $urlValue,
-                                'download_status'=> 'pending',
-                                'is_valid'       => false,
+                                'tipe_berkas'    => $tipeDokumen,
+                                'link_sumber'    => $urlValue,
+                                'status_verifikasi' => false,
                                 'tanggal_upload' => now(),
+                            ]);
+
+                            $berkas->riwayatUnduhan()->create([
+                                'download_status' => 'pending',
                             ]);
 
                             $allPendingBerkas[] = $berkas;

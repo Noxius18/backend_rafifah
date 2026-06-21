@@ -14,14 +14,14 @@
 
     // ── Data dokumen untuk carousel preview slider ────────────────────────────────────────
     $previewDocs = $m->berkas
-        ->filter(fn($b) => $b->download_status === 'success' && $b->file_path)
+        ->filter(fn($b) => $b->riwayatUnduhan?->download_status === 'success' && $b->file_path)
         ->values()
         ->map(fn($b) => [
             'url'        => route('berkas.preview', $b->id_berkas),
-            'title'      => $b->tipe_dokumen,
+            'title'      => $b->tipe_berkas,
             'id'         => $b->id_berkas,
-            'isValid'    => $b->is_valid,
-            'isImage'    => $b->tipe_dokumen === 'Pas Foto',
+            'isValid'    => $b->status_verifikasi,
+            'isImage'    => $b->tipe_berkas === 'Pas Foto',
             'uploadDate' => $b->tanggal_upload
                 ? (is_string($b->tanggal_upload) ? $b->tanggal_upload : $b->tanggal_upload->translatedFormat('d F Y'))
                 : '-',
@@ -135,7 +135,7 @@
 
             // Loop setiap dokumen yang berubah
             for (const doc of changed) {
-                const body = { is_valid: doc.localIsValid ?? false };
+                const body = { status_verifikasi: doc.localIsValid ?? false };
 
                 // Data mahasantri hanya dikirim sekali (bersama dokumen pertama)
                 if (doc === changed[0]) {
@@ -167,7 +167,7 @@
                             'Accept': 'application/json',
                         },
                         body: JSON.stringify({
-                            is_valid: this.previewDocs[0]?.isValid ?? false,
+                            status_verifikasi: this.previewDocs[0]?.isValid ?? false,
                             nik: this.previewNik || null,
                             nisn: this.previewNisn || null,
                         }),
@@ -401,11 +401,11 @@ x-init="
                                             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-700">
                                                 <div class="flex items-center gap-2">
                                                     <x-heroicon-s-document-text class="h-4 w-4 text-slate-400" />
-                                                    {{ $doc->tipe_dokumen }}
+                                                    {{ $doc->tipe_berkas }}
                                                 </div>
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3">
-                                                @switch($doc->download_status)
+                                                @switch($doc->riwayatUnduhan?->download_status)
                                                     @case('success')
                                                         <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Berhasil</span>
                                                         @break
@@ -420,7 +420,7 @@ x-init="
                                                 @endswitch
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3">
-                                                @if($doc->is_valid)
+                                                @if($doc->status_verifikasi)
                                                     <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Terverifikasi</span>
                                                 @else
                                                     <span class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">Belum Verifikasi</span>
@@ -431,14 +431,14 @@ x-init="
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3 text-right">
                                                 <div class="flex items-center justify-end gap-1">
-                                                    @if($doc->download_status === 'success' && $doc->file_path)
+                                                    @if($doc->riwayatUnduhan?->download_status === 'success' && $doc->file_path)
                                                         <a href="{{ route('berkas.download', $doc->id_berkas) }}"
                                                             class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
                                                             title="Unduh">
                                                             <x-heroicon-s-arrow-down-tray class="h-4 w-4" />
                                                         </a>
                                                     @endif
-                                                    @if($doc->download_status === 'failed')
+                                                    @if($doc->riwayatUnduhan?->download_status === 'failed')
                                                         <button type="button"
                                                             @click="retryDownload('{{ $doc->id_berkas }}')"
                                                             class="inline-flex items-center justify-center rounded-md p-2 text-amber-600 transition hover:bg-amber-50"
@@ -446,10 +446,10 @@ x-init="
                                                             <x-heroicon-s-arrow-path class="h-4 w-4" />
                                                         </button>
                                                     @endif
-                                                    @if($doc->download_status === 'success' && $doc->file_path)
+                                                    @if($doc->riwayatUnduhan?->download_status === 'success' && $doc->file_path)
                                                         @php
                                                             $clickedIndex = $m->berkas
-                                                                ->filter(fn($b) => $b->download_status === 'success' && $b->file_path)
+                                                                ->filter(fn($b) => $b->riwayatUnduhan?->download_status === 'success' && $b->file_path)
                                                                 ->values()
                                                                 ->search(fn($b) => $b->id_berkas === $doc->id_berkas);
                                                         @endphp
@@ -464,7 +464,7 @@ x-init="
                                                             title="Lihat">
                                                             <x-heroicon-s-eye class="h-4 w-4" />
                                                         </button>
-                                                    @elseif($doc->download_status !== 'success')
+                                                    @elseif($doc->riwayatUnduhan?->download_status !== 'success')
                                                         <span class="inline-flex items-center justify-center rounded-md p-2 text-slate-400"
                                                             title="Preview tidak tersedia">
                                                             <x-heroicon-s-eye-slash class="h-4 w-4" />

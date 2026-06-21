@@ -16,21 +16,28 @@ class Berkas extends Model
     protected $fillable = [
         'id_berkas',
         'id_mahasantri',
-        'tipe_dokumen',
-        'original_url',
+        'tipe_berkas',
+        'link_sumber',
         'file_path',
-        'download_status',
-        'error_message',
-        'is_valid',
+        'status_verifikasi',
         'tanggal_upload',
     ];
 
     protected $casts = [
-        'is_valid' => 'boolean',
+        'status_verifikasi' => 'boolean',
     ];
 
     public function mahasantri() {
         return $this->belongsTo(Mahasantri::class, 'id_mahasantri', 'id_mahasantri');
+    }
+
+    /**
+     * Get the latest download history record.
+     */
+    public function riwayatUnduhan()
+    {
+        return $this->hasOne(RiwayatUnduhan::class, 'id_berkas', 'id_berkas')
+            ->latestOfMany('attempted_at');
     }
 
     /**
@@ -62,12 +69,12 @@ class Berkas extends Model
     public function getDownloadFilenameAttribute(): string
     {
         // Untuk Pas Foto, deteksi extension dari file_path jika file sudah diunduh
-        if ($this->tipe_dokumen === 'Pas Foto' && $this->file_path) {
+        if ($this->tipe_berkas === 'Pas Foto' && $this->file_path) {
             $extension = pathinfo($this->file_path, PATHINFO_EXTENSION);
             if ($extension) {
-                return $this->id_berkas . '_' . $this->tipe_dokumen . '.' . $extension;
+                return $this->id_berkas . '_' . $this->tipe_berkas . '.' . $extension;
             }
         }
-        return $this->id_berkas . '_' . $this->tipe_dokumen . '.pdf';
+        return $this->id_berkas . '_' . $this->tipe_berkas . '.pdf';
     }
 }

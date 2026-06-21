@@ -174,11 +174,11 @@ class GoogleDriveService
      *
      * @param string $url The Google Drive URL
      * @param string $idBerkas The berkas ID for filename
-     * @param string $tipeDokumen The document type for filename
+     * @param string $tipeBerkas The document type for filename
      * @param string $idMahasantri The mahasantri ID for folder grouping
      * @return string|null The relative path of the saved file, or null on failure
      */
-    public function downloadAsPdf(string $url, string $idBerkas, string $tipeDokumen, string $idMahasantri): ?string
+    public function downloadAsPdf(string $url, string $idBerkas, string $tipeBerkas, string $idMahasantri): ?string
     {
         $fileId = $this->extractFileId($url);
 
@@ -189,7 +189,7 @@ class GoogleDriveService
 
         try {
             $drive = $this->drive();
-            $filename = $idBerkas . '_' . $tipeDokumen . '.pdf';
+            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
 
             // First, get the file metadata to check if it's a Google Doc/Sheet/Slides
             $file = $drive->files->get($fileId, ['fields' => 'mimeType, name']);
@@ -227,7 +227,7 @@ class GoogleDriveService
 
             // Fallback: try direct public download using the export link
             try {
-                return $this->fallbackDownload($fileId, $idBerkas, $tipeDokumen, $idMahasantri);
+                return $this->fallbackDownload($fileId, $idBerkas, $tipeBerkas, $idMahasantri);
             } catch (\Exception $fallbackEx) {
                 Log::error("Fallback download also failed: " . $fallbackEx->getMessage());
                 return null;
@@ -241,7 +241,7 @@ class GoogleDriveService
     /**
      * Fallback download using direct HTTP request with the export URL.
      */
-    private function fallbackDownload(string $fileId, string $idBerkas, string $tipeDokumen, string $idMahasantri): ?string
+    private function fallbackDownload(string $fileId, string $idBerkas, string $tipeBerkas, string $idMahasantri): ?string
     {
         $client = $this->initClient();
 
@@ -263,7 +263,7 @@ class GoogleDriveService
             ->get($exportUrl);
 
         if ($response->successful()) {
-            $filename = $idBerkas . '_' . $tipeDokumen . '.pdf';
+            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
             $relativePath = $idMahasantri . '/' . $filename;
             Storage::disk('private_berkas')->put($relativePath, $response->body());
             return $relativePath;
@@ -276,7 +276,7 @@ class GoogleDriveService
             ->get($downloadUrl);
 
         if ($response->successful()) {
-            $filename = $idBerkas . '_' . $tipeDokumen . '.pdf';
+            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
             $relativePath = $idMahasantri . '/' . $filename;
             Storage::disk('private_berkas')->put($relativePath, $response->body());
             return $relativePath;

@@ -39,7 +39,7 @@ class DownloadGoogleDriveFile implements ShouldQueue
      */
     public function handle(GoogleDriveService $driveService): void
     {
-        if (!$this->berkas->original_url) {
+        if (!$this->berkas->link_sumber) {
             $this->fail(new \RuntimeException('No original URL found for berkas: ' . $this->berkas->id_berkas));
             return;
         }
@@ -53,30 +53,33 @@ class DownloadGoogleDriveFile implements ShouldQueue
         }
 
         // Mark as processing
-        $this->berkas->update([
+        $this->berkas->riwayatUnduhan()->create([
             'download_status' => 'processing',
             'error_message' => null,
         ]);
 
         try {
             $filePath = $driveService->downloadAsPdf(
-                $this->berkas->original_url,
+                $this->berkas->link_sumber,
                 $this->berkas->id_berkas,
-                $this->berkas->tipe_dokumen,
+                $this->berkas->tipe_berkas,
                 $this->berkas->mahasantri->id_mahasantri
             );
 
             if ($filePath) {
                 $this->berkas->update([
                     'file_path' => $filePath,
+                ]);
+
+                $this->berkas->riwayatUnduhan()->create([
                     'download_status' => 'success',
                     'error_message' => null,
                 ]);
 
                 Log::info("Download successful for berkas {$this->berkas->id_berkas}: {$filePath}");
             } else {
-                $errorMsg = "Failed to download file from URL: {$this->berkas->original_url}";
-                $this->berkas->update([
+                $errorMsg = "Failed to download file from URL: {$this->berkas->link_sumber}";
+                $this->berkas->riwayatUnduhan()->create([
                     'download_status' => 'failed',
                     'error_message' => $errorMsg,
                 ]);
@@ -86,7 +89,7 @@ class DownloadGoogleDriveFile implements ShouldQueue
             }
         } catch (\Exception $e) {
             $errorMsg = "Exception during download: " . $e->getMessage();
-            $this->berkas->update([
+            $this->berkas->riwayatUnduhan()->create([
                 'download_status' => 'failed',
                 'error_message' => $errorMsg,
             ]);
@@ -103,7 +106,7 @@ class DownloadGoogleDriveFile implements ShouldQueue
     {
         $errorMsg = $exception ? $exception->getMessage() : 'Unknown error';
 
-        $this->berkas->update([
+        $this->berkas->riwayatUnduhan()->create([
             'download_status' => 'failed',
             'error_message' => $errorMsg,
         ]);

@@ -8,6 +8,7 @@ use App\Models\Panitia;
 use App\Models\Gelombang;
 use App\Models\JadwalTes;
 use App\Models\HasilTes;
+use App\Models\RiwayatUnduhan;
 
 class DashboardController extends Controller
 {
@@ -41,7 +42,7 @@ class DashboardController extends Controller
             ->toArray();
 
         // Berkas statistics by download status
-        $berkasByStatus = Berkas::selectRaw('download_status, COUNT(*) as count')
+        $berkasByStatus = RiwayatUnduhan::selectRaw('download_status, COUNT(*) as count')
             ->groupBy('download_status')
             ->get()
             ->pluck('count', 'download_status')
