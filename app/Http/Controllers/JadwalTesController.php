@@ -24,7 +24,7 @@ class JadwalTesController extends Controller
      */
     public function index()
     {
-        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia'])->paginate(10);
+        $jadwals = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia', 'hasilTes'])->paginate(10);
         $panitias = Panitia::where('jabatan', 'Panitia')->get();
 
         $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
@@ -54,12 +54,20 @@ class JadwalTesController extends Controller
             $nilaiPerAspekByJadwal[$j->id_jadwal] = $nilaiPerAspek;
         }
 
+        $aspekMapping = [
+            'Bacaan Al-Quran' => 'bacaan_al_quran',
+            'Tajwid/Tahsin'   => 'tajwid_tahsin',
+            'Hafalan'         => 'hafalan',
+            'Wawancara'       => 'wawancara',
+        ];
+
         return view('menu.jadwal-tes.index', [
             'jadwals' => $jadwals,
             'panitias' => $panitias,
             'gelombangs' => $gelombangs,
             'activeGelombang' => $activeGelombang,
             'nilaiPerAspekByJadwal' => $nilaiPerAspekByJadwal,
+            'aspekMapping' => $aspekMapping,
         ]);
     }
 

@@ -234,16 +234,21 @@ class HasilTesController extends Controller
 
         $validated = $request->validate([
             'status'                => 'required|in:Lulus,Tidak Lulus',
-            'nilai_bacaan_al_quran' => 'required|numeric|min:0|max:100',
-            'nilai_tajwid_tahsin'   => 'required|numeric|min:0|max:100',
-            'nilai_hafalan'         => 'required|numeric|min:0|max:100',
-            'nilai_wawancara'       => 'required|numeric|min:0|max:100',
+            'nilai_bacaan_al_quran' => 'sometimes|numeric|min:0|max:100',
+            'nilai_tajwid_tahsin'   => 'sometimes|numeric|min:0|max:100',
+            'nilai_hafalan'         => 'sometimes|numeric|min:0|max:100',
+            'nilai_wawancara'       => 'sometimes|numeric|min:0|max:100',
         ]);
 
-        // Hitung ulang rata-rata
-        $total = round(($validated['nilai_bacaan_al_quran'] + $validated['nilai_tajwid_tahsin'] + $validated['nilai_hafalan'] + $validated['nilai_wawancara']) / 4);
+        // Ambil nilai existing dari jadwal_penguji sebagai fallback
+        $nilaiExisting = [];
+        foreach (['Bacaan Al-Quran', 'Tajwid/Tahsin', 'Hafalan', 'Wawancara'] as $aspek) {
+            $jp = JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+                ->where('aspek_penguji', $aspek)
+                ->first();
+            $nilaiExisting[$aspek] = $jp?->nilai;
+        }
 
-        // Update nilai di jadwal_penguji untuk setiap aspek
         $nilaiToAspek = [
             'nilai_bacaan_al_quran' => 'Bacaan Al-Quran',
             'nilai_tajwid_tahsin'   => 'Tajwid/Tahsin',
@@ -251,10 +256,27 @@ class HasilTesController extends Controller
             'nilai_wawancara'       => 'Wawancara',
         ];
 
+        $nilaiBaru = [];
         foreach ($nilaiToAspek as $field => $aspek) {
-            JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
-                ->where('aspek_penguji', $aspek)
-                ->update(['nilai' => (int) $validated[$field]]);
+            if ($request->has($field) && $request->$field !== null && $request->$field !== '') {
+                $nilaiBaru[$aspek] = (int) $validated[$field];
+            } else {
+                // Pakai nilai existing jika tidak dikirim
+                $nilaiBaru[$aspek] = $nilaiExisting[$aspek];
+            }
+        }
+
+        // Hitung rata-rata (gunakan 0 jika null)
+        $nilaiNumerik = array_map(fn($v) => (int) $v, $nilaiBaru);
+        $total = round(array_sum($nilaiNumerik) / count($nilaiNumerik));
+
+        // Update nilai di jadwal_penguji untuk setiap aspek
+        foreach ($nilaiBaru as $aspek => $nilai) {
+            if ($nilai !== null) {
+                JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+                    ->where('aspek_penguji', $aspek)
+                    ->update(['nilai' => (int) $nilai]);
+            }
         }
 
         // Update status dan total di hasil_seleksi
@@ -264,7 +286,7 @@ class HasilTesController extends Controller
         ]);
 
         // Sinkronisasi status mahasantri
-        User::where('id_mahasantri', $hasilTes->id_mahasantri)->update([
+        User::where('id_mahasantri', $hasilTes->mahasantri->id_mahasantri)->update([
             'status' => $validated['status'],
         ]);
 

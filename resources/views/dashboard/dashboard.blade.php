@@ -70,7 +70,7 @@
         <div class="card-body p-4">
           <h3 class="text-lg font-semibold text-amber-700 mb-4">⏳ Jadwal Menunggu Persetujuan</h3>
           @php
-            $jadwalMenunggu = \App\Models\JadwalTes::where('status_konfirmasi', 'Menunggu')
+            $jadwalMenunggu = \App\Models\JadwalTes::where('status_jadwal', 'Menunggu')
                 ->select('tanggal', \DB::raw('COUNT(*) as jumlah'))
                 ->groupBy('tanggal')
                 ->orderBy('tanggal')
