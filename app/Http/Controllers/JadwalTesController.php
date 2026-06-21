@@ -54,6 +54,9 @@ class JadwalTesController extends Controller
             $nilaiPerAspekByJadwal[$j->id_jadwal] = $nilaiPerAspek;
         }
 
+        // Hitung total jadwal yang menunggu persetujuan Ketua Panitia
+        $totalMenunggu = $jadwals->filter(fn($j) => in_array($j->status_jadwal, ['Menunggu', 'Revisi']))->count();
+
         $aspekMapping = [
             'Bacaan Al-Quran' => 'bacaan_al_quran',
             'Tajwid/Tahsin'   => 'tajwid_tahsin',
@@ -68,6 +71,7 @@ class JadwalTesController extends Controller
             'activeGelombang' => $activeGelombang,
             'nilaiPerAspekByJadwal' => $nilaiPerAspekByJadwal,
             'aspekMapping' => $aspekMapping,
+            'totalMenunggu' => $totalMenunggu,
         ]);
     }
 

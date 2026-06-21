@@ -75,23 +75,29 @@ class HasilTesController extends Controller
             'nilai_tajwid_tahsin'   => 'nullable|integer|min:0|max:100',
             'nilai_hafalan'         => 'nullable|integer|min:0|max:100',
             'nilai_wawancara'       => 'nullable|integer|min:0|max:100',
-            'catatan_penguji'       => 'nullable|string',
+            'catatan_bacaan_al_quran' => 'nullable|string',
+            'catatan_tajwid_tahsin'   => 'nullable|string',
+            'catatan_hafalan'         => 'nullable|string',
+            'catatan_wawancara'       => 'nullable|string',
         ]);
 
         $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
         $userId = auth()->user()->id_panitia;
         $isCreator = $jadwal->penanggung_jawab == $userId;
 
-        // Mapping nilai field ke aspek
-        $nilaiToAspek = [
-            'nilai_bacaan_al_quran' => 'Bacaan Al-Quran',
-            'nilai_tajwid_tahsin'   => 'Tajwid/Tahsin',
-            'nilai_hafalan'         => 'Hafalan',
-            'nilai_wawancara'       => 'Wawancara',
+        // Mapping nilai field + catatan field ke aspek
+        $fieldToAspek = [
+            'nilai_bacaan_al_quran' => ['aspek' => 'Bacaan Al-Quran', 'catatan' => 'catatan_bacaan_al_quran'],
+            'nilai_tajwid_tahsin'   => ['aspek' => 'Tajwid/Tahsin',   'catatan' => 'catatan_tajwid_tahsin'],
+            'nilai_hafalan'         => ['aspek' => 'Hafalan',          'catatan' => 'catatan_hafalan'],
+            'nilai_wawancara'       => ['aspek' => 'Wawancara',        'catatan' => 'catatan_wawancara'],
         ];
 
         // Simpan nilai ke jadwal_penguji untuk setiap aspek yang diinput
-        foreach ($nilaiToAspek as $field => $aspek) {
+        foreach ($fieldToAspek as $field => $map) {
+            $aspek = $map['aspek'];
+            $catatanField = $map['catatan'];
+
             if ($request->has($field) && $request->$field !== null && $request->$field !== '') {
                 // Cek apakah user berhak input aspek ini
                 $isAssigned = $jadwal->jadwalPenguji
@@ -108,12 +114,13 @@ class HasilTesController extends Controller
                     ->first();
 
                 if ($pengujiRow) {
-                    // Update existing row
+                    $updateData = ['nilai' => (int) $request->$field];
+                    // Catatan per-aspek
+                    if ($request->has($catatanField) && $request->$catatanField !== null && $request->$catatanField !== '') {
+                        $updateData['catatan_penguji'] = $request->$catatanField;
+                    }
                     JadwalPenguji::where('id_jadwal_penguji', $pengujiRow->id_jadwal_penguji)
-                        ->update([
-                            'nilai'           => (int) $request->$field,
-                            'catatan_penguji' => $validated['catatan_penguji'],
-                        ]);
+                        ->update($updateData);
                 }
             }
         }
@@ -177,19 +184,62 @@ class HasilTesController extends Controller
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
 
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($request->id_jadwal);
+        $validated = $request->validate([
+            'id_mahasantri'   => 'required|exists:mahasantri,id_mahasantri',
+            'id_jadwal'       => 'required|exists:jadwal_seleksi,id_jadwal',
+            'nilai_bacaan_al_quran' => 'nullable|integer|min:0|max:100',
+            'nilai_tajwid_tahsin'   => 'nullable|integer|min:0|max:100',
+            'nilai_hafalan'         => 'nullable|integer|min:0|max:100',
+            'nilai_wawancara'       => 'nullable|integer|min:0|max:100',
+            'catatan_bacaan_al_quran' => 'nullable|string',
+            'catatan_tajwid_tahsin'   => 'nullable|string',
+            'catatan_hafalan'         => 'nullable|string',
+            'catatan_wawancara'       => 'nullable|string',
+        ]);
+
+        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
         if (auth()->user()->id_panitia !== $jadwal->penanggung_jawab) {
             return response()->json(['error' => 'Hanya pembuat jadwal'], 403);
         }
 
-        // Ambil nilai dari jadwal_penguji
-        $nilaiList = $jadwal->jadwalPenguji
-            ->whereNotNull('nilai')
-            ->pluck('nilai')
-            ->toArray();
+        // Mapping nilai field ke aspek
+        $fieldToAspek = [
+            'nilai_bacaan_al_quran' => ['aspek' => 'Bacaan Al-Quran', 'catatan' => 'catatan_bacaan_al_quran'],
+            'nilai_tajwid_tahsin'   => ['aspek' => 'Tajwid/Tahsin',   'catatan' => 'catatan_tajwid_tahsin'],
+            'nilai_hafalan'         => ['aspek' => 'Hafalan',          'catatan' => 'catatan_hafalan'],
+            'nilai_wawancara'       => ['aspek' => 'Wawancara',        'catatan' => 'catatan_wawancara'],
+        ];
+
+        // Simpan nilai + catatan ke jadwal_penguji dulu
+        $nilaiList = [];
+        foreach ($fieldToAspek as $field => $map) {
+            $aspek = $map['aspek'];
+            $catatanField = $map['catatan'];
+
+            if ($request->has($field) && $request->$field !== null && $request->$field !== '') {
+                $nilaiList[] = (int) $request->$field;
+
+                $updateData = ['nilai' => (int) $request->$field];
+                if ($request->has($catatanField) && $request->$catatanField !== null && $request->$catatanField !== '') {
+                    $updateData['catatan_penguji'] = $request->$catatanField;
+                }
+
+                JadwalPenguji::where('id_jadwal', $jadwal->id_jadwal)
+                    ->where('aspek_penguji', $aspek)
+                    ->update($updateData);
+            } else {
+                // Fallback ke nilai yang sudah ada di DB
+                $existing = $jadwal->jadwalPenguji
+                    ->where('aspek_penguji', $aspek)
+                    ->first();
+                if ($existing && $existing->nilai !== null) {
+                    $nilaiList[] = (int) $existing->nilai;
+                }
+            }
+        }
 
         if (count($nilaiList) < 4) {
-            return response()->json(['error' => 'Nilai belum lengkap'], 400);
+            return response()->json(['error' => 'Nilai belum lengkap (' . count($nilaiList) . '/4)'], 400);
         }
 
         $total = round(array_sum($nilaiList) / count($nilaiList));
@@ -202,17 +252,30 @@ class HasilTesController extends Controller
         else $status = 'Tidak Lulus';
 
         // Simpan ke hasil_seleksi (agregat)
-        $hasil = HasilTes::updateOrCreate(
-            ['id_jadwal' => $jadwal->id_jadwal],
-            [
+        $existingHasil = HasilTes::where('id_jadwal', $jadwal->id_jadwal)->first();
+
+        if ($existingHasil) {
+            $existingHasil->update([
                 'total_nilai' => $total,
                 'status'      => $status,
-            ]
-        );
+            ]);
+        } else {
+            // Generate id_hasil: HSL + nomor urut
+            $last = HasilTes::where('id_hasil', 'LIKE', 'HSL%')->orderBy('id_hasil', 'desc')->first();
+            $urut = $last ? (int) substr($last->id_hasil, 3) + 1 : 1;
+            $idHasil = 'HSL' . str_pad($urut, 2, '0', STR_PAD_LEFT);
 
-        // Jika hasil sudah final, sinkronisasi status mahasantri
+            HasilTes::create([
+                'id_hasil'    => $idHasil,
+                'id_jadwal'   => $jadwal->id_jadwal,
+                'total_nilai' => $total,
+                'status'      => $status,
+            ]);
+        }
+
+        // Sinkronisasi status mahasantri
         $mhsStatus = in_array($status, ['Lulus', 'Tidak Lulus']) ? $status : 'Terverifikasi';
-        User::where('id_mahasantri', $request->id_mahasantri)->update(['status' => $mhsStatus]);
+        User::where('id_mahasantri', $validated['id_mahasantri'])->update(['status' => $mhsStatus]);
 
         return response()->json([
             'success'      => true,

@@ -74,7 +74,12 @@
                           </button>";
         }
 
-        // 2. TOMBOL REVIEW (Hanya Ketua Panitia & Status Pertimbangan)
+        // 2. TOMBOL DETAIL NILAI — arahkan ke halaman nilai detail (ada fitur Hitung + Simpan Hasil)
+        $aksiHtml .= "<a href='" . route('seleksi.nilai', $j->id_jadwal) . "' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Detail Nilai'>
+                        <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'/></svg>
+                      </a>";
+
+        // 3. TOMBOL REVIEW (Hanya Ketua Panitia & Status Pertimbangan)
         if ($isKetuaPanitia && $statusHasil === 'Pertimbangan' && $hasil) {
             // Gunakan dataNilai yang sudah memiliki nilai per-aspek untuk modal review
             $hasilReviewJson = htmlspecialchars(json_encode($dataNilai), ENT_QUOTES, 'UTF-8');
@@ -82,7 +87,7 @@
                           <button type='button' @click=\"openReviewModal('{$hasil->id_hasil}', 'Tidak Lulus', {$hasilReviewJson})\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Tolak (Tidak Lulus)'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg></button>";
         }
 
-        // 3. TOMBOL EDIT (hanya Panitia, untuk jadwal yang belum disetujui)
+        // 5. TOMBOL EDIT (hanya Panitia, untuk jadwal yang belum disetujui)
         if ($isPanitia && $j->status_jadwal !== 'Disetujui') {
             $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>";
         }
@@ -255,6 +260,12 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 @endif
                 @if(auth()->user()->jabatan === 'Ketua Panitia')
                 <div class="flex items-center gap-2">
+                    @if($totalMenunggu > 0)
+                    <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        <span><strong class="font-bold">{{ $totalMenunggu }}</strong> jadwal menunggu persetujuan</span>
+                    </div>
+                    @endif
                     <button type="button" onclick="document.getElementById('approveSemuaModal').showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
                         <x-heroicon-s-check-circle class="h-4 w-4" />
@@ -606,23 +617,26 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
     </x-ui.modal-form>
 
     <!-- Modal Approve Jadwal (Hanya Ketua Panitia) -->
-    <x-ui.modal-form id="approveModal" title="Terima Jadwal">
+    <x-ui.modal-form id="approveModal" title="Setujui Jadwal">
         <x-slot name="body">
             <form id="approveModal-form" action="" method="POST">
                 @csrf
-                <p class="text-sm">Apakah Anda yakin ingin menyetujui jadwal ini?</p>
-                <p class="text-xs text-slate-500">Setelah disetujui, jadwal tidak dapat diubah kecuali melalui pembatalan.</p>
+                <p class="text-sm">Setujui <strong>SEMUA</strong> jadwal di tanggal yang sama?</p>
+                <p class="text-xs text-slate-500 mt-2">Setelah disetujui, jadwal tidak dapat diubah kecuali melalui pembatalan.</p>
             </form>
         </x-slot>
         <x-slot name="footer">
             <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('approveModal').close()">Batal</button>
-            <button type="submit" form="approveModal-form" class="btn btn-success btn-sm">Terima Jadwal</button>
+            <button type="submit" form="approveModal-form" class="btn btn-success btn-sm">Setujui</button>
         </x-slot>
     </x-ui.modal-form>
 
     <!-- Modal Reject Jadwal (Hanya Ketua Panitia) -->
     <x-ui.modal-form id="rejectModal" title="Ajukan Perubahan Jadwal">
         <x-slot name="body">
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-700">
+                Perubahan akan diterapkan ke <strong>SEMUA</strong> jadwal di tanggal yang sama.
+            </div>
             <form id="rejectModal-form" action="" method="POST">
                 @csrf
                 <div class="space-y-3">
