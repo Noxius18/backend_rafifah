@@ -32,6 +32,20 @@
     },
     saving: false,
 
+    clampNilai(event, field) {
+        const raw = event.target.value;
+        if (raw === '' || raw === '-') return;
+        let val = parseInt(raw);
+        if (isNaN(val)) { event.target.value = ''; this.formData[field] = ''; return; }
+        if (val > 100) { val = 100; }
+        if (val < 0) { val = 0; }
+        const clamped = String(val);
+        if (clamped !== event.target.value) {
+            event.target.value = clamped;
+            this.formData[field] = clamped;
+        }
+    },
+
     formData: {
         nilai_bacaan_al_quran: '{{ $nilaiPerAspek['Bacaan Al-Quran']['nilai'] ?? '' }}',
         nilai_tajwid_tahsin: '{{ $nilaiPerAspek['Tajwid/Tahsin']['nilai'] ?? '' }}',
@@ -66,11 +80,9 @@
     get computedStatus() {
         const vals = this.nilaiList;
         if (vals.length < 4) return null;
-        const hasBelow70 = vals.some(v => v < 70);
-        const hasExactly70 = vals.some(v => v === 70);
-        if (hasBelow70) return 'Tidak Lulus';
-        if (hasExactly70) return 'Pertimbangan';
-        if (this.rataRata >= 70) return 'Lulus';
+        const below71Count = vals.filter(v => v < 71).length;
+        if (below71Count === 0) return 'Lulus';
+        if (below71Count === 1) return 'Pertimbangan';
         return 'Tidak Lulus';
     },
 
@@ -245,6 +257,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     {{-- Input nilai --}}
                     <input type="number" min="0" max="100"
                         x-model="formData.{{ $aspek['field'] }}"
+                        @input="clampNilai($event, '{{ $aspek['field'] }}')"
                         class="w-full rounded-lg border-2 px-3 py-2.5 text-center text-lg font-bold transition outline-none
                             @if($canEditThis)
                                 border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100

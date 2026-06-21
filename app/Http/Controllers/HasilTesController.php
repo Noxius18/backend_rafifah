@@ -159,12 +159,10 @@ class HasilTesController extends Controller
         }
 
         $total = round(array_sum($nilaiList) / count($nilaiList));
-        $hasBelow70 = in_array(true, array_map(fn($n) => $n < 70, $nilaiList));
-        $hasExactly70 = in_array(true, array_map(fn($n) => $n == 70, $nilaiList));
+        $below71Count = count(array_filter($nilaiList, fn($n) => $n < 71));
 
-        if ($hasBelow70) $status = 'Tidak Lulus';
-        elseif ($hasExactly70) $status = 'Pertimbangan';
-        elseif ($total >= 70) $status = 'Lulus';
+        if ($below71Count === 0) $status = 'Lulus';
+        elseif ($below71Count === 1) $status = 'Pertimbangan';
         else $status = 'Tidak Lulus';
 
         return response()->json([
@@ -243,12 +241,10 @@ class HasilTesController extends Controller
         }
 
         $total = round(array_sum($nilaiList) / count($nilaiList));
-        $hasBelow70 = in_array(true, array_map(fn($n) => $n < 70, $nilaiList));
-        $hasExactly70 = in_array(true, array_map(fn($n) => $n == 70, $nilaiList));
+        $below71Count = count(array_filter($nilaiList, fn($n) => $n < 71));
 
-        if ($hasBelow70) $status = 'Tidak Lulus';
-        elseif ($hasExactly70) $status = 'Pertimbangan';
-        elseif ($total >= 70) $status = 'Lulus';
+        if ($below71Count === 0) $status = 'Lulus';
+        elseif ($below71Count === 1) $status = 'Pertimbangan';
         else $status = 'Tidak Lulus';
 
         // Simpan ke hasil_seleksi (agregat)
@@ -274,6 +270,7 @@ class HasilTesController extends Controller
         }
 
         // Sinkronisasi status mahasantri
+        // Lulus → Lulus, Tidak Lulus → Tidak Lulus, Pertimbangan → Terverifikasi (review Ketua)
         $mhsStatus = in_array($status, ['Lulus', 'Tidak Lulus']) ? $status : 'Terverifikasi';
         User::where('id_mahasantri', $validated['id_mahasantri'])->update(['status' => $mhsStatus]);
 
