@@ -46,6 +46,9 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     // Bulk cancel (Panitia)
     Route::post('/seleksi/bulk-cancel', [JadwalTesController::class, 'bulkCancel'])->name('seleksi.bulk-cancel');
 
+    // Edit jadwal per tanggal (Panitia — saat status Revisi)
+    Route::post('/seleksi/update-by-date/{tanggal}', [JadwalTesController::class, 'updateByDate'])->name('seleksi.update-by-date');
+
     // Hasil Tes – input nilai (hanya Panitia)
     Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
     Route::post('/hasil-tes/preview-hasil', [HasilTesController::class, 'previewHasil'])->name('hasil-tes.preview-hasil');

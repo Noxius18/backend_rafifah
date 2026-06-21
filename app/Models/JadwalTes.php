@@ -22,6 +22,7 @@ class JadwalTes extends Model
         'link_zoom',
         'penanggung_jawab',
         'catatan_ketua',
+        'catatan_perubahan',
         'status_jadwal',
         'diproses_oleh',
         'zoom_reminder_sent',

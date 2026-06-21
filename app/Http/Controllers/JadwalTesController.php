@@ -59,6 +59,72 @@ class JadwalTesController extends Controller
         // Hitung total hasil yang perlu review Ketua Panitia (status Pertimbangan)
         $totalPerluReview = $jadwals->filter(fn($j) => $j->hasilTes && $j->hasilTes->status === 'Pertimbangan')->count();
 
+        // Group jadwal by tanggal untuk modal review Ketua Panitia — hanya yang Menunggu/Revisi
+        $jadwalsMenunggu = $jadwals->filter(fn($j) => in_array($j->status_jadwal, ['Menunggu', 'Revisi']));
+        $jadwalsByTanggal = [];
+        foreach ($jadwalsMenunggu as $j) {
+            $tgl = $j->tanggal;
+            if (!isset($jadwalsByTanggal[$tgl])) {
+                $jadwalsByTanggal[$tgl] = [
+                    'tanggal' => $tgl,
+                    'total' => 0,
+                    'penguji' => [],  // mapping aspek => nama_panitia
+                    'penanggung_jawab' => null,
+                ];
+            }
+            $jadwalsByTanggal[$tgl]['total']++;
+            // Ambil data penguji dari jadwal pertama di tanggal ini (sama semua per tanggal)
+            if (empty($jadwalsByTanggal[$tgl]['penguji'])) {
+                foreach ($j->jadwalPenguji as $jp) {
+                    $jadwalsByTanggal[$tgl]['penguji'][$jp->aspek_penguji] = $jp->panitia?->nama_lengkap ?? '-';
+                }
+                $jadwalsByTanggal[$tgl]['penanggung_jawab'] = $j->penanggungJawab?->nama_lengkap ?? '-';
+            }
+        }
+        $jadwalsByTanggal = array_values($jadwalsByTanggal); // reset keys
+
+        // Hitung total jadwal Revisi untuk tombol "Edit Jadwal Revisi" (Panitia)
+        $totalRevisi = $jadwals->filter(fn($j) => $j->status_jadwal === 'Revisi')->count();
+        // Group by tanggal untuk modal edit revisi — data yang di-pass sebagai JSON
+        $jadwalsRevisi = $jadwals->filter(fn($j) => $j->status_jadwal === 'Revisi');
+        $jadwalsRevisiByTanggal = [];
+        foreach ($jadwalsRevisi as $j) {
+            $tgl = $j->tanggal;
+            if (!isset($jadwalsRevisiByTanggal[$tgl])) {
+                // Ambil jam_mulai = min(jam) dari jadwal di tanggal ini
+                $minJam = $jadwalsRevisi->where('tanggal', $tgl)->min('jam');
+                // Ambil data penguji dari jadwal pertama
+                $pengujiKeys = [
+                    'Bacaan Al-Quran' => 'penguji_bacaan_al_quran',
+                    'Tajwid/Tahsin'   => 'penguji_tajwid_tahsin',
+                    'Hafalan'         => 'penguji_hafalan',
+                    'Wawancara'       => 'penguji_wawancara',
+                ];
+                $penguji = [];
+                foreach ($j->jadwalPenguji as $jp) {
+                    $key = $pengujiKeys[$jp->aspek_penguji] ?? null;
+                    if ($key) {
+                        $penguji[$key] = [
+                            'id_panitia' => $jp->id_panitia,
+                            'nama' => $jp->panitia?->nama_lengkap ?? '-',
+                        ];
+                    }
+                }
+                $jadwalsRevisiByTanggal[$tgl] = [
+                    'tanggal' => $tgl,
+                    'total' => 0,
+                    'jam_mulai' => $minJam ? \Carbon\Carbon::parse($minJam)->format('H:i') : '',
+                    'interval' => $j->interval ?? 30,
+                    'link_zoom' => $j->link_zoom ?? '',
+                    'catatan_perubahan' => $j->catatan_perubahan ?? '',
+                    'penanggung_jawab' => $j->penanggungJawab?->nama_lengkap ?? '-',
+                    'penguji' => $penguji,
+                ];
+            }
+            $jadwalsRevisiByTanggal[$tgl]['total']++;
+        }
+        $jadwalsRevisiByTanggal = array_values($jadwalsRevisiByTanggal); // reset keys
+
         $aspekMapping = [
             'Bacaan Al-Quran' => 'bacaan_al_quran',
             'Tajwid/Tahsin'   => 'tajwid_tahsin',
@@ -75,6 +141,9 @@ class JadwalTesController extends Controller
             'aspekMapping' => $aspekMapping,
             'totalMenunggu' => $totalMenunggu,
             'totalPerluReview' => $totalPerluReview,
+            'totalRevisi' => $totalRevisi,
+            'jadwalsByTanggal' => $jadwalsByTanggal,
+            'jadwalsRevisiByTanggal' => $jadwalsRevisiByTanggal,
         ]);
     }
 
@@ -218,6 +287,83 @@ class JadwalTesController extends Controller
         return redirect()->route('seleksi.index')->with('success', "Link Zoom berhasil diperbarui untuk {$updated} jadwal.");
     }
 
+    /**
+     * Panitia: Update semua jadwal di tanggal tertentu (jam_mulai, interval, link_zoom, penguji)
+     * Digunakan saat status Revisi — setelah Ketua Panitia mengajukan perubahan.
+     */
+    public function updateByDate(Request $request, string $tanggal)
+    {
+        if (auth()->user()->jabatan !== 'Panitia') abort(403);
+
+        $validated = $request->validate([
+            'jam_mulai'                   => 'required|date_format:H:i',
+            'interval'                    => 'required|integer|min:5|max:120',
+            'link_zoom'                   => 'nullable|string',
+            'penguji_bacaan_al_quran'     => 'nullable|exists:panitia,id_panitia',
+            'penguji_tajwid_tahsin'       => 'nullable|exists:panitia,id_panitia',
+            'penguji_hafalan'             => 'nullable|exists:panitia,id_panitia',
+            'penguji_wawancara'           => 'nullable|exists:panitia,id_panitia',
+        ]);
+
+        // Ambil semua jadwal di tanggal + status Menunggu/Revisi
+        $jadwals = JadwalTes::where('tanggal', $tanggal)
+            ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
+            ->orderBy('jam')
+            ->get();
+
+        if ($jadwals->isEmpty()) {
+            return redirect()->route('seleksi.index')->with('error', "Tidak ada jadwal dengan status Revisi/Menunggu di tanggal {$tanggal}.");
+        }
+
+        // Recalculate jam untuk setiap jadwal
+        $jamMulai = \Carbon\Carbon::createFromFormat('H:i', $validated['jam_mulai']);
+        foreach ($jadwals as $j) {
+            $j->update([
+                'jam'               => $jamMulai->format('H:i'),
+                'interval'          => $validated['interval'],
+                'link_zoom'         => $validated['link_zoom'],
+                'status_jadwal'     => 'Menunggu',
+                'catatan_perubahan' => null,
+            ]);
+            $jamMulai->addMinutes((int) $validated['interval']);
+        }
+
+        // Hapus & buat ulang jadwal_penguji untuk semua jadwal di tanggal ini
+        $jadwalIds = $jadwals->pluck('id_jadwal');
+        JadwalPenguji::whereIn('id_jadwal', $jadwalIds)->delete();
+
+        $aspekMapping = [
+            'penguji_bacaan_al_quran' => 'Bacaan Al-Quran',
+            'penguji_tajwid_tahsin'   => 'Tajwid/Tahsin',
+            'penguji_hafalan'         => 'Hafalan',
+            'penguji_wawancara'       => 'Wawancara',
+        ];
+
+        foreach ($jadwalIds as $idJadwal) {
+            foreach ($aspekMapping as $field => $aspek) {
+                if (!empty($validated[$field])) {
+                    JadwalPenguji::create([
+                        'id_jadwal'     => $idJadwal,
+                        'id_panitia'    => $validated[$field],
+                        'aspek_penguji' => $aspek,
+                    ]);
+                }
+            }
+        }
+
+        // Notifikasi ke Ketua Panitia bahwa jadwal sudah diperbaiki
+        $ketua = Panitia::where('jabatan', 'Ketua Panitia')->first();
+        if ($ketua && $ketua->email) {
+            $pembuat = auth()->user();
+            Mail::to($ketua->email)->send(new \App\Mail\JadwalCreatedNotification(
+                $jadwals->first(), $pembuat, $jadwals->count(), $ketua->nama_lengkap
+            ));
+        }
+
+        return redirect()->route('seleksi.index')
+            ->with('success', $jadwals->count() . ' jadwal di tanggal ' . \Carbon\Carbon::parse($tanggal)->format('d/m/Y') . ' berhasil diperbarui.');
+    }
+
     public function edit(JadwalTes $jadwalTes)
     {
         // Guard: cegah edit jika sudah disetujui
@@ -245,10 +391,11 @@ class JadwalTesController extends Controller
             'link_zoom' => 'nullable|string',
         ]);
 
-        // Reset status ke 'Menunggu' + hapus catatan_ketua agar Ketua bisa review ulang
+        // Reset status ke 'Menunggu' + hapus catatan agar Ketua bisa review ulang
         $jadwalTes->update(array_merge($validated, [
             'status_jadwal' => 'Menunggu',
             'catatan_ketua' => null,
+            'catatan_perubahan' => null,
         ]));
 
         return redirect()->route('seleksi.index')->with('success', 'Jadwal tes berhasil diperbarui');
@@ -293,7 +440,7 @@ class JadwalTesController extends Controller
         if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403, 'Hanya Ketua Panitia yang bisa mengajukan perubahan');
 
         $request->validate([
-            'catatan_ketua' => 'required|string',
+            'catatan_perubahan' => 'required|string',
         ]);
 
         // Reject semua jadwal di tanggal yang sama
@@ -301,7 +448,7 @@ class JadwalTesController extends Controller
             ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
                 'status_jadwal' => 'Revisi',
-                'catatan_ketua' => $request->catatan_ketua,
+                'catatan_perubahan' => $request->catatan_perubahan,
             ]);
 
         // Kirim notifikasi ke semua Panitia
@@ -309,7 +456,7 @@ class JadwalTesController extends Controller
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalRejectedNotification(
-                    $jadwalTes->tanggal, $request->catatan_ketua, $p->nama_lengkap
+                    $jadwalTes->tanggal, $request->catatan_perubahan, $p->nama_lengkap
                 ));
             }
         }
@@ -350,12 +497,15 @@ class JadwalTesController extends Controller
                 : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir)
             : '-';
 
-        $updated = JadwalTes::where('status_jadwal', 'Disetujui')
-            ->update([
-                'status_jadwal' => $request->jenis_pembatalan,
-                'catatan_ketua' => $request->alasan_pembatalan,
-                'diproses_oleh' => auth()->user()->id_panitia,
-            ]);
+        $updateData = [
+            'status_jadwal' => $request->jenis_pembatalan,
+            'diproses_oleh' => auth()->user()->id_panitia,
+        ];
+        if (in_array($request->jenis_pembatalan, ['Dibatalkan', 'Rescheduled'])) {
+            $updateData['catatan_perubahan'] = $request->alasan_pembatalan;
+        }
+
+        $updated = JadwalTes::where('status_jadwal', 'Disetujui')->update($updateData);
 
         $ketua = Panitia::where('jabatan', 'Ketua Panitia')->first();
         if ($ketua && $ketua->email) {
@@ -415,11 +565,11 @@ class JadwalTesController extends Controller
         if (auth()->user()->jabatan !== 'Ketua Panitia') abort(403);
 
         $request->validate([
-            'catatan_ketua' => 'required|string',
+            'catatan_perubahan' => 'required|string',
         ]);
 
         // Ambil rentang tanggal SEBELUM update
-        $tanggalRange = JadwalTes::where('status_jadwal', 'Menunggu')
+        $tanggalRange = JadwalTes::whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')
             ->first();
         $tanggalLabel = $tanggalRange && $tanggalRange->tgl_awal
@@ -431,7 +581,7 @@ class JadwalTesController extends Controller
         $updated = JadwalTes::whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
                 'status_jadwal' => 'Revisi',
-                'catatan_ketua' => $request->catatan_ketua,
+                'catatan_perubahan' => $request->catatan_perubahan,
             ]);
 
         // Kirim notifikasi ke semua Panitia
@@ -439,7 +589,7 @@ class JadwalTesController extends Controller
         foreach ($panitiaList as $p) {
             if ($p->email) {
                 Mail::to($p->email)->send(new JadwalRejectedNotification(
-                    $tanggalLabel, $request->catatan_ketua, $p->nama_lengkap
+                    $tanggalLabel, $request->catatan_perubahan, $p->nama_lengkap
                 ));
             }
         }

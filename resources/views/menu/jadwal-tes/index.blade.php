@@ -83,10 +83,7 @@
             default => "<span class='text-xs text-slate-500'>{$statusJadwal}</span>",
         };
 
-        // Catatan dari Ketua Panitia (jika ada)
-        if ($statusJadwal == 'Revisi' && $j->catatan_ketua) {
-            $statusJadwalHtml .= "<br><span class='text-[10px] text-rose-600 mt-1 inline-block'>📝 " . e($j->catatan_ketua) . "</span>";
-        }
+        // Catatan perubahan dari Ketua Panitia — ditampilkan di modal edit, bukan di baris tabel
 
         return [
             'id_jadwal'   => $j->id_jadwal,
@@ -119,6 +116,53 @@
         this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
     },
     filterGelombang: '',
+    reviewStep: 'info', // 'info' | 'reject_form'
+    rejectNote: '',
+    openReviewModal() {
+        this.reviewStep = 'info';
+        this.rejectNote = '';
+        document.getElementById('reviewModal').showModal();
+    },
+    showRejectForm() {
+        this.reviewStep = 'reject_form';
+    },
+    backToInfo() {
+        this.reviewStep = 'info';
+    },
+    submitApprove() {
+        document.getElementById('approveSemuaForm').submit();
+    },
+    submitReject() {
+        if (this.rejectNote.trim()) {
+            document.getElementById('rejectNoteInput').value = this.rejectNote;
+            document.getElementById('rejectSemuaForm').submit();
+        }
+    },
+    // Edit Jadwal Revisi modal state
+    editRevisi: {
+        selectedTanggal: '',
+        jamMulai: '',
+        interval: 30,
+        linkZoom: '',
+        penguji: {
+            penguji_bacaan_al_quran: '',
+            penguji_tajwid_tahsin: '',
+            penguji_hafalan: '',
+            penguji_wawancara: '',
+        },
+        open(data) {
+            this.selectedTanggal = data.tanggal;
+            this.jamMulai = data.jam_mulai;
+            this.interval = data.interval;
+            this.linkZoom = data.link_zoom;
+            this.penguji.penguji_bacaan_al_quran = data.penguji?.penguji_bacaan_al_quran?.id_panitia || '';
+            this.penguji.penguji_tajwid_tahsin = data.penguji?.penguji_tajwid_tahsin?.id_panitia || '';
+            this.penguji.penguji_hafalan = data.penguji?.penguji_hafalan?.id_panitia || '';
+            this.penguji.penguji_wawancara = data.penguji?.penguji_wawancara?.id_panitia || '';
+            document.getElementById('editByDateForm').action = '{{ route('seleksi.update-by-date', ':tanggal') }}'.replace(':tanggal', data.tanggal);
+            document.getElementById('editByDateModal').showModal();
+        },
+    },
 }"
 x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
 
@@ -135,11 +179,13 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
                 @if(auth()->user()->jabatan === 'Panitia')
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="document.getElementById('cancelBulkModal').showModal()"
+                    @if($totalRevisi > 0)
+                    <button type="button" x-on:click="document.getElementById('editByDateSelectModal').showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3.5 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:scale-95 shadow-sm">
-                        <x-heroicon-s-x-circle class="h-4 w-4" />
-                        Batalkan Jadwal
+                        <x-heroicon-s-pencil-square class="h-4 w-4" />
+                        Edit Jadwal Revisi
                     </button>
+                    @endif
                     <button type="button" onclick="document.getElementById('sendBulkModal').showModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95 shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -166,15 +212,10 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         <span><strong class="font-bold">{{ $totalPerluReview }}</strong> hasil perlu direview</span>
                     </div>
                     @endif
-                    <button type="button" onclick="document.getElementById('approveSemuaModal').showModal()"
+                    <button type="button" x-on:click="openReviewModal()"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
                         <x-heroicon-s-check-circle class="h-4 w-4" />
-                        Setujui Semua Jadwal
-                    </button>
-                    <button type="button" onclick="document.getElementById('rejectSemuaModal').showModal()"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 active:scale-95 shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
-                        Ajukan Perubahan
+                        Review & Tindak Lanjut
                     </button>
                 </div>
                 @endif
@@ -375,8 +416,8 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 @csrf
                 <div class="space-y-3">
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-semibold text-sm">Catatan Perubahan</span></label>
-                        <textarea name="catatan_ketua" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan alasan perubahan jadwal..." required></textarea>
+                        <label class="label"><span class="label-text font-semibold text-sm">Alasan Perubahan</span></label>
+                        <textarea name="catatan_perubahan" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan alasan perubahan jadwal..." required></textarea>
                     </div>
                 </div>
             </form>
@@ -417,42 +458,242 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
         </x-slot>
     </x-ui.modal-form>
 
-    {{-- MODAL APPROVE SEMUA (Ketua Panitia) --}}
-    <x-ui.modal-form id="approveSemuaModal" title="Setujui Semua Jadwal">
+    {{-- MODAL REVIEW & TINDAK LANJUT (Ketua Panitia) --}}
+    <x-ui.modal id="reviewModal" size="xl">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
+                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-800" x-show="reviewStep === 'info'">Review & Tindak Lanjut Jadwal</h3>
+                    <h3 class="text-lg font-semibold text-slate-800" x-show="reviewStep === 'reject_form'">Ajukan Perubahan Jadwal</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Ketua Panitia — review data jadwal sebelum memutuskan</p>
+                </div>
+            </div>
+        </x-slot>
         <x-slot name="body">
-            <form id="approveSemuaForm" action="{{ route('seleksi.approve-all') }}" method="POST">
-                @csrf
-                <p class="text-sm">Setujui <strong>SEMUA</strong> jadwal yang masih <strong>Menunggu</strong> persetujuan?</p>
-                <p class="text-xs text-slate-500 mt-2">Ini akan menyetujui semua jadwal yang belum di-approve sekaligus.</p>
+            {{-- STEP 1: Info Penguji & Ringkasan --}}
+            <div x-show="reviewStep === 'info'">
+                @if($totalMenunggu > 0)
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-700">
+                        <strong class="font-bold">{{ $totalMenunggu }}</strong> jadwal menunggu persetujuan dari <strong class="font-bold">{{ count($jadwalsByTanggal) }}</strong> tanggal berbeda.
+                    </div>
+
+                    <div class="space-y-3 max-h-[50vh] overflow-y-auto -mr-2 pr-2">
+                        @foreach($jadwalsByTanggal as $group)
+                            <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
+                                    <span class="font-semibold text-sm text-slate-700">
+                                        {{ \Carbon\Carbon::parse($group['tanggal'])->format('d/m/Y') }}
+                                    </span>
+                                    <span class="text-xs text-slate-500">{{ $group['total'] }} jadwal</span>
+                                </div>
+                                <div class="px-4 py-3 space-y-1.5">
+                                    @foreach($group['penguji'] as $aspek => $nama)
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-slate-600">{{ $aspek }}</span>
+                                            <span class="font-medium text-slate-800">{{ $nama }}</span>
+                                        </div>
+                                    @endforeach
+                                    <div class="border-t border-slate-100 pt-1.5 mt-1.5 flex items-center justify-between text-sm">
+                                        <span class="text-slate-500">Penanggung Jawab</span>
+                                        <span class="font-medium text-slate-800">{{ $group['penanggung_jawab'] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-8">
+                        <svg class="h-12 w-12 mx-auto text-emerald-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm font-medium text-slate-700">✅ Semua jadwal sudah diproses</p>
+                        <p class="text-xs text-slate-400 mt-1">Tidak ada jadwal yang menunggu persetujuan.</p>
+                    </div>
+                @endif
+            </div>
+
+            {{-- STEP 2: Form Alasan Perubahan --}}
+            <div x-show="reviewStep === 'reject_form'">
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-700">
+                    Ajukan perubahan untuk <strong class="font-bold">SEMUA</strong> jadwal yang masih <strong>Menunggu</strong> atau <strong>Revisi</strong>.
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold text-sm">Alasan Perubahan</span></label>
+                    <textarea x-model="rejectNote" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan alasan perubahan jadwal..." required></textarea>
+                </div>
+                <p class="text-xs text-slate-400 mt-2" x-show="rejectNote.length > 0 && rejectNote.length < 5">Alasan minimal 5 karakter.</p>
+            </div>
+
+            {{-- Hidden forms --}}
+            <form id="approveSemuaForm" action="{{ route('seleksi.approve-all') }}" method="POST" class="hidden">@csrf</form>
+            <form id="rejectSemuaForm" action="{{ route('seleksi.reject-all') }}" method="POST" class="hidden">@csrf
+                <input id="rejectNoteInput" type="hidden" name="catatan_perubahan" value="" />
             </form>
         </x-slot>
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('approveSemuaModal').close()">Batal</button>
-            <button type="submit" form="approveSemuaForm" class="btn btn-success btn-sm">Setujui Semua</button>
+        <x-slot name="footer" class="flex items-center justify-between">
+            <template x-if="reviewStep === 'info'">
+                <div class="flex items-center gap-2 w-full justify-between">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('reviewModal').close()">Tutup</button>
+                    @if($totalMenunggu > 0)
+                    <div class="flex items-center gap-2">
+                        <button type="button" x-on:click="showRejectForm()" class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 active:scale-95 shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
+                            Ajukan Perubahan
+                        </button>
+                        <button type="button" x-on:click="submitApprove()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">
+                            <x-heroicon-s-check-circle class="h-4 w-4" />
+                            Setujui Semua
+                        </button>
+                    </div>
+                    @endif
+                </div>
+            </template>
+            <template x-if="reviewStep === 'reject_form'">
+                <div class="flex items-center gap-2 w-full justify-between">
+                    <button type="button" x-on:click="backToInfo()" class="btn btn-ghost btn-sm">Kembali</button>
+                    <button type="button" x-on:click="submitReject()" :disabled="!rejectNote.trim() || rejectNote.trim().length < 5"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-amber-700 active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        Kirim Perubahan
+                    </button>
+                </div>
+            </template>
         </x-slot>
-    </x-ui.modal-form>
+    </x-ui.modal>
 
-    {{-- MODAL REJECT SEMUA (Ketua Panitia) --}}
-    <x-ui.modal-form id="rejectSemuaModal" title="Ajukan Perubahan Semua Jadwal">
+    {{-- MODAL PILIH TANGGAL REVISI (Panitia) --}}
+    <x-ui.modal id="editByDateSelectModal" size="md">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                    <x-heroicon-s-pencil-square class="h-5 w-5 text-rose-600" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-800">Pilih Tanggal Revisi</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Pilih tanggal jadwal yang akan diperbaiki</p>
+                </div>
+            </div>
+        </x-slot>
         <x-slot name="body">
-            <form id="rejectSemuaForm" action="{{ route('seleksi.reject-all') }}" method="POST">
+            <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+                @forelse($jadwalsRevisiByTanggal as $group)
+                    <button type="button" x-on:click="editRevisi.open(@js($group)); document.getElementById('editByDateSelectModal').close()"
+                        class="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-rose-300 hover:bg-rose-50 transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-medium text-slate-800">{{ \Carbon\Carbon::parse($group['tanggal'])->format('d/m/Y') }}</span>
+                                <span class="text-xs text-slate-500 ml-2">{{ $group['total'] }} jadwal</span>
+                            </div>
+                            <svg class="h-4 w-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                            </svg>
+                        </div>
+                        @if($group['catatan_perubahan'])
+                            <div class="mt-2 text-xs text-rose-600 bg-rose-50 rounded px-2 py-1.5 leading-relaxed">
+                                📝 {{ $group['catatan_perubahan'] }}
+                            </div>
+                        @endif
+                    </button>
+                @empty
+                    <p class="text-sm text-slate-400 text-center py-4">Tidak ada jadwal dengan status Revisi.</p>
+                @endforelse
+            </div>
+        </x-slot>
+        <x-slot name="footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('editByDateSelectModal').close()">Tutup</button>
+        </x-slot>
+    </x-ui.modal>
+
+    {{-- MODAL EDIT JADWAL REVISI (Panitia) --}}
+    <x-ui.modal id="editByDateModal" size="xl">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                    <x-heroicon-s-pencil-square class="h-5 w-5 text-rose-600" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-800">Edit Jadwal Revisi</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" x-text="'Tanggal: ' + editRevisi.selectedTanggal"></p>
+                </div>
+            </div>
+        </x-slot>
+        <x-slot name="body">
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-700">
+                Perubahan akan diterapkan ke <strong>SEMUA</strong> jadwal di tanggal yang dipilih. Status akan kembali menjadi <strong>Menunggu</strong> untuk review ulang Ketua Panitia.
+            </div>
+            <form id="editByDateForm" action="" method="POST" class="space-y-4">
                 @csrf
-                <div class="space-y-3">
-                    <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
-                        <p class="font-medium">Ajukan perubahan untuk SEMUA jadwal yang masih <strong>Menunggu</strong>?</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-sm">Jam Mulai</span></label>
+                        <input type="time" name="jam_mulai" x-model="editRevisi.jamMulai" class="input input-bordered input-sm" required />
                     </div>
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-semibold text-sm">Catatan Perubahan (sama untuk semua)</span></label>
-                        <textarea name="catatan_ketua" class="textarea textarea-bordered" rows="4" placeholder="Tuliskan catatan perubahan..." required></textarea>
+                        <label class="label"><span class="label-text font-semibold text-sm">Interval (menit)</span></label>
+                        <input type="number" name="interval" x-model="editRevisi.interval" min="5" max="120" class="input input-bordered input-sm" required />
+                    </div>
+                    <div class="form-control md:col-span-2">
+                        <label class="label"><span class="label-text font-semibold text-sm">Link Zoom</span></label>
+                        <input type="text" name="link_zoom" x-model="editRevisi.linkZoom" placeholder="https://zoom.us/j/..." class="input input-bordered input-sm" />
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 pt-3">
+                    <p class="mb-2 text-sm font-semibold text-black">Penguji</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-sm">Bacaan Al-Quran</span></label>
+                            <select name="penguji_bacaan_al_quran" x-model="editRevisi.penguji.penguji_bacaan_al_quran" class="select select-bordered select-sm">
+                                <option value="">-- Pilih Panitia --</option>
+                                @foreach($panitias as $p)
+                                    <option value="{{ $p->id_panitia }}">{{ $p->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-sm">Tajwid/Tahsin</span></label>
+                            <select name="penguji_tajwid_tahsin" x-model="editRevisi.penguji.penguji_tajwid_tahsin" class="select select-bordered select-sm">
+                                <option value="">-- Pilih Panitia --</option>
+                                @foreach($panitias as $p)
+                                    <option value="{{ $p->id_panitia }}">{{ $p->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-sm">Hafalan</span></label>
+                            <select name="penguji_hafalan" x-model="editRevisi.penguji.penguji_hafalan" class="select select-bordered select-sm">
+                                <option value="">-- Pilih Panitia --</option>
+                                @foreach($panitias as $p)
+                                    <option value="{{ $p->id_panitia }}">{{ $p->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-sm">Wawancara</span></label>
+                            <select name="penguji_wawancara" x-model="editRevisi.penguji.penguji_wawancara" class="select select-bordered select-sm">
+                                <option value="">-- Pilih Panitia --</option>
+                                @foreach($panitias as $p)
+                                    <option value="{{ $p->id_panitia }}">{{ $p->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
             </form>
         </x-slot>
         <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('rejectSemuaModal').close()">Batal</button>
-            <button type="submit" form="rejectSemuaForm" class="btn btn-warning btn-sm">Ajukan Perubahan</button>
+            <div class="flex items-center gap-2 w-full justify-between">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('editByDateModal').close()">Batal</button>
+                <button type="submit" form="editByDateForm" class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-rose-700 active:scale-95 shadow-sm">
+                    <x-heroicon-s-check class="h-4 w-4" />
+                    Simpan Perubahan
+                </button>
+            </div>
         </x-slot>
-    </x-ui.modal-form>
+    </x-ui.modal>
 
     {{-- MODAL PERINGATAN MAHASISWA BELUM TERVERIFIKASI --}}
     <x-ui.modal id="unscheduledModal" size="lg">
