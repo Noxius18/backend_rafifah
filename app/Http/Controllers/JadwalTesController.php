@@ -56,6 +56,8 @@ class JadwalTesController extends Controller
 
         // Hitung total jadwal yang menunggu persetujuan Ketua Panitia
         $totalMenunggu = $jadwals->filter(fn($j) => in_array($j->status_jadwal, ['Menunggu', 'Revisi']))->count();
+        // Hitung total hasil yang perlu review Ketua Panitia (status Pertimbangan)
+        $totalPerluReview = $jadwals->filter(fn($j) => $j->hasilTes && $j->hasilTes->status === 'Pertimbangan')->count();
 
         $aspekMapping = [
             'Bacaan Al-Quran' => 'bacaan_al_quran',
@@ -72,6 +74,7 @@ class JadwalTesController extends Controller
             'nilaiPerAspekByJadwal' => $nilaiPerAspekByJadwal,
             'aspekMapping' => $aspekMapping,
             'totalMenunggu' => $totalMenunggu,
+            'totalPerluReview' => $totalPerluReview,
         ]);
     }
 
@@ -229,11 +232,6 @@ class JadwalTesController extends Controller
     public function update(Request $request, JadwalTes $jadwalTes)
     {
         if (auth()->user()->jabatan !== 'Panitia') abort(403);
-
-        // Guard: cegah update jadwal yang sudah disetujui
-        if ($jadwalTes->status_jadwal === 'Disetujui') {
-            return redirect()->route('seleksi.index')->with('error', 'Jadwal sudah disetujui, tidak bisa diubah');
-        }
 
         // Auto-lock: cek jika jadwal sudah lewat
         $jadwalDate = Carbon::parse($jadwalTes->tanggal);

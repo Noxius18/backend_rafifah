@@ -287,7 +287,7 @@ class HasilTesController extends Controller
 
     /**
      * Ketua Panitia: review and update status (Lulus/Tidak Lulus) beserta nilai perbaikannya
-     * Update nilai di jadwal_penguji + update status di hasil_seleksi
+     * Update nilai di jadwal_penguji + catatan_ketua + update status di hasil_seleksi
      */
     public function review(Request $request, HasilTes $hasilTes)
     {
@@ -296,50 +296,77 @@ class HasilTesController extends Controller
         }
 
         $validated = $request->validate([
-            'status'                => 'required|in:Lulus,Tidak Lulus',
-            'nilai_bacaan_al_quran' => 'sometimes|numeric|min:0|max:100',
-            'nilai_tajwid_tahsin'   => 'sometimes|numeric|min:0|max:100',
-            'nilai_hafalan'         => 'sometimes|numeric|min:0|max:100',
-            'nilai_wawancara'       => 'sometimes|numeric|min:0|max:100',
+            'status'                  => 'required|in:Lulus,Tidak Lulus',
+            'nilai_bacaan_al_quran'   => 'sometimes|numeric|min:0|max:100',
+            'nilai_tajwid_tahsin'     => 'sometimes|numeric|min:0|max:100',
+            'nilai_hafalan'           => 'sometimes|numeric|min:0|max:100',
+            'nilai_wawancara'         => 'sometimes|numeric|min:0|max:100',
+            'catatan_ketua'           => 'nullable|string',
+            'catatan_bacaan_al_quran' => 'nullable|string',
+            'catatan_tajwid_tahsin'   => 'nullable|string',
+            'catatan_hafalan'         => 'nullable|string',
+            'catatan_wawancara'       => 'nullable|string',
         ]);
 
         // Ambil nilai existing dari jadwal_penguji sebagai fallback
         $nilaiExisting = [];
+        $catatanExisting = [];
         foreach (['Bacaan Al-Quran', 'Tajwid/Tahsin', 'Hafalan', 'Wawancara'] as $aspek) {
             $jp = JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
                 ->where('aspek_penguji', $aspek)
                 ->first();
             $nilaiExisting[$aspek] = $jp?->nilai;
+            $catatanExisting[$aspek] = $jp?->catatan_penguji;
         }
 
         $nilaiToAspek = [
-            'nilai_bacaan_al_quran' => 'Bacaan Al-Quran',
-            'nilai_tajwid_tahsin'   => 'Tajwid/Tahsin',
-            'nilai_hafalan'         => 'Hafalan',
-            'nilai_wawancara'       => 'Wawancara',
+            'nilai_bacaan_al_quran' => ['aspek' => 'Bacaan Al-Quran', 'catatan' => 'catatan_bacaan_al_quran'],
+            'nilai_tajwid_tahsin'   => ['aspek' => 'Tajwid/Tahsin',   'catatan' => 'catatan_tajwid_tahsin'],
+            'nilai_hafalan'         => ['aspek' => 'Hafalan',          'catatan' => 'catatan_hafalan'],
+            'nilai_wawancara'       => ['aspek' => 'Wawancara',        'catatan' => 'catatan_wawancara'],
         ];
 
-        $nilaiBaru = [];
-        foreach ($nilaiToAspek as $field => $aspek) {
+        // Update nilai + catatan di jadwal_penguji untuk setiap aspek yang dikirim
+        foreach ($nilaiToAspek as $field => $map) {
+            $aspek = $map['aspek'];
+            $catatanField = $map['catatan'];
+
+            $updateData = [];
+
+            // Nilai: pakai dari request jika ada, fallback ke existing
             if ($request->has($field) && $request->$field !== null && $request->$field !== '') {
-                $nilaiBaru[$aspek] = (int) $validated[$field];
-            } else {
-                // Pakai nilai existing jika tidak dikirim
-                $nilaiBaru[$aspek] = $nilaiExisting[$aspek];
+                $updateData['nilai'] = (int) $validated[$field];
+            } elseif ($nilaiExisting[$aspek] !== null) {
+                $updateData['nilai'] = (int) $nilaiExisting[$aspek];
+            }
+
+            // Catatan per-aspek: pakai dari request jika ada, fallback ke existing
+            if ($request->has($catatanField) && $request->$catatanField !== null && $request->$catatanField !== '') {
+                $updateData['catatan_penguji'] = $request->$catatanField;
+            } elseif ($catatanExisting[$aspek] !== null) {
+                $updateData['catatan_penguji'] = $catatanExisting[$aspek];
+            }
+
+            if (!empty($updateData)) {
+                JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+                    ->where('aspek_penguji', $aspek)
+                    ->update($updateData);
             }
         }
 
-        // Hitung rata-rata (gunakan 0 jika null)
-        $nilaiNumerik = array_map(fn($v) => (int) $v, $nilaiBaru);
-        $total = round(array_sum($nilaiNumerik) / count($nilaiNumerik));
+        // Hitung rata-rata ulang dari jadwal_penguji (sudah diupdate)
+        $jpReload = JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+            ->whereNotNull('nilai')
+            ->pluck('nilai')
+            ->toArray();
 
-        // Update nilai di jadwal_penguji untuk setiap aspek
-        foreach ($nilaiBaru as $aspek => $nilai) {
-            if ($nilai !== null) {
-                JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
-                    ->where('aspek_penguji', $aspek)
-                    ->update(['nilai' => (int) $nilai]);
-            }
+        $total = count($jpReload) > 0
+            ? round(array_sum($jpReload) / count($jpReload))
+            : 0;
+
+        // Update catatan_ketua di jadwal_seleksi
+        if ($request->has('catatan_ketua') && $request->catatan_ketua !== null && $request->catatan_ketua !== '') {
+            $hasilTes->jadwalTes->update(['catatan_ketua' => $request->catatan_ketua]);
         }
 
         // Update status dan total di hasil_seleksi
@@ -349,7 +376,7 @@ class HasilTesController extends Controller
         ]);
 
         // Sinkronisasi status mahasantri
-        User::where('id_mahasantri', $hasilTes->mahasantri->id_mahasantri)->update([
+        User::where('id_mahasantri', $hasilTes->jadwalTes->id_mahasantri)->update([
             'status' => $validated['status'],
         ]);
 

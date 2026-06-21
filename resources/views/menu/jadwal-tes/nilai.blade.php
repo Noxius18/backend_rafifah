@@ -21,6 +21,7 @@
     // Hasil tes
     $hasilTesRow = $hasilTes->first();
     $statusHasil = $hasilTesRow ? $hasilTesRow->status : 'Belum Tes';
+    $isPertimbangan = $statusHasil === 'Pertimbangan';
 @endphp
 
 <div x-data="{
@@ -40,6 +41,7 @@
         catatan_tajwid_tahsin: '{{ $nilaiPerAspek['Tajwid/Tahsin']['catatan'] ?? '' }}',
         catatan_hafalan: '{{ $nilaiPerAspek['Hafalan']['catatan'] ?? '' }}',
         catatan_wawancara: '{{ $nilaiPerAspek['Wawancara']['catatan'] ?? '' }}',
+        catatan_ketua: '{{ $jadwalTes->catatan_ketua ?? '' }}',
     },
 
     get nilaiList() {
@@ -82,8 +84,8 @@
             });
             const data = await res.json();
             if (res.ok) { this.showToast(data.message || 'Nilai tersimpan', 'success'); setTimeout(() => location.reload(), 1200); }
-            else { this.showToast(data.message || 'Gagal', 'error'); }
-        } catch(e) { this.showToast('Gagal menyimpan', 'error'); }
+            else { this.showToast(data.error || data.message || 'Gagal (' + res.status + ')', 'error'); }
+        } catch(e) { this.showToast('Gagal menyimpan: ' + e.message, 'error'); }
         finally { this.saving = false; }
     },
 
@@ -115,6 +117,11 @@
             nilai_tajwid_tahsin: this.formData.nilai_tajwid_tahsin || 0,
             nilai_hafalan: this.formData.nilai_hafalan || 0,
             nilai_wawancara: this.formData.nilai_wawancara || 0,
+            catatan_ketua: this.formData.catatan_ketua || '',
+            catatan_bacaan_al_quran: this.formData.catatan_bacaan_al_quran || '',
+            catatan_tajwid_tahsin: this.formData.catatan_tajwid_tahsin || '',
+            catatan_hafalan: this.formData.catatan_hafalan || '',
+            catatan_wawancara: this.formData.catatan_wawancara || '',
         };
         try {
             const res = await fetch('/hasil-tes/' + this.reviewId + '/review', {
@@ -124,8 +131,8 @@
             });
             const data = await res.json();
             if (res.ok) { this.showToast(data.message, 'success'); setTimeout(() => location.reload(), 1000); }
-            else { this.showToast(data.message || 'Gagal', 'error'); }
-        } catch(e) { this.showToast('Gagal', 'error'); }
+            else { this.showToast(data.error || data.message || 'Gagal (' + res.status + ')', 'error'); }
+        } catch(e) { this.showToast('Gagal: ' + e.message, 'error'); }
     }
 }"
 x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
@@ -134,7 +141,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
     <x-ui.sidebar>
         <section class="space-y-5 px-1 py-2">
 
-            {{-- HEADER — Info Mahasantri --}}
+            {{-- HEADER --}}
             <div class="flex items-start justify-between">
                 <div class="flex items-start gap-3">
                     <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
@@ -156,7 +163,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         <span class="rounded-md bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">✅ Lulus</span>
                     @elseif($statusHasil === 'Tidak Lulus')
                         <span class="rounded-md bg-rose-50 px-3 py-1 text-sm font-semibold text-rose-700 ring-1 ring-rose-200">❌ Tidak Lulus</span>
-                    @elseif($statusHasil === 'Pertimbangan')
+                    @elseif($isPertimbangan)
                         <span class="rounded-md bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700 ring-1 ring-amber-200">⚠️ Pertimbangan</span>
                     @else
                         <span class="rounded-md bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-500 ring-1 ring-slate-200">⏳ Belum Tes</span>
@@ -166,6 +173,19 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     </a>
                 </div>
             </div>
+
+            {{-- NOTICE: Mode Review Ketua Panitia --}}
+            @if($isKetuaPanitia && $isPertimbangan)
+            <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div class="flex items-start gap-2">
+                    <svg class="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                    <div>
+                        <p class="text-sm font-semibold text-amber-800">Mode Review — Pertimbangan</p>
+                        <p class="text-xs text-amber-700 mt-0.5">Anda dapat mengubah nilai aspek, menambahkan catatan, dan memberikan keputusan final (Lulus / Tidak Lulus) untuk mahasantri ini.</p>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             {{-- PENGUJI INFO --}}
             <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
@@ -202,14 +222,20 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     ['key' => 'Wawancara', 'field' => 'nilai_wawancara', 'catatanField' => 'catatan_wawancara', 'label' => 'Wawancara'],
                 ] as $aspek)
                 @php
-                    $canEditThis = in_array($aspek['key'], $tugas) || $isCreator;
+                    $canEditThis = in_array($aspek['key'], $tugas) || $isCreator || $isKetuaPanitia;
+                    $nilaiAwal = $nilaiPerAspek[$aspek['key']]['nilai'] ?? '';
+                    $isNilai70 = ($nilaiAwal === 70 || $nilaiAwal === '70');
                     $pengujiNama = $nilaiPerAspek[$aspek['key']]['penguji'] ?? '-';
                 @endphp
-                <div class="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-sm flex flex-col gap-3 {{ $canEditThis ? '' : 'opacity-70' }}">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-sm flex flex-col gap-3
+                    {{ $canEditThis ? '' : 'opacity-70' }}
+                    {{ $isKetuaPanitia && $isPertimbangan && $isNilai70 ? 'ring-2 ring-amber-300 bg-amber-50/30' : '' }}">
                     {{-- Header card --}}
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-semibold text-slate-700">{{ $aspek['label'] }}</h3>
-                        @if($canEditThis)
+                        @if($isKetuaPanitia && $isPertimbangan && $isNilai70)
+                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Perlu review</span>
+                        @elseif($canEditThis)
                             <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Tugas Anda</span>
                         @else
                             <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Read-only</span>
@@ -251,6 +277,19 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 @endforeach
             </div>
 
+            {{-- CATATAN KETUA (hanya tampil untuk Ketua Panitia saat Pertimbangan) --}}
+            @if($isKetuaPanitia && $isPertimbangan)
+            <div class="rounded-xl border border-amber-200 bg-white p-4">
+                <label class="flex items-center gap-2 mb-2">
+                    <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                    <span class="text-sm font-semibold text-slate-700">Catatan Ketua Panitia</span>
+                </label>
+                <textarea x-model="formData.catatan_ketua" rows="3"
+                    class="w-full rounded-lg border border-amber-200 px-3 py-2 text-sm transition outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none"
+                    placeholder="Tuliskan catatan hasil review..."></textarea>
+            </div>
+            @endif
+
             {{-- PREVIEW HASIL --}}
             <div class="rounded-xl border border-slate-200 bg-white p-4">
                 <div class="flex items-center gap-2 mb-3">
@@ -281,9 +320,9 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 <div class="text-xs text-slate-400">
                     @if($statusHasil === 'Lulus' || $statusHasil === 'Tidak Lulus')
                         Hasil sudah final.
-                    @elseif($statusHasil === 'Pertimbangan')
+                    @elseif($isPertimbangan)
                         @if($isKetuaPanitia)
-                            Hasil perlu review oleh Ketua Panitia.
+                            Periksa nilai, lalu beri keputusan final.
                         @else
                             Menunggu review Ketua Panitia.
                         @endif
@@ -294,7 +333,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     @endif
                 </div>
                 <div class="flex items-center gap-2">
-                    @if($isPanitia)
+                    @if($isPanitia && !$isPertimbangan)
                         <button type="button" @click="submitNilai()" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95">
                             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
@@ -302,7 +341,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                             Simpan Nilai
                         </button>
                     @endif
-                    @if($isCreator || $isPanitia)
+                    @if(($isCreator || $isPanitia) && !$isPertimbangan)
                         <button type="button" @click="simpanHasil()" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
                             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
@@ -310,16 +349,18 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                             Simpan Hasil
                         </button>
                     @endif
-                    @if($isKetuaPanitia && $statusHasil === 'Pertimbangan')
-                        <button type="button" @click="confirmReview('Lulus')"
+                    @if($isKetuaPanitia && $isPertimbangan)
+                        <button type="button" @click="confirmReview('Lulus')" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
+                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Setujui (Lulus)
+                            ✅ Setujui (Lulus)
                         </button>
-                        <button type="button" @click="confirmReview('Tidak Lulus')"
+                        <button type="button" @click="confirmReview('Tidak Lulus')" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:scale-95">
+                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Tolak (Tidak Lulus)
+                            ❌ Tolak (Tidak Lulus)
                         </button>
                     @endif
                 </div>

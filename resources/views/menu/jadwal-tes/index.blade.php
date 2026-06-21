@@ -25,6 +25,7 @@
         ['label' => 'Tanggal',          'field' => 'tanggal',      'html' => 'tgl_html'],
         ['label' => 'Jam',              'field' => 'jam',          'html' => 'jam_html'],
         ['label' => 'Status',           'field' => 'status_jadwal', 'html' => 'status_konfirmasi_html'],
+        ['label' => 'Hasil',            'field' => 'hasil',        'html' => 'hasil_html'],
         ['label' => 'Link Zoom',        'field' => 'link_zoom',    'html' => 'link_html', 'class' => 'hidden lg:table-cell'],
         ['label' => 'Aksi',             'field' => 'id_jadwal',    'html' => 'aksi_html', 'class' => 'text-right'],
     ];
@@ -59,36 +60,14 @@
         $hasilJson = htmlspecialchars(json_encode($dataNilai), ENT_QUOTES, 'UTF-8');
         
         $aksiHtml = "<div class='flex items-center justify-end gap-0.5'>";
-        
-        // 1. TOMBOL NILAI (MATA untuk Ketua Panitia, NOTES/KERTAS untuk Panitia)
-        $mhsId = $j->mahasantri?->id_mahasantri ?? '';
-        $mhsNama = addslashes($j->mahasantri?->nama_lengkap ?? '-');
-        
-        if ($isKetuaPanitia) {
-            $aksiHtml .= "<button type='button' onclick='window.dispatchEvent(new CustomEvent(\"open-nilai-modal\", { detail: { id_jadwal: \"{$j->id_jadwal}\", id_mahasantri: \"{$mhsId}\", nama: \"{$mhsNama}\", status: \"{$statusHasil}\", hasil: {$hasilJson} } }))' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-emerald-600 hover:bg-emerald-50' title='Lihat Nilai'>
-                            <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/></svg>
-                          </button>";
-        } else {
-            $aksiHtml .= "<button type='button' onclick='window.dispatchEvent(new CustomEvent(\"open-nilai-modal\", { detail: { id_jadwal: \"{$j->id_jadwal}\", id_mahasantri: \"{$mhsId}\", nama: \"{$mhsNama}\", status: \"{$statusHasil}\", hasil: {$hasilJson} } }))' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-emerald-600 hover:bg-emerald-50' title='Input Nilai'>
-                            <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' /></svg>
-                          </button>";
-        }
 
-        // 2. TOMBOL DETAIL NILAI — arahkan ke halaman nilai detail (ada fitur Hitung + Simpan Hasil)
+        // 1. TOMBOL DETAIL NILAI — arahkan ke halaman nilai detail
         $aksiHtml .= "<a href='" . route('seleksi.nilai', $j->id_jadwal) . "' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Detail Nilai'>
                         <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'/></svg>
                       </a>";
 
-        // 3. TOMBOL REVIEW (Hanya Ketua Panitia & Status Pertimbangan)
-        if ($isKetuaPanitia && $statusHasil === 'Pertimbangan' && $hasil) {
-            // Gunakan dataNilai yang sudah memiliki nilai per-aspek untuk modal review
-            $hasilReviewJson = htmlspecialchars(json_encode($dataNilai), ENT_QUOTES, 'UTF-8');
-            $aksiHtml .= "<button type='button' @click=\"openReviewModal('{$hasil->id_hasil}', 'Lulus', {$hasilReviewJson})\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-emerald-600 hover:bg-emerald-50' title='Setujui (Lulus)'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg></button>
-                          <button type='button' @click=\"openReviewModal('{$hasil->id_hasil}', 'Tidak Lulus', {$hasilReviewJson})\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-rose-600 hover:bg-rose-50' title='Tolak (Tidak Lulus)'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg></button>";
-        }
-
-        // 5. TOMBOL EDIT (hanya Panitia, untuk jadwal yang belum disetujui)
-        if ($isPanitia && $j->status_jadwal !== 'Disetujui') {
+        // 2. TOMBOL EDIT (Panitia, untuk semua status jadwal kecuali Dibatalkan/Rescheduled)
+        if ($isPanitia && $j->status_jadwal !== 'Dibatalkan' && $j->status_jadwal !== 'Rescheduled') {
             $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>";
         }
         $aksiHtml .= "</div>";
@@ -120,6 +99,12 @@
             'tgl_html'    => "<span class='text-xs text-black'>" . \Carbon\Carbon::parse($j->tanggal)->format('d/m/Y') . "</span>",
             'jam_html'    => $j->jam ? "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 ring-1 ring-slate-200'>" . \Carbon\Carbon::parse($j->jam)->format('H:i') . "</span>" : "<span class='text-slate-400 text-xs'>-</span>",
             'status_konfirmasi_html' => $statusJadwalHtml,
+            'hasil_html'  => match($statusHasil) {
+                'Lulus' => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>✅ Lulus</span>",
+                'Tidak Lulus' => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>❌ Tidak Lulus</span>",
+                'Pertimbangan' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>⚠️ Pertimbangan</span>",
+                default => "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-400 ring-1 ring-slate-200'>⏳ Belum Tes</span>",
+            },
             'link_html'   => $j->link_zoom ? "<a href='" . e($formatLinkZoom($j->link_zoom)) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>" : "<span class='text-black/50 text-xs'>-</span>",
             'aksi_html'   => $aksiHtml,
         ];
@@ -134,98 +119,7 @@
         this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
     },
     filterGelombang: '',
-
-    {{-- Data untuk Logic Modal Input Nilai --}}
-    selectedMhs: null, selectedJadwal: null, selectedMhsNama: '', statusHasil: '',
-    formData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '', catatan_penguji: '' },
-    lastValidValue: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
-    saving: false,
-    async submitNilai() {
-        this.saving = true;
-        try {
-            const res = await fetch('{{ route('hasil-tes.store') }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify({ id_mahasantri: this.selectedMhs, id_jadwal: this.selectedJadwal, ...this.formData }),
-            });
-            const data = await res.json();
-            if (res.ok) { this.showToast(data.message, 'success'); setTimeout(() => location.reload(), 1000); }
-            else { this.showToast(data.message || 'Gagal menyimpan', 'error'); }
-        } catch(e) { this.showToast('Gagal menyimpan nilai', 'error'); } finally { this.saving = false; }
-    },
-    clampValue(field, event) {
-        const raw = event.target.value;
-        const parsed = parseInt(raw);
-        const isValid = (raw === '' || (!isNaN(parsed) && parsed >= 0 && parsed <= 100));
-        if (isValid) {
-            this.lastValidValue[field] = this.formData[field] = raw === '' ? '' : parsed;
-        } else {
-            this.$nextTick(() => { event.target.value = this.lastValidValue[field]; });
-        }
-    },
-
-    {{-- Logic untuk Review Ketua Panitia & Edit Nilai Khusus yang 70 --}}
-    reviewId: null, reviewAction: null,
-    reviewData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
-    originalData: { nilai_bacaan_al_quran: '', nilai_tajwid_tahsin: '', nilai_hafalan: '', nilai_wawancara: '' },
-
-    openReviewModal(hasilId, action, hasil) {
-        this.reviewId = hasilId; 
-        this.reviewAction = action;
-        if (hasil) {
-            // Set data asli untuk filter kondisi
-            this.originalData.nilai_bacaan_al_quran = hasil.nilai_bacaan_al_quran || '';
-            this.originalData.nilai_tajwid_tahsin = hasil.nilai_tajwid_tahsin || '';
-            this.originalData.nilai_hafalan = hasil.nilai_hafalan || '';
-            this.originalData.nilai_wawancara = hasil.nilai_wawancara || '';
-
-            // Set data yang akan diedit/disimpan
-            this.reviewData.nilai_bacaan_al_quran = hasil.nilai_bacaan_al_quran || '';
-            this.reviewData.nilai_tajwid_tahsin = hasil.nilai_tajwid_tahsin || '';
-            this.reviewData.nilai_hafalan = hasil.nilai_hafalan || '';
-            this.reviewData.nilai_wawancara = hasil.nilai_wawancara || '';
-        }
-        document.getElementById('reviewModal').showModal();
-    },
-    async confirmReview() {
-        // Kirim SEMUA nilai (nilai yang tidak diubah tetap dikirim dengan nilai aslinya)
-        const payload = { 
-            status: this.reviewAction,
-            nilai_bacaan_al_quran: this.reviewData.nilai_bacaan_al_quran !== '' ? this.reviewData.nilai_bacaan_al_quran : this.originalData.nilai_bacaan_al_quran,
-            nilai_tajwid_tahsin: this.reviewData.nilai_tajwid_tahsin !== '' ? this.reviewData.nilai_tajwid_tahsin : this.originalData.nilai_tajwid_tahsin,
-            nilai_hafalan: this.reviewData.nilai_hafalan !== '' ? this.reviewData.nilai_hafalan : this.originalData.nilai_hafalan,
-            nilai_wawancara: this.reviewData.nilai_wawancara !== '' ? this.reviewData.nilai_wawancara : this.originalData.nilai_wawancara,
-        };
-        try {
-            const res = await fetch('/hasil-tes/' + this.reviewId + '/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const data = await res.json();
-            if (res.ok) { this.showToast(data.message, 'success'); setTimeout(() => location.reload(), 1000); }
-            else { this.showToast(data.message || 'Gagal', 'error'); }
-        } catch(e) { this.showToast('Gagal memperbarui status', 'error'); }
-    }
 }"
-@open-nilai-modal.window="
-    selectedJadwal = $event.detail.id_jadwal; selectedMhs = $event.detail.id_mahasantri; selectedMhsNama = $event.detail.nama; statusHasil = $event.detail.status;
-    let hasil = $event.detail.hasil;
-    if (hasil) {
-        formData.nilai_bacaan_al_quran = hasil.nilai_bacaan_al_quran || '';
-        formData.nilai_tajwid_tahsin = hasil.nilai_tajwid_tahsin || '';
-        formData.nilai_hafalan = hasil.nilai_hafalan || '';
-        formData.nilai_wawancara = hasil.nilai_wawancara || '';
-        formData.catatan_penguji = hasil.catatan_penguji || '';
-    } else {
-        formData.nilai_bacaan_al_quran = '';
-        formData.nilai_tajwid_tahsin = '';
-        formData.nilai_hafalan = '';
-        formData.nilai_wawancara = '';
-        formData.catatan_penguji = '';
-    }
-    document.getElementById('nilaiModal').showModal();
-"
 x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
 
     <x-ui.toast />
@@ -264,6 +158,12 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                         <span><strong class="font-bold">{{ $totalMenunggu }}</strong> jadwal menunggu persetujuan</span>
+                    </div>
+                    @endif
+                    @if($totalPerluReview > 0)
+                    <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        <span><strong class="font-bold">{{ $totalPerluReview }}</strong> hasil perlu direview</span>
                     </div>
                     @endif
                     <button type="button" onclick="document.getElementById('approveSemuaModal').showModal()"
@@ -344,172 +244,6 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
     </x-ui.modal-form>
 
     {{-- MODAL INPUT/LIHAT NILAI (PANITIA/PENGAWAS) --}}
-    <x-ui.modal id="nilaiModal" size="lg">
-        <x-slot name="header">
-            <div class="flex items-center justify-between w-full pr-4">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
-                        @if(auth()->user()->jabatan === 'Ketua Panitia')
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        @else
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        @endif
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-800">{{ auth()->user()->jabatan === 'Ketua Panitia' ? 'Lihat Nilai' : 'Input Nilai' }}</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Mahasantri: <span class="font-medium" x-text="selectedMhsNama"></span></p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] text-slate-500 font-medium mb-1">Status Test</p>
-                    <span class="rounded-md px-2 py-1 text-xs font-bold ring-1"
-                        :class="{ 'bg-emerald-50 text-emerald-700 ring-emerald-200': statusHasil === 'Lulus', 'bg-rose-50 text-rose-700 ring-rose-200': statusHasil === 'Tidak Lulus', 'bg-amber-50 text-amber-700 ring-amber-200': statusHasil === 'Pertimbangan', 'bg-slate-50 text-slate-500 ring-slate-200': statusHasil === 'Belum Tes' }"
-                        x-text="statusHasil || 'Belum Tes'">
-                    </span>
-                </div>
-            </div>
-        </x-slot>
-
-        <x-slot name="body">
-            <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2 space-y-4">
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <table class="w-full text-sm">
-                        <thead><tr class="text-xs text-slate-500 border-b border-slate-200"><th class="pb-2 text-left font-medium">No</th><th class="pb-2 text-left font-medium">Aspek Penilaian</th><th class="pb-2 text-center font-medium">Nilai</th></tr></thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr>
-                                <td class="py-2 text-slate-500">1</td><td class="py-2 font-medium text-slate-700">Bacaan Al-Qur'an</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_bacaan_al_quran" @input="clampValue('nilai_bacaan_al_quran', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 text-slate-500">2</td><td class="py-2 font-medium text-slate-700">Tajwid dan Tahsin</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_tajwid_tahsin" @input="clampValue('nilai_tajwid_tahsin', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 text-slate-500">3</td><td class="py-2 font-medium text-slate-700">Hafalan</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_hafalan" @input="clampValue('nilai_hafalan', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 text-slate-500">4</td><td class="py-2 font-medium text-slate-700">Wawancara</td>
-                                <td class="py-2 text-center"><input type="number" min="0" max="100" :value="formData.nilai_wawancara" @input="clampValue('nilai_wawancara', $event)" class="w-20 rounded border border-slate-200 px-2 py-1 text-center text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none disabled:bg-transparent disabled:border-transparent disabled:font-bold disabled:text-slate-700" {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-1">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-semibold text-slate-700">Total Skor:</span>
-                        <span class="text-lg font-bold text-slate-700" x-text="(() => { const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? vals.reduce((a,b) => a+b, 0) : '-'; })()"></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-semibold text-slate-700">Rata-rata:</span>
-                        <span class="text-lg font-bold text-emerald-600" x-text="(() => { const vals = [formData.nilai_bacaan_al_quran, formData.nilai_tajwid_tahsin, formData.nilai_hafalan, formData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-'; })()"></span>
-                    </div>
-                </div>
-
-                <div class="form-control">
-                    <label class="label"><span class="label-text font-semibold text-sm text-slate-700">Catatan Penguji</span></label>
-                    <textarea x-model="formData.catatan_penguji" rows="3" class="textarea textarea-bordered text-sm w-full focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50 disabled:text-slate-700" placeholder="Catatan untuk mahasantri ini..." {{ auth()->user()->jabatan !== 'Panitia' ? 'disabled' : '' }}></textarea>
-                </div>
-            </div>
-        </x-slot>
-
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('nilaiModal').close()">Tutup</button>
-            @if(auth()->user()->jabatan === 'Panitia')
-            <button type="button" @click="submitNilai()" :disabled="saving" class="btn btn-success btn-sm gap-1.5">
-                <span x-show="saving" class="loading loading-spinner loading-xs"></span>
-                <span x-text="saving ? 'Menyimpan...' : 'Simpan Nilai'"></span>
-            </button>
-            @endif
-        </x-slot>
-    </x-ui.modal>
-
-    {{-- MODAL REVIEW PENGAWAS (PINTAR: HANYA MUNCULKAN NILAI 70 JIKA LULUS) --}}
-    <x-ui.modal id="reviewModal" size="sm">
-        <x-slot name="header">
-            <div class="flex items-center gap-3">
-                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
-                    <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-slate-800">Review & Evaluasi</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Berikan keputusan final untuk status mahasantri</p>
-                </div>
-            </div>
-        </x-slot>
-        <x-slot name="body">
-            <div class="space-y-4 py-2">
-                <div class="rounded-lg border border-amber-100 bg-amber-50 p-4 text-sm text-amber-800">
-                    <p>Ubah status mahasantri ini menjadi: <span class="font-bold" x-text="reviewAction === 'Lulus' ? 'LULUS' : 'TIDAK LULUS'"></span></p>
-                    
-                    <template x-if="reviewAction === 'Lulus'">
-                        <p class="mt-1 text-xs text-amber-700">Karena Anda menyatakan <strong>Lulus</strong>, silakan perbaiki nilai bila perlu.</p>
-                    </template>
-                </div>
-                
-                {{-- BAGIAN LULUS: Tampilkan input HANYA untuk nilai yang tepat 70 --}}
-                <template x-if="reviewAction === 'Lulus'">
-                    <div>
-                        <div class="grid grid-cols-1 gap-3">
-                            <template x-if="originalData.nilai_bacaan_al_quran == 70">
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-sm font-semibold">Bacaan Al-Qur'an</span></label>
-                                    <input type="number" min="0" max="100" x-model="reviewData.nilai_bacaan_al_quran" class="input input-sm input-bordered w-full border-amber-400 focus:ring-2 focus:ring-amber-100" />
-                                </div>
-                            </template>
-                            
-                            <template x-if="originalData.nilai_tajwid_tahsin == 70">
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-sm font-semibold">Tajwid & Tahsin</span></label>
-                                    <input type="number" min="0" max="100" x-model="reviewData.nilai_tajwid_tahsin" class="input input-sm input-bordered w-full border-amber-400 focus:ring-2 focus:ring-amber-100" />
-                                </div>
-                            </template>
-                            
-                            <template x-if="originalData.nilai_hafalan == 70">
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-sm font-semibold">Hafalan</span></label>
-                                    <input type="number" min="0" max="100" x-model="reviewData.nilai_hafalan" class="input input-sm input-bordered w-full border-amber-400 focus:ring-2 focus:ring-amber-100" />
-                                </div>
-                            </template>
-                            
-                            <template x-if="originalData.nilai_wawancara == 70">
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-sm font-semibold">Wawancara</span></label>
-                                    <input type="number" min="0" max="100" x-model="reviewData.nilai_wawancara" class="input input-sm input-bordered w-full border-amber-400 focus:ring-2 focus:ring-amber-100" />
-                                </div>
-                            </template>
-                        </div>
-
-                        <div class="rounded-lg border border-slate-200 bg-white p-3 mt-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-semibold text-slate-700">Rata-rata Baru:</span>
-                                <span class="text-lg font-bold text-emerald-600" x-text="(() => { const vals = [reviewData.nilai_bacaan_al_quran, reviewData.nilai_tajwid_tahsin, reviewData.nilai_hafalan, reviewData.nilai_wawancara].map(v => parseInt(v)).filter(v => !isNaN(v)); return vals.length ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : '-'; })()"></span>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                {{-- BAGIAN TIDAK LULUS: Tampilkan Konfirmasi Tanpa Input Nilai --}}
-                <template x-if="reviewAction === 'Tidak Lulus'">
-                    <div class="rounded-lg border border-rose-200 bg-rose-50 p-4 text-center mt-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-rose-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <p class="text-sm text-rose-800 font-medium">Anda yakin ingin menetapkan status <strong class="font-bold text-rose-900">Tidak Lulus</strong>?</p>
-                        <p class="text-xs text-rose-600 mt-1">Keputusan ini akan difinalisasi tanpa ubahan nilai asli.</p>
-                    </div>
-                </template>
-
-            </div>
-        </x-slot>
-        <x-slot name="footer">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('reviewModal').close()">Batal</button>
-            <button type="button" @click="confirmReview()" class="btn btn-sm gap-1.5 text-white border-none" :class="reviewAction === 'Lulus' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'">
-                Simpan & Selesaikan
-            </button>
-        </x-slot>
-    </x-ui.modal>
 
     {{-- MODAL KIRIM EMAIL MASSAL --}}
     <x-ui.modal-form id="sendBulkModal" title="Jadwalkan Surat Kelulusan Massal" size="md">
