@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\{JadwalTes as Jadwal, User as Mahasantri};
+use App\Models\{JadwalTes as Jadwal, User as Mahasantri, JadwalPenguji as Penguji};
 
 class HasilTes extends Model
 {
-    protected $table = "hasil_tes";
+    protected $table = "hasil_seleksi";
     protected $primaryKey = "id_hasil";
     protected $keyType = "string";
     public $incrementing = false;
@@ -15,13 +15,7 @@ class HasilTes extends Model
     protected $fillable = [
         'id_hasil',
         'status',
-        'catatan_penguji',
-        'nilai_bacaan_al_quran',
-        'nilai_tajwid_tahsin',
-        'nilai_hafalan',
-        'nilai_wawancara',
         'total_nilai',
-        'id_mahasantri',
         'id_jadwal',
     ];
 
@@ -29,7 +23,18 @@ class HasilTes extends Model
         return $this->belongsTo(Jadwal::class, 'id_jadwal', 'id_jadwal');
     }
 
+    public function jadwalPenguji() {
+        return $this->hasMany(Penguji::class, 'id_jadwal', 'id_jadwal');
+    }
+
     public function mahasantri() {
-        return $this->belongsTo(Mahasantri::class, 'id_mahasantri', 'id_mahasantri');
+        return $this->hasOneThrough(
+            Mahasantri::class,
+            Jadwal::class,
+            'id_jadwal',   // Foreign key on jadwal_tes
+            'id_mahasantri', // Foreign key on users/mahasantri
+            'id_jadwal',    // Local key on hasil_tes
+            'id_mahasantri' // Local key on jadwal_tes
+        );
     }
 }

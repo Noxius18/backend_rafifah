@@ -11,27 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('hasil_tes', function (Blueprint $table) {
+        Schema::create('hasil_seleksi', function (Blueprint $table) {
             $table->char('id_hasil', 5)->primary();
             $table->enum('status', ['Belum Tes', 'Pertimbangan', 'Lulus', 'Tidak Lulus'])->default('Belum Tes');
-            $table->text('catatan_penguji')->nullable();
-            $table->integer('nilai_bacaan_al_quran')->nullable();
-            $table->integer('nilai_tajwid_tahsin')->nullable();
-            $table->integer('nilai_hafalan')->nullable();
-            $table->integer('nilai_wawancara')->nullable();
             $table->integer('total_nilai')->nullable();
-            $table->char('id_mahasantri', 6);
             $table->char('id_jadwal', 5);
-
-            $table->foreign('id_mahasantri')
-                  ->references('id_mahasantri')
-                  ->on('mahasantri')
-                  ->onDelete('cascade')
-                  ->onUpdate('cascade');
 
             $table->foreign('id_jadwal')
                   ->references('id_jadwal')
-                  ->on('jadwal_tes')
+                  ->on('jadwal_seleksi')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');
         });
@@ -42,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('hasil_tes');
+        Schema::dropIfExists('hasil_seleksi');
     }
 };
