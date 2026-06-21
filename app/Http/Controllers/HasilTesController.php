@@ -17,6 +17,12 @@ class HasilTesController extends Controller
      */
     public function index(JadwalTes $jadwalTes)
     {
+        // Guard: hanya bisa input nilai jika jadwal sudah disetujui Ketua Panitia
+        if ($jadwalTes->status_jadwal !== 'Disetujui') {
+            return redirect()->route('seleksi.index')
+                ->with('error', 'Jadwal belum disetujui oleh Ketua Panitia. Nilai hanya bisa diinput setelah jadwal disetujui.');
+        }
+
         $jadwalTes->load([
             'penanggungJawab', 'mahasantri',
             'jadwalPenguji.panitia',
@@ -82,6 +88,16 @@ class HasilTesController extends Controller
         ]);
 
         $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+
+        // Guard: hanya bisa simpan nilai jika jadwal sudah disetujui
+        if ($jadwal->status_jadwal !== 'Disetujui') {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Jadwal belum disetujui Ketua Panitia'], 403);
+            }
+            return redirect()->route('seleksi.index')
+                ->with('error', 'Jadwal belum disetujui oleh Ketua Panitia.');
+        }
+
         $userId = auth()->user()->id_panitia;
         $isCreator = $jadwal->penanggung_jawab == $userId;
 
@@ -196,6 +212,12 @@ class HasilTesController extends Controller
         ]);
 
         $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+
+        // Guard: hanya bisa simpan hasil jika jadwal sudah disetujui
+        if ($jadwal->status_jadwal !== 'Disetujui') {
+            return response()->json(['error' => 'Jadwal belum disetujui Ketua Panitia'], 403);
+        }
+
         if (auth()->user()->id_panitia !== $jadwal->penanggung_jawab) {
             return response()->json(['error' => 'Hanya pembuat jadwal'], 403);
         }

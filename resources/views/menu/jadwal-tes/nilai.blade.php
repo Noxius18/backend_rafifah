@@ -17,6 +17,7 @@
     $canInput = count($tugas) > 0;
     $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
     $isPanitia = auth()->user()->jabatan === 'Panitia';
+    $isApproved = $jadwalTes->status_jadwal === 'Disetujui';
 
     // Hasil tes
     $hasilTesRow = $hasilTes->first();
@@ -234,7 +235,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     ['key' => 'Wawancara', 'field' => 'nilai_wawancara', 'catatanField' => 'catatan_wawancara', 'label' => 'Wawancara'],
                 ] as $aspek)
                 @php
-                    $canEditThis = in_array($aspek['key'], $tugas) || $isCreator || $isKetuaPanitia;
+                    $canEditThis = ($isApproved && (in_array($aspek['key'], $tugas) || $isCreator)) || $isKetuaPanitia;
                     $nilaiAwal = $nilaiPerAspek[$aspek['key']]['nilai'] ?? '';
                     $isNilai70 = ($nilaiAwal === 70 || $nilaiAwal === '70');
                     $pengujiNama = $nilaiPerAspek[$aspek['key']]['penguji'] ?? '-';
@@ -346,7 +347,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     @endif
                 </div>
                 <div class="flex items-center gap-2">
-                    @if($isPanitia && !$isPertimbangan)
+                    @if($isPanitia && !$isPertimbangan && $isApproved)
                         <button type="button" @click="submitNilai()" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95">
                             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
@@ -354,7 +355,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                             Simpan Nilai
                         </button>
                     @endif
-                    @if(($isCreator || $isPanitia) && !$isPertimbangan)
+                    @if(($isCreator || $isPanitia) && !$isPertimbangan && $isApproved)
                         <button type="button" @click="simpanHasil()" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">
                             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
