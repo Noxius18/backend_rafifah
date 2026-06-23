@@ -143,4 +143,80 @@ class LaporanController extends Controller
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="laporan-overall.pdf"');
     }
+
+/**
+     * Cetak PDF — laporan panitia per gelombang (Penanggung jawab & List Penguji)
+     */
+    public function cetakLaporanPanitia(Request $request, $id)
+    {
+        // 1. Ambil data gelombang
+        $gelombang = Gelombang::findOrFail($id);
+
+        // 2. Ambil jadwal tes beserta Penanggung Jawab dan Penguji
+        $jadwalTes = JadwalTes::with(['penanggungJawab', 'jadwalPenguji.panitia'])
+            ->whereBetween('tanggal', [$gelombang->start_date, $gelombang->end_date])
+            ->get();
+
+        // 3. Ambil Penanggung Jawab dari jadwal tes (diambil dari jadwal pertama)
+        $penanggungJawab = $jadwalTes->first()?->penanggungJawab;
+
+        // 4. Ekstrak daftar Penguji unik & gabungkan bidang ujinya
+        $pengujiList = collect();
+        foreach ($jadwalTes as $jadwal) {
+            foreach ($jadwal->jadwalPenguji as $jp) {
+                if ($jp->panitia) {
+                    $panitiaId = $jp->id_panitia;
+
+                    // Jika penguji belum ada di list, masukkan
+                    if (!$pengujiList->has($panitiaId)) {
+                        $pengujiList->put($panitiaId, [
+                            'nama'       => $jp->panitia->nama_lengkap,
+                            'bidang_uji' => [] // Buat array untuk menampung bidang uji
+                        ]);
+                    }
+
+                    // Tarik data sementara untuk di-update
+                    $dataPenguji = $pengujiList->get($panitiaId);
+                    
+                    // Jika bidang uji belum ada di array orang tersebut, tambahkan
+                    if (!in_array($jp->aspek_penguji, $dataPenguji['bidang_uji'])) {
+                        $dataPenguji['bidang_uji'][] = $jp->aspek_penguji;
+                    }
+
+                    // Kembalikan data yang sudah di-update ke collection
+                    $pengujiList->put($panitiaId, $dataPenguji);
+                }
+            }
+        }
+
+        // 5. Ubah array bidang uji menjadi string yang dipisahkan koma
+        $formattedPengujiList = $pengujiList->map(function ($item) {
+            $item['bidang_uji'] = implode(', ', $item['bidang_uji']);
+            return $item;
+        })->values();
+
+        // 6. Render HTML dari file blade
+        $html = view('menu.laporan.pdf-panitia', [
+            'gelombang'       => $gelombang,
+            'penanggungJawab' => $penanggungJawab,
+            'pengujiList'     => $formattedPengujiList, 
+            'date'            => now()->format('d/m/Y H:i'),
+        ])->render();
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'Laporan-Panitia-Seleksi-' . str_replace(' ', '-', $gelombang->nama ?? 'Gelombang') . '.pdf';
+
+        return response($dompdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+    
 }
