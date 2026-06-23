@@ -8,7 +8,8 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use App\Models\User;
 use App\Models\HasilTes;
-use Barryvdh\DomPDF\Facade\Pdf; // Pastikan Facade PDF di-import
+use App\Models\JadwalTes;
+use Barryvdh\DomPDF\Facade\Pdf; 
 
 class TestResultPdf extends Mailable implements ShouldQueue
 {
@@ -17,7 +18,6 @@ class TestResultPdf extends Mailable implements ShouldQueue
     public $mahasantri;
     public $hasil;
 
-    // Parameter diubah, kita tidak lagi melempar PDF mentah dari luar
     public function __construct(User $mahasantri, HasilTes $hasil)
     {
         $this->mahasantri = $mahasantri;
@@ -26,10 +26,17 @@ class TestResultPdf extends Mailable implements ShouldQueue
 
     public function build()
     {
-        // Generate PDF DI DALAM email menggunakan template yang SAMA PERSIS dengan tombol Print
+        // 1. Tarik data jadwal beserta nilai dari pengujinya (relasi jadwalPenguji)
+        // Kita cocokan berdasarkan id_jadwal yang ada di tabel hasil_seleksi
+        $jadwal = JadwalTes::with('jadwalPenguji.panitia')
+            ->where('id_jadwal', $this->hasil->id_jadwal)
+            ->first();
+
+        // 2. Generate PDF dan pastikan variabel $jadwal ikut dikirim!
         $pdf = Pdf::loadView('menu.laporan.pdf-nilai-single', [
             'mahasantri' => $this->mahasantri,
             'hasil'      => $this->hasil,
+            'jadwal'     => $jadwal, // <-- Ini yang bikin error kemarin, sekarang sudah disuntikkan!
         ])->setPaper('A4');
 
         return $this->subject('Hasil Ujian Mahasantri Baru')
