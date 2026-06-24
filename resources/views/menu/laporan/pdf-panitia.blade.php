@@ -72,7 +72,7 @@
                 </tr>
                 <tr>
                     <td class="label">Periode Pelaksanaan</td>
-                    <td>: <span class="value" style="color: #334155;">{{ \Carbon\Carbon::parse($gelombang->start_date)->format('d F Y') }} - {{ \Carbon\Carbon::parse($gelombang->end_date)->format('d F Y') }}</span></td>
+                    <td>: <span class="value" style="color: #334155;">{{ \Carbon\Carbon::parse($gelombang->start_date)->locale('id')->translatedFormat('d F Y') }} - {{ \Carbon\Carbon::parse($gelombang->end_date)->locale('id')->translatedFormat('d F Y') }}</span></td>
                 </tr>
                 <tr>
                     <td class="label">Penanggung Jawab</td>

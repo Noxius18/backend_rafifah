@@ -114,12 +114,12 @@ class LaporanController extends Controller
         // Urutkan gelombang
         ksort($gelombangData);
 
-        // Tambahkan periode ke setiap gelombang
+        // Tambahkan periode ke setiap gelombang (SUDAH DISESUAIKAN KE BAHASA INDONESIA)
         foreach ($gelombangData as $gelombangNama => &$data) {
             $gelombang = Gelombang::where('nama', $gelombangNama)->first();
             if ($gelombang) {
-                $data['periode'] = Carbon::parse($gelombang->start_date)->format('d F Y') . ' - ' .
-                                   Carbon::parse($gelombang->end_date)->format('d F Y');
+                $data['periode'] = Carbon::parse($gelombang->start_date)->locale('id')->translatedFormat('d F Y') . ' - ' .
+                                   Carbon::parse($gelombang->end_date)->locale('id')->translatedFormat('d F Y');
             }
         }
 
@@ -144,7 +144,7 @@ class LaporanController extends Controller
             ->header('Content-Disposition', 'inline; filename="laporan-overall.pdf"');
     }
 
-/**
+    /**
      * Cetak PDF — laporan panitia per gelombang (Penanggung jawab & List Penguji)
      */
     public function cetakLaporanPanitia(Request $request, $id)
@@ -171,7 +171,7 @@ class LaporanController extends Controller
                     if (!$pengujiList->has($panitiaId)) {
                         $pengujiList->put($panitiaId, [
                             'nama'       => $jp->panitia->nama_lengkap,
-                            'bidang_uji' => [] // Buat array untuk menampung bidang uji
+                            'bidang_uji' => [] 
                         ]);
                     }
 
@@ -218,5 +218,4 @@ class LaporanController extends Controller
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
     }
-    
 }
