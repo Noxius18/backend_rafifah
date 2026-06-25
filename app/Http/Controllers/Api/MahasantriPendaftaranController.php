@@ -9,98 +9,84 @@ use App\Models\Orangtua;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
-class MahasantriProfileController extends Controller
+class MahasantriPendaftaranController extends Controller
 {
     private const DOCUMENT_FIELDS = [
-        'dokumen_ktp' => 'KTP',
-        'dokumen_kk' => 'KK',
-        'dokumen_ijazah' => 'Ijazah',
-        'dokumen_surat_izin_orangtua' => 'Surat Izin Orangtua',
-        'dokumen_pas_foto' => 'Pas Foto',
+        'ktp' => 'KTP',
+        'kk' => 'KK',
+        'ijazah' => 'Ijazah',
+        'surat_izin_orangtua' => 'Surat Izin Orangtua',
+        'pas_foto' => 'Pas Foto',
     ];
 
-    public function updateProfile(Request $request)
+    public function submit(Request $request)
     {
         $mahasantri = $request->user();
 
         $validated = $request->validate([
             'nik' => [
-                'nullable',
+                'required',
                 'digits:16',
                 Rule::unique('mahasantri', 'nik')->ignore($mahasantri->id_mahasantri, 'id_mahasantri'),
             ],
             'nisn' => [
-                'nullable',
+                'required',
                 'digits:10',
                 Rule::unique('mahasantri', 'nisn')->ignore($mahasantri->id_mahasantri, 'id_mahasantri'),
             ],
-            'jenis_kelamin' => 'nullable|in:L,P',
-            'tempat_lahir' => 'nullable|string|max:50',
-            'alamat' => 'nullable|string|max:255',
-            'tanggal_lahir' => 'nullable|date',
-        ]);
-
-        $mahasantri->update($validated);
-
-        return (new MahasantriResource($mahasantri->fresh()->load(['orangtuas', 'berkas.riwayatUnduhan'])))
-            ->additional(['message' => 'Profil berhasil diperbarui.']);
-    }
-
-    public function replaceOrangtua(Request $request)
-    {
-        $validated = $request->validate([
-            'orangtua' => 'required|array|min:1|max:3',
+            'jenis_kelamin' => 'required|in:L,P',
+            'tempat_lahir' => 'required|string|max:50',
+            'alamat' => 'required|string|max:255',
+            'tanggal_lahir' => 'required|date',
+            'orangtua' => 'required|array|min:2|max:3',
             'orangtua.*.tipe_hubungan' => 'required|in:Ayah,Ibu,Wali',
             'orangtua.*.nama_lengkap' => 'required|string|max:25',
             'orangtua.*.pekerjaan' => 'nullable|string|max:20',
             'orangtua.*.alamat' => 'nullable|string|max:255',
             'orangtua.*.no_wa' => 'nullable|string|max:20',
+            'berkas' => 'required|array',
+            'berkas.ktp' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'berkas.kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'berkas.ijazah' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'berkas.surat_izin_orangtua' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'berkas.pas_foto' => 'required|file|mimes:jpg,jpeg,png|max:5120',
         ]);
 
-        $mahasantri = $request->user();
         $items = $this->normalizeOrangtua($validated['orangtua'], $mahasantri->id_mahasantri);
+        $this->ensureRequiredParentsPresent($items);
 
-        DB::transaction(function () use ($mahasantri, $items) {
-            $mahasantri->orangtuas()->delete();
-
-            $nextNumber = $this->nextNumericId(Orangtua::query()->pluck('id_orangtua')->all());
-            foreach ($items as $item) {
-                Orangtua::create([
-                    'id_orangtua' => 'ORT' . str_pad($nextNumber++, 2, '0', STR_PAD_LEFT),
-                    'id_mahasantri' => $mahasantri->id_mahasantri,
-                    ...$item,
-                ]);
-            }
-        });
-
-        return (new MahasantriResource($mahasantri->fresh()->load(['orangtuas', 'berkas.riwayatUnduhan'])))
-            ->additional(['message' => 'Data orang tua/wali berhasil diperbarui.']);
-    }
-
-    public function uploadDocuments(Request $request)
-    {
-        $validated = $request->validate([
-            'dokumen_ktp' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'dokumen_kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'dokumen_ijazah' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'dokumen_surat_izin_orangtua' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'dokumen_pas_foto' => 'required|file|mimes:jpg,jpeg,png|max:5120',
-        ]);
-
-        $mahasantri = $request->user();
         $storedPaths = [];
 
         try {
-            DB::transaction(function () use ($request, $mahasantri, &$storedPaths) {
-                $nextNumber = $this->nextNumericId(Berkas::query()->pluck('id_berkas')->all());
+            DB::transaction(function () use ($request, $mahasantri, $validated, $items, &$storedPaths) {
+                $mahasantri->update([
+                    'nik' => $validated['nik'],
+                    'nisn' => $validated['nisn'],
+                    'jenis_kelamin' => $validated['jenis_kelamin'],
+                    'tempat_lahir' => $validated['tempat_lahir'],
+                    'alamat' => $validated['alamat'],
+                    'tanggal_lahir' => $validated['tanggal_lahir'],
+                ]);
 
+                $mahasantri->orangtuas()->delete();
+
+                $nextOrangtuaNumber = $this->nextNumericId(Orangtua::query()->pluck('id_orangtua')->all());
+                foreach ($items as $item) {
+                    Orangtua::create([
+                        'id_orangtua' => 'ORT' . str_pad($nextOrangtuaNumber++, 2, '0', STR_PAD_LEFT),
+                        'id_mahasantri' => $mahasantri->id_mahasantri,
+                        ...$item,
+                    ]);
+                }
+
+                $nextBerkasNumber = $this->nextNumericId(Berkas::query()->pluck('id_berkas')->all());
                 foreach (self::DOCUMENT_FIELDS as $field => $tipeBerkas) {
-                    $file = $request->file($field);
+                    $file = $request->file("berkas.{$field}");
                     $berkas = $mahasantri->berkas()->where('tipe_berkas', $tipeBerkas)->first();
-                    $idBerkas = $berkas?->id_berkas ?? 'BR' . str_pad($nextNumber++, 3, '0', STR_PAD_LEFT);
+                    $idBerkas = $berkas?->id_berkas ?? 'BR' . str_pad($nextBerkasNumber++, 3, '0', STR_PAD_LEFT);
                     $extension = $file->getClientOriginalExtension();
                     $path = $file->storeAs($mahasantri->id_mahasantri, "{$idBerkas}.{$extension}", 'private_berkas');
                     $storedPaths[] = $path;
@@ -139,7 +125,7 @@ class MahasantriProfileController extends Controller
         }
 
         return (new MahasantriResource($mahasantri->fresh()->load(['orangtuas', 'berkas.riwayatUnduhan'])))
-            ->additional(['message' => 'Dokumen berhasil diunggah.']);
+            ->additional(['message' => 'Data pendaftaran berhasil dikirim.']);
     }
 
     /**
@@ -177,6 +163,22 @@ class MahasantriProfileController extends Controller
                 'no_wa' => $phone,
             ];
         })->all();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function ensureRequiredParentsPresent(array $items): void
+    {
+        $types = collect($items)->pluck('tipe_hubungan');
+
+        foreach (['Ayah', 'Ibu'] as $requiredType) {
+            if (!$types->contains($requiredType)) {
+                throw ValidationException::withMessages([
+                    'orangtua' => ["Data {$requiredType} wajib diisi."],
+                ]);
+            }
+        }
     }
 
     private function normalizeIndonesianPhone(?string $phone, int $index): ?string
