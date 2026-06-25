@@ -55,22 +55,7 @@
     })->toArray();
 @endphp
 
-<div x-data="{
-    toast: { show: false, message: '', type: 'success', timer: null },
-    showToast(message, type = 'success') {
-        if (this.toast.timer) clearTimeout(this.toast.timer);
-        Object.assign(this.toast, { message, type, show: true });
-        this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
-    },
-}"
-x-init="
-    @if(session('success')) showToast('{{ session('success') }}') @endif
-    @if(session('error'))   showToast('{{ session('error') }}', 'error') @endif
-    @if($errors->any() && !old('_method')) $nextTick(() => document.getElementById('addModal')?.showModal()) @endif
-    @if($errors->any() && old('_method') === 'PUT') $nextTick(() => document.getElementById('editModal')?.showModal()) @endif
-">
-
-    <x-ui.toast />
+<div>
     <x-ui.sidebar>
         <section class="space-y-6 px-4 py-4">
             <div class="flex items-center justify-between">
@@ -84,6 +69,16 @@ x-init="
                 <button type="button" onclick="addModal.showModal()" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95"><x-heroicon-s-user-plus class="h-4 w-4" /> Tambah</button>
             </div>
 
+            <div class="space-y-3">
+                @if(session('success'))
+                    <x-ui.alert type="success" :alert="session('success')" />
+                @endif
+
+                @if(session('error'))
+                    <x-ui.alert type="error" :alert="session('error')" />
+                @endif
+            </div>
+
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
                 <x-ui.data-table :rows="$rows" :columns="$columns" :total="$panitias->count()" empty-message="Belum ada data panitia" add-label="Tambah Panitia" />
             </div>
@@ -93,17 +88,30 @@ x-init="
     {{-- MODAL TAMBAH --}}
     <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus" size="md">
         <x-slot name="body">
-            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5" x-data="{ password: '', confirm: '' }" @submit.prevent="if(password !== confirm) { alert('Password dan konfirmasi tidak cocok.'); return false; } $el.submit();" novalidate>
+            @if($errors->any() && old('_form') === 'add-panitia')
+                <x-ui.alert type="error" alert="Periksa kembali data panitia baru.">
+                    <ul class="list-disc space-y-1 pl-5">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </x-ui.alert>
+            @endif
+            <div id="addModal-client-alert" class="hidden">
+                <x-ui.alert type="error" alert="Lengkapi semua field wajib terlebih dahulu." />
+            </div>
+            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5" novalidate>
                 @csrf
-                <div><x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required /></div>
-                <div><x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" required /></div>
-                <div><x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" required /></div>
-                <div><x-ui.form-input name="password" label="Password" placeholder="Minimal 8 karakter" type="password" icon="lock-closed" required x-model="password" /></div>
-                <div x-show="password && password.length > 0" x-cloak>
-                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" x-model="confirm" />
-                    <div x-show="confirm && password !== confirm" class="text-xs text-red-600 mt-0.5">Password dan konfirmasi tidak cocok.</div>
+                <input type="hidden" name="_form" value="add-panitia">
+                <div><x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required value="{{ old('nama_lengkap') }}" /></div>
+                <div><x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" required value="{{ old('username') }}" /></div>
+                <div><x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" required value="{{ old('no_hp') }}" /></div>
+                <div><x-ui.form-input name="password" label="Password" placeholder="Minimal 8 karakter" type="password" icon="lock-closed" required /></div>
+                <div data-password-confirm-wrap hidden>
+                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
+                    <div data-password-mismatch class="mt-0.5 text-xs text-red-600" hidden>Password dan konfirmasi tidak cocok.</div>
                 </div>
-                <div><x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="user" required /></div>
+                <div><x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="user" required :selected="old('jabatan')" /></div>
             </form>
         </x-slot>
         <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="addModal.close()">Batal</button><button type="submit" form="addModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">Simpan</button></x-slot>
@@ -113,8 +121,18 @@ x-init="
     <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit" size="lg">
         <x-slot name="body">
             <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
-            <form id="editModal-form" action="" method="POST" class="space-y-5" x-data="{ password: '', confirm: '' }" @submit.prevent="if(password !== confirm) { alert('Password dan konfirmasi tidak cocok.'); return false; } $el.submit();" novalidate>
+            @if($errors->any() && old('_form') === 'edit-panitia')
+                <x-ui.alert type="error" alert="Periksa kembali data panitia.">
+                    <ul class="list-disc space-y-1 pl-5">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </x-ui.alert>
+            @endif
+            <form id="editModal-form" action="" method="POST" class="space-y-5" novalidate>
                 @csrf @method('PUT')
+                <input type="hidden" name="_form" value="edit-panitia">
                 <div class="form-control">
                     <label class="label pb-1.5"><span class="label-text font-medium text-slate-700">ID Panitia</span></label>
                     <div class="relative">
@@ -124,22 +142,22 @@ x-init="
                 </div>
             
                 <div class="opacity-70 bg-slate-50 pointer-events-none">
-                    <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" readonly />
+                    <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" readonly value="{{ old('nama_lengkap') }}" />
                 </div>
                 <div class="opacity-70 bg-slate-50 pointer-events-none">
-                    <x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" readonly />
+                    <x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" readonly value="{{ old('username') }}" />
                 </div>
                 
-                <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" />
-                <x-ui.form-input name="password" label="Password Baru" placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" x-model="password" />
+                <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" value="{{ old('no_hp') }}" />
+                <x-ui.form-input name="password" label="Password Baru" placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" />
                 
-                <div x-show="password && password.length > 0" x-cloak>
-                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" x-model="confirm" />
+                <div data-password-confirm-wrap hidden>
+                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
                 </div>
-                <div x-show="password && confirm && password !== confirm" class="text-sm text-red-600 mt-1">Password dan konfirmasi tidak cocok.</div>
+                <div data-password-mismatch class="text-sm text-red-600 mt-1" hidden>Password dan konfirmasi tidak cocok.</div>
             
                 {{-- KINI BISA DI-EDIT --}}
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" />
+                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" :selected="old('jabatan')" />
             </form>
             </div>
         </x-slot>
@@ -150,14 +168,110 @@ x-init="
 </div>
 
 <script>
+    function bindRequiredFieldsAlert(formId, alertId, message) {
+        const form = document.getElementById(formId);
+        const alert = document.getElementById(alertId);
+        if (!form || !alert) return;
+
+        const getRequiredFields = () => Array.from(form.querySelectorAll('[required]')).filter((field) => {
+            if (field.disabled || field.type === 'hidden') return false;
+            return !field.closest('[hidden]');
+        });
+
+        const isEmpty = (field) => {
+            if (field.type === 'file') return field.files.length === 0;
+            return !String(field.value ?? '').trim();
+        };
+
+        const toggleAlert = (show, text = message) => {
+            alert.classList.toggle('hidden', !show);
+            const textNode = alert.querySelector('[role="alert"] .text-sm');
+            if (textNode) {
+                textNode.textContent = text;
+            }
+        };
+
+        form.addEventListener('submit', function (event) {
+            const firstEmptyField = getRequiredFields().find(isEmpty);
+            if (!firstEmptyField) {
+                toggleAlert(false);
+                return;
+            }
+
+            event.preventDefault();
+            toggleAlert(true);
+            firstEmptyField.focus();
+        });
+
+        form.addEventListener('input', function () {
+            if (!getRequiredFields().some(isEmpty)) {
+                toggleAlert(false);
+            }
+        });
+
+        form.addEventListener('change', function () {
+            if (!getRequiredFields().some(isEmpty)) {
+                toggleAlert(false);
+            }
+        });
+    }
+
+    function bindPasswordConfirmation(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        const passwordInput = form.querySelector('[name="password"]');
+        const confirmInput = form.querySelector('[name="password_confirmation"]');
+        const confirmWrap = form.querySelector('[data-password-confirm-wrap]');
+        const mismatch = form.querySelector('[data-password-mismatch]');
+
+        if (!passwordInput || !confirmInput || !confirmWrap) return;
+
+        const sync = () => {
+            const hasPassword = passwordInput.value.length > 0;
+            confirmWrap.hidden = !hasPassword;
+            confirmInput.required = hasPassword;
+
+            if (!hasPassword) {
+                confirmInput.value = '';
+                if (mismatch) mismatch.hidden = true;
+                return;
+            }
+
+            const hasMismatch = confirmInput.value.length > 0 && passwordInput.value !== confirmInput.value;
+            if (mismatch) mismatch.hidden = !hasMismatch;
+        };
+
+        passwordInput.addEventListener('input', sync);
+        confirmInput.addEventListener('input', sync);
+        form.addEventListener('submit', function (event) {
+            sync();
+
+            if (passwordInput.value && passwordInput.value !== confirmInput.value) {
+                event.preventDefault();
+                if (mismatch) mismatch.hidden = false;
+                window.alert('Password dan konfirmasi tidak cocok.');
+                confirmInput.focus();
+            }
+        });
+
+        sync();
+    }
+
     function openEditModal({ id, nama, username, no_hp, jabatan }) {
-        document.getElementById('editModal-form').action = `/panitia/${id}`;
+        const form = document.getElementById('editModal-form');
+        const passwordInput = form.querySelector('[name="password"]');
+        const confirmInput = form.querySelector('[name="password_confirmation"]');
+
+        form.action = `/panitia/${id}`;
         document.getElementById('editModal-id-display').value  = id;
-        document.querySelector('#editModal-form [name="nama_lengkap"]').value = nama;
-        document.querySelector('#editModal-form [name="username"]').value     = username;
-        document.querySelector('#editModal-form [name="no_hp"]').value        = no_hp;
-        document.querySelector('#editModal-form [name="jabatan"]').value      = jabatan;
-        document.querySelector('#editModal-form [name="password"]').value     = '';
+        form.querySelector('[name="nama_lengkap"]').value = nama;
+        form.querySelector('[name="username"]').value     = username;
+        form.querySelector('[name="no_hp"]').value        = no_hp;
+        form.querySelector('[name="jabatan"]').value      = jabatan;
+        passwordInput.value = '';
+        confirmInput.value = '';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
         editModal.showModal();
     }
     
@@ -167,6 +281,22 @@ x-init="
         form.action = url;
         document.getElementById('deleteModal').showModal();
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        bindRequiredFieldsAlert('addModal-form', 'addModal-client-alert', 'Lengkapi semua field wajib terlebih dahulu.');
+        bindPasswordConfirmation('addModal-form');
+        bindPasswordConfirmation('editModal-form');
+
+        const modalMap = {
+            'add-panitia': 'addModal',
+            'edit-panitia': 'editModal',
+        };
+
+        const modalId = modalMap[@json(old('_form'))];
+        if (modalId) {
+            document.getElementById(modalId)?.showModal();
+        }
+    });
 </script>
 
 @endsection

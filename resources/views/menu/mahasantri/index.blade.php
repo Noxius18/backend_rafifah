@@ -79,18 +79,11 @@
                             </div>',
         ];
     })->toArray();
+
+    $importErrors = session('import_errors');
 @endphp
 
-<div x-data="{
-    toast: { show: false, message: '', type: 'success', timer: null },
-    showToast(message, type = 'success') {
-        if (this.toast.timer) clearTimeout(this.toast.timer);
-        Object.assign(this.toast, { message, type, show: true });
-        this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
-    },
-}" x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
-
-    <x-ui.toast />
+<div>
     <x-ui.sidebar>
         <section class="space-y-6 px-1 py-2">
             <div class="flex items-center justify-between">
@@ -113,6 +106,26 @@
                     </button>
                     @endif
                 </div>
+            </div>
+
+            <div class="space-y-3">
+                @if(session('success'))
+                    <x-ui.alert type="success" :alert="session('success')" />
+                @endif
+
+                @if(session('error'))
+                    <x-ui.alert type="error" :alert="session('error')" />
+                @endif
+
+                @if(is_array($importErrors) && count($importErrors) > 0)
+                    <x-ui.alert type="warning" :alert="count($importErrors) . ' baris gagal diimpor. Perbaiki file Excel lalu upload ulang.'">
+                        <ul class="list-disc space-y-1 pl-5">
+                            @foreach($importErrors as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
             </div>
 
             {{-- Filter Chips Gelombang --}}
@@ -166,17 +179,27 @@
     <x-ui.modal-form id="editModal" title="Edit Mahasantri">
         <x-slot name="body">
             <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
+            @if($errors->any() && old('_form') === 'edit-mahasantri')
+                <x-ui.alert type="error" alert="Periksa kembali data mahasantri.">
+                    <ul class="list-disc space-y-1 pl-5">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </x-ui.alert>
+            @endif
             <form id="editModal-form" action="" method="POST" class="space-y-3">
                 @csrf @method('PUT')
+                <input type="hidden" name="_form" value="edit-mahasantri">
                 <div class="form-control"><label class="label"><span class="label-text font-semibold text-sm">ID Mahasantri</span></label><input type="text" id="editModal-id-display" class="input input-bordered input-sm bg-base-200" disabled /></div>
-                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required />
-                <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" />
-                <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" />
-                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" />
-                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" />
-                <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" />
-                <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" />
-                <x-ui.form-select name="status" label="Status" :options="$statusOptions" />
+                <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required value="{{ old('nama_lengkap') }}" />
+                <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" value="{{ old('nik') }}" />
+                <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" value="{{ old('nisn') }}" />
+                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin')" />
+                <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir') }}" />
+                <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat') }}" />
+                <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir') }}" />
+                <x-ui.form-select name="status" label="Status" :options="$statusOptions" :selected="old('status')" />
             </form>
             </div>
         </x-slot>
@@ -186,6 +209,18 @@
     <x-ui.modal-form id="importModal" title="Import Data Mahasantri dari Excel">
         <x-slot name="body">
             <div class="space-y-4">
+                @if($errors->any() && old('_form') === 'import-excel')
+                    <x-ui.alert type="error" alert="Periksa kembali file Excel yang diunggah.">
+                        <ul class="list-disc space-y-1 pl-5">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
+                <div id="importModal-client-alert" class="hidden">
+                    <x-ui.alert type="error" alert="Pilih file Excel terlebih dahulu sebelum mengunggah." />
+                </div>
                 <div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm text-sky-700">
                     <div class="flex items-start gap-2">
                         <x-heroicon-s-information-circle class="h-5 w-5 mt-0.5 shrink-0" />
@@ -195,8 +230,9 @@
                         </div>
                     </div>
                 </div>
-                <form id="importModal-form" action="{{ route('mahasantri.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                <form id="importModal-form" action="{{ route('mahasantri.import') }}" method="POST" enctype="multipart/form-data" class="space-y-3" novalidate>
                     @csrf
+                    <input type="hidden" name="_form" value="import-excel">
                     <div class="form-control"><label class="label"><span class="label-text font-semibold text-sm">Pilih File Excel</span></label><input type="file" name="file" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-sm w-full" required /></div>
                 </form>
             </div>
@@ -284,4 +320,48 @@
         document.getElementById('deleteModal').showModal();
     }
 </script>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const importForm = document.getElementById('importModal-form');
+    const importFileInput = importForm?.querySelector('[name="file"]');
+    const importAlert = document.getElementById('importModal-client-alert');
+
+    const toggleImportAlert = (show) => {
+        if (!importAlert) return;
+        importAlert.classList.toggle('hidden', !show);
+    };
+
+    if (importForm && importFileInput) {
+        importForm.addEventListener('submit', function (event) {
+            if (importFileInput.files.length > 0) {
+                toggleImportAlert(false);
+                return;
+            }
+
+            event.preventDefault();
+            toggleImportAlert(true);
+            importFileInput.focus();
+        });
+
+        importFileInput.addEventListener('change', function () {
+            if (importFileInput.files.length > 0) {
+                toggleImportAlert(false);
+            }
+        });
+    }
+
+    const modalMap = {
+        'edit-mahasantri': 'editModal',
+        'import-excel': 'importModal',
+    };
+
+    const modalId = modalMap[@json(old('_form'))];
+    if (modalId) {
+        document.getElementById(modalId)?.showModal();
+    }
+});
+</script>
+@endpush
 @endsection

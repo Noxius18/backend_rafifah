@@ -109,12 +109,6 @@
 @endphp
 
 <div x-data="{
-    toast: { show: false, message: '', type: 'success', timer: null },
-    showToast(message, type = 'success') {
-        if (this.toast.timer) clearTimeout(this.toast.timer);
-        Object.assign(this.toast, { message, type, show: true });
-        this.toast.timer = setTimeout(() => this.toast.show = false, 4000);
-    },
     filterGelombang: '',
     reviewStep: 'info', // 'info' | 'reject_form'
     rejectNote: '',
@@ -163,10 +157,7 @@
             document.getElementById('editByDateModal').showModal();
         },
     },
-}"
-x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if(session('error')) showToast('{{ session('error') }}', 'error') @endif">
-
-    <x-ui.toast />
+}">
     <x-ui.sidebar>
         <section class="space-y-6 px-1 py-2">
             <div class="flex items-center justify-between">
@@ -236,6 +227,16 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
             </div>
 
+            <div class="space-y-3">
+                @if(session('success'))
+                    <x-ui.alert type="success" :alert="session('success')" />
+                @endif
+
+                @if(session('error'))
+                    <x-ui.alert type="error" :alert="session('error')" />
+                @endif
+            </div>
+
             <div class="overflow-hidden rounded-xl border border-black/20 bg-white">
                 <x-ui.data-table :rows="$rows" :columns="$columns" :total="$jadwals->total()" empty-message="Belum ada jadwal" add-label="Buat Jadwal" />
                 <x-ui.pagination :paginator="$jadwals" alwaysShow="true" />
@@ -259,34 +260,44 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 </div>
             @endif
             <div class="-mr-2 pr-2">
-            <div id="form-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <div class="flex items-start gap-2">
-                    <svg class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
-                    </svg>
-                    <p class="text-sm text-red-700 font-medium" id="form-error-message"></p>
+            @if($errors->any() && old('_form') === 'add-jadwal')
+                <x-ui.alert type="error" alert="Periksa kembali data jadwal.">
+                    <ul class="list-disc space-y-1 pl-5">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </x-ui.alert>
+            @endif
+            <div id="form-error" class="hidden alert alert-error rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                </svg>
+                <div class="min-w-0 flex-1">
+                    <div class="text-sm font-medium" id="form-error-message"></div>
                 </div>
             </div>
-            <form id="addModal-form" action="{{ route('seleksi.store') }}" method="POST" class="space-y-4" onsubmit="return validateGelombangDate(this)">
+            <form id="addModal-form" action="{{ route('seleksi.store') }}" method="POST" class="space-y-4" onsubmit="return validateGelombangDate(this)" novalidate>
                 @csrf
+                <input type="hidden" name="_form" value="add-jadwal">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     @if($activeGelombang)
-                        <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
+                        <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required value="{{ old('tanggal') }}" />
                     @else
-                        <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required />
+                        <x-ui.form-input name="tanggal" label="Tanggal Seleksi" type="date" required value="{{ old('tanggal') }}" />
                         <p class="text-xs text-red-600 mt-1">
                             <span class="font-medium">Peringatan:</span> Tidak ada gelombang aktif saat ini.
                         </p>
                     @endif
-                    <x-ui.form-input name="jam_mulai" label="Jam Mulai" type="time" required />
-                    <x-ui.form-input name="interval" label="Interval (menit)" type="number" value="30" min="5" max="120" required />
-                    <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." />
+                    <x-ui.form-input name="jam_mulai" label="Jam Mulai" type="time" required value="{{ old('jam_mulai') }}" />
+                    <x-ui.form-input name="interval" label="Interval (menit)" type="number" value="{{ old('interval', 30) }}" min="5" max="120" required />
+                    <x-ui.form-input name="link_zoom" label="Link Zoom" placeholder="https://zoom.us/j/..." value="{{ old('link_zoom') }}" />
                 </div>
                 <div class="border-t border-black/10 pt-3">
                     <p class="mb-2 text-sm font-semibold text-black">Tentukan Penguji Materi</p>
                     <div class="grid grid-cols-1 gap-4">
                         @foreach ($aspekMapping as $aspek => $field)
-                            <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" />
+                            <x-ui.form-select name="penguji_{{ $field }}" :label="$aspek" :options="$panitias->pluck('nama_lengkap', 'id_panitia')->toArray()" placeholder="-- Pilih Panitia --" :selected="old('penguji_' . $field)" />
                         @endforeach
                     </div>
                 </div>
@@ -789,14 +800,47 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             return ['nama' => $g->nama, 'start_date' => $g->start_date, 'end_date' => $g->end_date];
         })->toArray());
 
+        function toggleAddJadwalAlert(show, message = '') {
+            const alert = document.getElementById('form-error');
+            const messageNode = document.getElementById('form-error-message');
+            if (!alert || !messageNode) return;
+
+            alert.classList.toggle('hidden', !show);
+            if (message) {
+                messageNode.textContent = message;
+            }
+        }
+
+        function getAddJadwalRequiredFields(form) {
+            return Array.from(form.querySelectorAll('[required]')).filter((field) => {
+                if (field.disabled || field.type === 'hidden') return false;
+                return !field.closest('[hidden]');
+            });
+        }
+
+        function isFieldEmpty(field) {
+            if (field.type === 'file') return field.files.length === 0;
+            return !String(field.value ?? '').trim();
+        }
+
         function validateGelombangDate(form) {
+            const firstEmptyField = getAddJadwalRequiredFields(form).find(isFieldEmpty);
+            if (firstEmptyField) {
+                toggleAddJadwalAlert(true, 'Lengkapi semua field wajib terlebih dahulu.');
+                firstEmptyField.focus();
+                return false;
+            }
+
             const date = form.querySelector('[name="tanggal"]')?.value;
             if (!date) return true;
             const valid = gelombangs.some(g => date >= g.start_date && date <= g.end_date);
             if (!valid) {
-                document.getElementById('form-error').classList.remove('hidden');
-                document.getElementById('form-error-message').innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun.';
+                toggleAddJadwalAlert(true, 'Tanggal tidak masuk dalam rentang gelombang manapun.');
+                form.querySelector('[name="tanggal"]')?.focus();
+                return false;
             }
+
+            toggleAddJadwalAlert(false);
             return valid;
         }
 
@@ -811,6 +855,30 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
             }
             return valid;
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const addJadwalForm = document.getElementById('addModal-form');
+            if (addJadwalForm) {
+                const resetAddJadwalAlert = () => {
+                    const hasEmptyRequired = getAddJadwalRequiredFields(addJadwalForm).some(isFieldEmpty);
+                    if (!hasEmptyRequired) {
+                        toggleAddJadwalAlert(false);
+                    }
+                };
+
+                addJadwalForm.addEventListener('input', resetAddJadwalAlert);
+                addJadwalForm.addEventListener('change', resetAddJadwalAlert);
+            }
+
+            const modalMap = {
+                'add-jadwal': 'addModal',
+            };
+
+            const modalId = modalMap[@json(old('_form'))];
+            if (modalId) {
+                document.getElementById(modalId)?.showModal();
+            }
+        });
     </script>
 </div>
 @endsection
