@@ -4,33 +4,32 @@
     <meta charset="utf-8">
     <title>Laporan Overall</title>
     <style>
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #1e293b; margin: 25px; }
-        .header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #059669; }
-        .header h1 { font-size: 20px; color: #065f46; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 1px; }
-        .header p { font-size: 10px; color: #94a3b8; margin: 3px 0; }
-        .header .sub { font-size: 12px; color: #475569; font-weight: 600; }
+        /* Base font dikecilkan ke 11px dan margin dipersempit agar hemat kertas */
+        body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #1e293b; margin: 15px; }
+        .header { text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #059669; }
+        .header h1 { font-size: 18px; color: #065f46; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .header p { font-size: 9px; color: #94a3b8; margin: 2px 0; }
+        .header .sub { font-size: 11px; color: #475569; font-weight: 600; }
 
-        .section { margin-bottom: 20px; }
-        .section h2 { font-size: 13px; color: #065f46; border-bottom: 2px solid #a7f3d0; padding-bottom: 5px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .section { margin-bottom: 15px; }
+        .section h2 { font-size: 12px; color: #065f46; border-bottom: 2px solid #a7f3d0; padding-bottom: 3px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* ── Header Gelombang ── */
+        /* ── Header Gelombang (Dibuat lebih tipis) ── */
         .gelombang-header {
             display: flex; justify-content: space-between; align-items: center;
-            background: #f0fdf4; border: 1.5px solid #059669; border-radius: 6px;
-            padding: 8px 14px; margin: 16px 0 8px; page-break-after: avoid;
+            background: #f0fdf4; border: 1.5px solid #059669; border-radius: 4px;
+            padding: 6px 12px; margin: 12px 0 6px; page-break-after: avoid;
         }
-        .gelombang-header .gelombang-nama { font-size: 14px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; }
+        .gelombang-header .gelombang-nama { font-size: 13px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; }
         .gelombang-header .periode { font-size: 11px; color: #475569; }
-        .gelombang-header .penanggung-jawab { font-size: 11px; color: #047857; }
-        .gelombang-header .penanggung-jawab span { font-weight: 600; }
 
-        /* ── Tabel Detail ── */
-        table.detail { width: 100%; border-collapse: collapse; margin-top: 6px; }
-        table.detail th { background: #065f46; color: #fff; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border: 1px solid #047857; }
+        /* ── Tabel Detail (Padding diceperkan agar rapat & irit kertas) ── */
+        table.detail { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        table.detail th { background: #065f46; color: #fff; padding: 6px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border: 1px solid #047857; }
         table.detail th:nth-child(2) { text-align: left; }
-        table.detail td { padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 12px; vertical-align: middle; }
+        table.detail td { padding: 5px 8px; border: 1px solid #cbd5e1; text-align: center; font-size: 11px; vertical-align: middle; }
         table.detail td:nth-child(2) { text-align: left; font-weight: 600; }
-        table.detail td:last-child { text-align: left; color: #b91c1c; font-style: italic; font-size: 11px; }
+        table.detail td:last-child { text-align: left; color: #b91c1c; font-style: italic; font-size: 10px; }
         table.detail tr:nth-child(even) { background: #f8fafc; }
         table.detail tr:nth-child(odd) { background: #ffffff; }
 
@@ -40,25 +39,25 @@
         .badge-belum { color: #94a3b8; }
 
         /* Rincian Nilai */
-        .rincian-nilai { font-size: 10px; color: #334155; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
-        .rincian-nilai .baris { display: block; margin-bottom: 2px; }
+        .rincian-nilai { font-size: 10px; color: #334155; }
+        .rincian-nilai .baris { display: block; margin-bottom: 1px; }
         .rincian-nilai .label-aspek { display: inline-block; width: 125px; font-weight: 600; }
         .rincian-nilai .nilai-aspek { font-weight: 700; color: #065f46; }
         .rincian-nilai .penguji-aspek { color: #64748b; font-size: 9px; }
-        .rincian-nilai .catatan-aspek { display: block; font-size: 9px; color: #6b7280; font-style: italic; margin: -1px 0 3px 130px; }
+        .rincian-nilai .catatan-aspek { display: block; font-size: 9px; color: #6b7280; font-style: italic; margin: 0 0 2px 130px; }
 
         /* ── Tabel Ringkasan (Paling Bawah) ── */
-        .summary-wrapper { page-break-inside: avoid; margin-top: 30px; }
+        .summary-wrapper { page-break-inside: avoid; margin-top: 20px; }
         table.summary { width: 100%; border-collapse: collapse; }
-        table.summary td { padding: 10px 12px; border: 1px solid #d1d5db; font-size: 13px; }
+        table.summary td { padding: 8px 10px; border: 1px solid #d1d5db; font-size: 12px; }
         table.summary .label { background: #f0fdf4; font-weight: 600; color: #065f46; width: 25%; }
-        table.summary .value { font-weight: 700; font-size: 15px; text-align: center; width: 12%; }
+        table.summary .value { font-weight: 700; font-size: 13px; text-align: center; width: 12%; }
         table.summary .value-green { color: #059669; }
         table.summary .value-red { color: #dc2626; }
         table.summary .value-amber { color: #d97706; }
         table.summary .value-slate { color: #475569; }
 
-        .footer { margin-top: 25px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #94a3b8; text-align: center; }
+        .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #94a3b8; text-align: center; }
     </style>
 </head>
 <body>
@@ -81,14 +80,14 @@
             <table class="detail">
                 <thead>
                     <tr>
-                        <th>No</th>
+                        <th width="4%">No</th>
                         <th>Nama Mahasantri</th>
-                        <th>Tgl Daftar</th>
-                        <th>Tgl Ujian</th>
-                        <th>Jam</th>
-                        <th style="width: 30%;">Hasil (Rata-rata & Rincian)</th>
-                        <th>Status</th>
-                        <th style="width: 20%;">Keterangan</th>
+                        <th width="12%">Tgl Daftar</th>
+                        <th width="12%">Tgl Ujian</th>
+                        <th width="8%">Jam</th>
+                        <th style="width: 38%;">Hasil &amp; Rincian</th>
+                        <th width="10%">Status</th>
+                        <th style="width: 20%">Keterangan Ketua Panitia</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -141,11 +140,11 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $mhs->nama_lengkap ?? '-' }}</td>
-                            <td>{{ $mhs->tanggal_daftar ? \Carbon\Carbon::parse($mhs->tanggal_daftar)->format('d/m/Y') : '-' }}</td>
-                            <td>{{ $h->jadwalTes->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->format('d/m/Y') : '-' }}</td>
+                            <td>{{ $mhs->tanggal_daftar ? \Carbon\Carbon::parse($mhs->tanggal_daftar)->locale('id')->translatedFormat('d/m/Y') : '-' }}</td>
+                            <td>{{ $h->jadwalTes->tanggal ? \Carbon\Carbon::parse($h->jadwalTes->tanggal)->locale('id')->translatedFormat('d/m/Y') : '-' }}</td>
                             <td>{{ $h->jadwalTes->jam ? \Carbon\Carbon::parse($h->jadwalTes->jam)->format('H:i') : '-' }}</td>
-                            <td style="vertical-align: top;">
-                                <strong style="font-size: 13px; color: #065f46;">Rata-rata: {{ $h->total_nilai ?? '-' }}</strong>
+                            <td style="vertical-align: top; text-align: left;">
+                                {{-- Baris "Rata-rata:" sudah dibuang, langsung merender list rincian nilai --}}
                                 <div class="rincian-nilai">
                                     <span class="baris">
                                         <span class="label-aspek">Bacaan Al-Qur'an</span>
@@ -198,7 +197,7 @@
         @endforelse
     </div>
 
-    {{-- STATUS / RINGKASAN DI PALING BAWAH --}}
+    {{-- STATUS / RINGKASAN DI PALING BAWAH ── (Dibuat lebih ceper) --}}
     <div class="section summary-wrapper">
         <h2>Ringkasan Status Kelulusan Keseluruhan</h2>
         <table class="summary">
