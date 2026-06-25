@@ -30,7 +30,7 @@ return new class extends Migration
         // Migrate existing data from berkas table
         DB::statement('
             INSERT INTO downloads_log (id_berkas, download_status, error_message, attempted_at)
-            SELECT id_berkas, download_status, error_message, COALESCE(tanggal_upload, NOW()) FROM berkas
+            SELECT id_berkas, download_status, error_message, COALESCE(tanggal_upload, CURRENT_TIMESTAMP) FROM berkas
         ');
     }
 

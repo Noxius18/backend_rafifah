@@ -22,6 +22,7 @@ class User extends Authenticatable
         'id_mahasantri',
         'nama_lengkap',
         'email',
+        'password',
         'nik',
         'nisn',
         'jenis_kelamin',
@@ -47,12 +48,24 @@ class User extends Authenticatable
         ];
     }
 
+    protected $hidden = [
+        'password',
+    ];
+
     public function orangtuas() {
         return $this->hasMany(Orangtua::class, 'id_mahasantri', 'id_mahasantri');
     }
 
     public function berkas() {
         return $this->hasMany(Berkas::class, 'id_mahasantri', 'id_mahasantri');
+    }
+
+    public function apiTokens() {
+        return $this->hasMany(MahasantriApiToken::class, 'id_mahasantri', 'id_mahasantri');
+    }
+
+    public function jadwalTes() {
+        return $this->hasMany(JadwalTes::class, 'id_mahasantri', 'id_mahasantri');
     }
 
     public function hasilTes() {
