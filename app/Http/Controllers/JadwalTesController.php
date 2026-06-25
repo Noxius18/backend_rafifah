@@ -193,8 +193,11 @@ class JadwalTesController extends Controller
         $interval = (int) $validated['interval'];
         $count = 0;
 
-        $last = JadwalTes::where('id_jadwal', 'LIKE', 'JDT%')->orderBy('id_jadwal', 'desc')->first();
-        $urut = $last ? (int) substr($last->id_jadwal, 3) + 1 : 1;
+        $lastNumber = JadwalTes::query()
+            ->pluck('id_jadwal')
+            ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
+            ->max();
+        $urut = ($lastNumber ?? 0) + 1;
 
         // Tentukan waktu kirim reminder: 3 hari sebelum hari ujian, jam mulai pertama
         $waktuKirim = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai'])->subDays(3);
@@ -220,7 +223,7 @@ class JadwalTesController extends Controller
 
         // Buat jadwal per mahasantri
         foreach ($verifiedMahasantri as $mhs) {
-            $idJadwal = 'JDT' . str_pad($urut, 2, '0', STR_PAD_LEFT);
+            $idJadwal = 'JDS' . str_pad($urut, 2, '0', STR_PAD_LEFT);
             $urut++;
 
             $newJadwal = JadwalTes::create([

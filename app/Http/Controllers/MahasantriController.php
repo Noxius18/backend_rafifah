@@ -329,9 +329,12 @@ class MahasantriController extends Controller
             $newJam = \Carbon\Carbon::parse($lastJadwal->jam)->addMinutes($interval)->format('H:i:s');
 
             // Generate ID Jadwal Baru
-            $lastJadwalDb = \App\Models\JadwalTes::orderBy('id_jadwal', 'desc')->first();
-            $nextJadwalNum = $lastJadwalDb ? intval(substr($lastJadwalDb->id_jadwal, 3)) + 1 : 1;
-            $newId = 'JDT' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
+            $lastJadwalNumber = \App\Models\JadwalTes::query()
+                ->pluck('id_jadwal')
+                ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
+                ->max();
+            $nextJadwalNum = ($lastJadwalNumber ?? 0) + 1;
+            $newId = 'JDS' . str_pad($nextJadwalNum, 2, '0', STR_PAD_LEFT);
 
             $newJadwal = \App\Models\JadwalTes::create([
                 'id_jadwal'        => $newId,
@@ -835,9 +838,12 @@ class MahasantriController extends Controller
 
         // ── Ambil counter awal sekali di luar transaksi ──────────────────
         $counterOrt  = DB::table('orangtua')->orderBy('id_orangtua', 'desc')->first();
-        $counterDkm  = DB::table('berkas')->orderBy('id_berkas', 'desc')->first();
         $counterOrtVal  = $counterOrt ? (int) substr($counterOrt->id_orangtua, 3) + 1 : 1;
-        $counterDkmVal  = $counterDkm ? (int) substr($counterDkm->id_berkas, 3) + 1 : 1;
+        $counterBerkasVal = DB::table('berkas')
+            ->pluck('id_berkas')
+            ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
+            ->max();
+        $counterBerkasVal = ($counterBerkasVal ?? 0) + 1;
 
         DB::beginTransaction();
         try {
@@ -1087,11 +1093,11 @@ class MahasantriController extends Controller
                         $urlValue = trim($data[$excelColumn] ?? '');
 
                         if (!empty($urlValue)) {
-                            $idDkm = 'DKM' . str_pad($counterDkmVal, 2, '0', STR_PAD_LEFT);
-                            $counterDkmVal++;
+                            $idBerkas = 'BR' . str_pad($counterBerkasVal, 3, '0', STR_PAD_LEFT);
+                            $counterBerkasVal++;
 
                             $berkas = Berkas::create([
-                                'id_berkas'      => $idDkm,
+                                'id_berkas'      => $idBerkas,
                                 'id_mahasantri'  => $idMahasantri,
                                 'tipe_berkas'    => $tipeDokumen,
                                 'link_sumber'    => $urlValue,

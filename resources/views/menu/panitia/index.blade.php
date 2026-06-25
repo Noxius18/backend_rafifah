@@ -88,30 +88,51 @@
     {{-- MODAL TAMBAH --}}
     <x-ui.modal-form id="addModal" title="Tambah Panitia Baru" subtitle="Lengkapi data panitia baru" icon="plus" size="md">
         <x-slot name="body">
-            @if($errors->any() && old('_form') === 'add-panitia')
-                <x-ui.alert type="error" alert="Periksa kembali data panitia baru.">
-                    <ul class="list-disc space-y-1 pl-5">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </x-ui.alert>
-            @endif
-            <div id="addModal-client-alert" class="hidden">
-                <x-ui.alert type="error" alert="Lengkapi semua field wajib terlebih dahulu." />
+            <div class="space-y-4">
+                @if($errors->any() && old('_form') === 'add-panitia')
+                    <x-ui.alert type="error" alert="Periksa kembali data panitia baru.">
+                        <ul class="list-disc space-y-1 pl-5">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
+
+                <div id="addModal-client-alert" class="hidden">
+                    <x-ui.alert type="error" alert="Lengkapi semua field wajib terlebih dahulu." />
+                </div>
             </div>
-            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="space-y-5" novalidate>
+
+            <form id="addModal-form" action="{{ route('panitia.store') }}" method="POST" class="mt-4 space-y-5" novalidate>
                 @csrf
                 <input type="hidden" name="_form" value="add-panitia">
-                <div><x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required value="{{ old('nama_lengkap') }}" /></div>
-                <div><x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" required value="{{ old('username') }}" /></div>
-                <div><x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" required value="{{ old('no_hp') }}" /></div>
-                <div><x-ui.form-input name="password" label="Password" placeholder="Minimal 8 karakter" type="password" icon="lock-closed" required /></div>
-                <div data-password-confirm-wrap hidden>
-                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
-                    <div data-password-mismatch class="mt-0.5 text-xs text-red-600" hidden>Password dan konfirmasi tidak cocok.</div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" required value="{{ old('nama_lengkap') }}" />
+                    <x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" required value="{{ old('username') }}" />
                 </div>
-                <div><x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="user" required :selected="old('jabatan')" /></div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" required value="{{ old('no_hp') }}" />
+                    <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" required :selected="old('jabatan')" />
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div class="mb-3">
+                        <h4 class="text-sm font-semibold text-slate-800">Akses Akun</h4>
+                        <p class="text-xs text-slate-500">Atur password awal untuk akun panitia baru.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <x-ui.form-input name="password" label="Password" placeholder="Minimal 8 karakter" type="password" icon="lock-closed" required />
+
+                        <div data-password-confirm-wrap hidden>
+                            <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
+                            <div data-password-mismatch class="mt-1 text-xs text-red-600" hidden>Password dan konfirmasi tidak cocok.</div>
+                        </div>
+                    </div>
+                </div>
             </form>
         </x-slot>
         <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="addModal.close()">Batal</button><button type="submit" form="addModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">Simpan</button></x-slot>
@@ -120,46 +141,88 @@
     {{-- MODAL EDIT --}}
     <x-ui.modal-form id="editModal" title="Edit Panitia" subtitle="Ubah data panitia" icon="edit" size="lg">
         <x-slot name="body">
-            <div class="max-h-[65vh] overflow-y-auto -mr-2 pr-2">
-            @if($errors->any() && old('_form') === 'edit-panitia')
-                <x-ui.alert type="error" alert="Periksa kembali data panitia.">
-                    <ul class="list-disc space-y-1 pl-5">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </x-ui.alert>
-            @endif
-            <form id="editModal-form" action="" method="POST" class="space-y-5" novalidate>
+            <div class="space-y-4">
+                @if($errors->any() && old('_form') === 'edit-panitia')
+                    <x-ui.alert type="error" alert="Periksa kembali data panitia.">
+                        <ul class="list-disc space-y-1 pl-5">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
+            </div>
+
+            <form id="editModal-form" action="" method="POST" class="mt-4 space-y-5" novalidate>
                 @csrf @method('PUT')
                 <input type="hidden" name="_form" value="edit-panitia">
-                <div class="form-control">
-                    <label class="label pb-1.5"><span class="label-text font-medium text-slate-700">ID Panitia</span></label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /></svg></span>
-                        <input type="text" id="editModal-id-display" class="input input-bordered w-full input-sm pl-9 bg-slate-50 text-slate-500 cursor-not-allowed" disabled />
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div class="mb-3">
+                        <h4 class="text-sm font-semibold text-slate-800">Informasi Panitia</h4>
+                        <p class="text-xs text-slate-500">Identitas dasar ditampilkan sebagai referensi dan tidak dapat diubah dari form ini.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="form-control">
+                            <label class="label pb-1.5">
+                                <span class="label-text font-medium text-slate-700">ID Panitia</span>
+                            </label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /></svg></span>
+                                <input type="text" id="editModal-id-display" class="input input-bordered input-sm w-full cursor-not-allowed border-slate-200 bg-white pl-9 text-slate-500" disabled />
+                            </div>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label pb-1.5">
+                                <span class="label-text font-medium text-slate-700">Username</span>
+                            </label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-slate-400">
+                                    @svg('heroicon-o-user', 'h-4 w-4')
+                                </span>
+                                <input type="text" name="username" class="input input-bordered input-sm w-full cursor-not-allowed border-slate-200 bg-white pl-9 text-slate-500" readonly value="{{ old('username') }}" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="form-control">
+                            <label class="label pb-1.5">
+                                <span class="label-text font-medium text-slate-700">Nama Lengkap</span>
+                            </label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-slate-400">
+                                    @svg('heroicon-o-user', 'h-4 w-4')
+                                </span>
+                                <input type="text" name="nama_lengkap" class="input input-bordered input-sm w-full cursor-not-allowed border-slate-200 bg-white pl-9 text-slate-500" readonly value="{{ old('nama_lengkap') }}" />
+                            </div>
+                        </div>
                     </div>
                 </div>
-            
-                <div class="opacity-70 bg-slate-50 pointer-events-none">
-                    <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="30" icon="user" readonly value="{{ old('nama_lengkap') }}" />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" value="{{ old('no_hp') }}" />
+                    <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" :selected="old('jabatan')" />
                 </div>
-                <div class="opacity-70 bg-slate-50 pointer-events-none">
-                    <x-ui.form-input name="username" label="Username" placeholder="Masukkan username" maxlength="10" icon="user" readonly value="{{ old('username') }}" />
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div class="mb-3">
+                        <h4 class="text-sm font-semibold text-slate-800">Ubah Password</h4>
+                        <p class="text-xs text-slate-500">Biarkan kosong bila password tidak perlu diperbarui.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <x-ui.form-input name="password" label="Password Baru" placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" />
+
+                        <div data-password-confirm-wrap hidden>
+                            <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
+                            <div data-password-mismatch class="mt-1 text-xs text-red-600" hidden>Password dan konfirmasi tidak cocok.</div>
+                        </div>
+                    </div>
                 </div>
-                
-                <x-ui.form-input name="no_hp" label="No. HP" placeholder="Contoh: 081234567890" maxlength="13" type="tel" icon="phone" value="{{ old('no_hp') }}" />
-                <x-ui.form-input name="password" label="Password Baru" placeholder="Biarkan kosong jika tidak ingin mengubah" type="password" icon="key" />
-                
-                <div data-password-confirm-wrap hidden>
-                    <x-ui.form-input name="password_confirmation" label="Konfirmasi Password" placeholder="Ulangi password" type="password" icon="key" />
-                </div>
-                <div data-password-mismatch class="text-sm text-red-600 mt-1" hidden>Password dan konfirmasi tidak cocok.</div>
-            
-                {{-- KINI BISA DI-EDIT --}}
-                <x-ui.form-select name="jabatan" label="Jabatan" :options="$jabatanOptions" icon="briefcase" :selected="old('jabatan')" />
             </form>
-            </div>
         </x-slot>
         <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="editModal.close()">Batal</button><button type="submit" form="editModal-form" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 border-none gap-1.5">Perbarui</button></x-slot>
     </x-ui.modal-form>
