@@ -69,27 +69,22 @@
       <div class="card bg-white border border-amber-200 shadow-sm">
         <div class="card-body p-4">
           <h3 class="text-lg font-semibold text-amber-700 mb-4">⏳ Jadwal Menunggu Persetujuan</h3>
-          @php
-            $jadwalMenunggu = \App\Models\JadwalTes::where('status_jadwal', 'Menunggu')
-                ->select('tanggal', \DB::raw('COUNT(*) as jumlah'))
-                ->groupBy('tanggal')
-                ->orderBy('tanggal')
-                ->get();
-          @endphp
-          @if($jadwalMenunggu->count() > 0)
           <div class="space-y-2">
-            @foreach($jadwalMenunggu as $jm)
-            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <div>
-                <span class="font-medium text-amber-800">{{ \Carbon\Carbon::parse($jm->tanggal)->isoFormat('D MMMM Y') }}</span>
-                <span class="text-sm text-amber-600 ml-2">({{ $jm->jumlah }} mahasantri)</span>
+            <template x-for="item in stats.jadwal_menunggu_persetujuan || []" :key="item.tanggal">
+              <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <div>
+                  <span class="font-medium text-amber-800" x-text="item.tanggal_label"></span>
+                  <span class="text-sm text-amber-600 ml-2" x-text="'(' + item.jumlah + ' mahasantri)'"></span>
+                </div>
               </div>
-            </div>
-            @endforeach
+            </template>
           </div>
-          @else
-          <p class="text-center text-sm text-slate-400 py-4">Tidak ada jadwal yang menunggu persetujuan</p>
-          @endif
+          <p
+            x-show="!stats.jadwal_menunggu_persetujuan || !stats.jadwal_menunggu_persetujuan.length"
+            class="text-center text-sm text-slate-400 py-4"
+          >
+            Tidak ada jadwal yang menunggu persetujuan
+          </p>
         </div>
       </div>
       @endif
@@ -99,24 +94,30 @@
         <div class="card-body p-4">
           <h3 class="text-lg font-semibold text-emerald-900 mb-4">Info Gelombang Pendaftaran</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            @foreach($stats['gelombang'] as $g)
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">{{ $g->id }}</span>
-                <span class="font-medium text-sm text-emerald-900">{{ $g->nama }}</span>
-              </div>
-              <div class="space-y-1 text-sm text-slate-600">
-                <div class="flex items-center gap-2">
-                  <x-heroicon-s-calendar-days class="h-4 w-4 text-emerald-500" />
-                  <span>Mulai: <strong>{{ \Carbon\Carbon::parse($g->start_date)->isoFormat('D MMMM Y') }}</strong></span>
+            <template x-for="item in stats.gelombang || []" :key="item.id">
+              <div class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <span
+                    class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700"
+                    x-text="item.id"
+                  ></span>
+                  <span class="font-medium text-sm text-emerald-900" x-text="item.nama"></span>
                 </div>
-                <div class="flex items-center gap-2">
-                  <x-heroicon-s-calendar-days class="h-4 w-4 text-rose-500" />
-                  <span>Berakhir: <strong>{{ \Carbon\Carbon::parse($g->end_date)->isoFormat('D MMMM Y') }}</strong></span>
+                <div class="space-y-1 text-sm text-slate-600">
+                  <div class="flex items-center gap-2">
+                    <x-heroicon-s-calendar-days class="h-4 w-4 text-emerald-500" />
+                    <span>Mulai: <strong x-text="formatTanggal(item.start_date)"></strong></span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <x-heroicon-s-calendar-days class="h-4 w-4 text-rose-500" />
+                    <span>Berakhir: <strong x-text="formatTanggal(item.end_date)"></strong></span>
+                  </div>
                 </div>
               </div>
+            </template>
+            <div x-show="!stats.gelombang || !stats.gelombang.length" class="text-center py-4 text-slate-400 col-span-full">
+              Belum ada data gelombang
             </div>
-            @endforeach
           </div>
         </div>
       </div>
@@ -177,25 +178,6 @@
         </div>
       </div>
 
-      {{-- Statistik Pendaftar per Gelombang --}}
-      <div class="card bg-white border border-emerald-100 shadow-sm">
-        <div class="card-body p-4">
-          <h3 class="text-lg font-semibold text-emerald-900 mb-4">Statistik Pendaftar per Gelombang</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <template x-for="item in stats.gelombang_stats || []" :key="item.nama">
-              <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-3">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="font-semibold text-sm text-emerald-900" x-text="item.nama"></span>
-                </div>
-                <div class="text-xs text-slate-600 space-y-1">
-                  <div x-text="'Periode: ' + item.periode"></div>
-                  <div>Jumlah Pendaftar: <strong x-text="item.terdaftar"></strong></div>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
     </div>
   </x-ui.sidebar>
 
@@ -259,6 +241,16 @@
             'Tidak Lulus': 'bg-rose-500', 'Pertimbangan': 'bg-amber-500', 'default': 'bg-slate-500'
           };
           return colors[status] || colors.default;
+        },
+
+        formatTanggal(dateString) {
+          if (!dateString) return '-';
+
+          return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }).format(new Date(dateString));
         },
       }
     }

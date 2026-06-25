@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Berkas;
 use App\Models\Panitia;
 use App\Models\Gelombang;
 use App\Models\JadwalTes;
 use App\Models\HasilTes;
-use App\Models\RiwayatUnduhan;
 
 class DashboardController extends Controller
 {
@@ -31,8 +29,8 @@ class DashboardController extends Controller
     private function calculateStatistics(): array
     {
         $totalMahasantri = User::count();
-        $totalBerkas = Berkas::count();
         $totalPanitia = Panitia::count();
+        $isKetuaPanitia = auth()->user()?->jabatan === 'Ketua Panitia';
 
         // Mahasantri statistics by status
         $mahasantriByStatus = User::selectRaw('status, COUNT(*) as count')
@@ -41,22 +39,9 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        // Berkas statistics by download status
-        $berkasByStatus = RiwayatUnduhan::selectRaw('download_status, COUNT(*) as count')
-            ->groupBy('download_status')
-            ->get()
-            ->pluck('count', 'download_status')
-            ->toArray();
-
         // Recent mahasantri (last 7 days)
         $recentMahasantriCount = User::where('tanggal_daftar', '>=', now()->subDays(7))
             ->count();
-
-        // Berkas success rate
-        $successfulBerkas = $berkasByStatus['success'] ?? 0;
-        $berkasSuccessRate = $totalBerkas > 0 
-            ? round(($successfulBerkas / $totalBerkas) * 100, 1)
-            : 0;
 
         // Statistik beban kerja per panitia (berdasarkan penguji per aspek)
         $bebanKerja = Panitia::where('jabatan', 'Panitia')
@@ -85,33 +70,31 @@ class DashboardController extends Controller
             ->values()
             ->toArray();
 
-        // Statistik per gelombang: kuota vs terdaftar
-        $gelombangStats = Gelombang::orderBy('id')->get()->map(function ($g) {
-            $prefix = date('y', strtotime($g->start_date)) . str_pad($g->id, 2, '0', STR_PAD_LEFT);
-            $terdaftar = User::where('id_mahasantri', 'LIKE', $prefix . '%')->count();
-            return [
-                'nama'      => $g->nama,
-                'periode'   => \Carbon\Carbon::parse($g->start_date)->isoFormat('D MMMM Y') . ' - ' . \Carbon\Carbon::parse($g->end_date)->isoFormat('D MMMM Y'),
-                'kuota'     => $g->kuota,
-                'terdaftar' => $terdaftar,
-                'sisa_kuota' => max(0, $g->kuota - $terdaftar),
-            ];
-        })->toArray();
+        $jadwalMenungguPersetujuan = [];
+        if ($isKetuaPanitia) {
+            $jadwalMenungguPersetujuan = JadwalTes::where('status_jadwal', 'Menunggu')
+                ->select('tanggal', \DB::raw('COUNT(*) as jumlah'))
+                ->groupBy('tanggal')
+                ->orderBy('tanggal')
+                ->get()
+                ->map(function ($jadwal) {
+                    return [
+                        'tanggal' => $jadwal->tanggal,
+                        'tanggal_label' => \Carbon\Carbon::parse($jadwal->tanggal)->isoFormat('D MMMM Y'),
+                        'jumlah' => $jadwal->jumlah,
+                    ];
+                })
+                ->toArray();
+        }
 
         return [
             'total_mahasantri' => $totalMahasantri,
-            'total_berkas' => $totalBerkas,
             'total_panitia' => $totalPanitia,
             'mahasantri_by_status' => $mahasantriByStatus,
-            'berkas_by_status' => $berkasByStatus,
             'recent_mahasantri_count' => $recentMahasantriCount,
-            'berkas_success_rate' => $berkasSuccessRate,
-            'successful_berkas' => $successfulBerkas,
-            'failed_berkas' => $berkasByStatus['error'] ?? 0,
-            'pending_berkas' => $berkasByStatus['pending'] ?? 0,
-            'gelombang' => Gelombang::orderBy('id')->get(),
             'beban_kerja' => $bebanKerja,
-            'gelombang_stats' => $gelombangStats,
+            'gelombang' => Gelombang::orderBy('id')->get(),
+            'jadwal_menunggu_persetujuan' => $jadwalMenungguPersetujuan,
         ];
     }
 
