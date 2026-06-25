@@ -21,8 +21,35 @@ class MahasantriResource extends JsonResource
             'tanggal_lahir' => $this->tanggal_lahir,
             'status' => $this->status,
             'tanggal_daftar' => $this->tanggal_daftar,
+            'profile_completed' => $this->profileCompleted(),
+            'orangtua_completed' => $this->relationLoaded('orangtuas') ? $this->orangtuas->isNotEmpty() : null,
+            'documents_completed' => $this->documentsCompleted(),
             'orangtua' => OrangtuaResource::collection($this->whenLoaded('orangtuas')),
             'berkas' => BerkasResource::collection($this->whenLoaded('berkas')),
         ];
+    }
+
+    private function profileCompleted(): bool
+    {
+        return !empty($this->nik)
+            && !empty($this->nisn)
+            && !empty($this->jenis_kelamin)
+            && !empty($this->tempat_lahir)
+            && !empty($this->alamat)
+            && !empty($this->tanggal_lahir);
+    }
+
+    private function documentsCompleted(): ?bool
+    {
+        if (!$this->relationLoaded('berkas')) {
+            return null;
+        }
+
+        $required = collect(['KTP', 'KK', 'Ijazah', 'Surat Izin Orangtua', 'Pas Foto']);
+        $available = $this->berkas
+            ->filter(fn ($berkas) => $berkas->file_exists)
+            ->pluck('tipe_berkas');
+
+        return $required->diff($available)->isEmpty();
     }
 }
