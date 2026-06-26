@@ -3,7 +3,6 @@
 @section('content')
 
 @php
-    $jenisKelaminOptions = ['L' => 'Laki-laki', 'P' => 'Perempuan'];
     $statusOptions = [
         'Pendaftar Baru' => 'Pendaftar Baru',
         'Terverifikasi' => 'Terverifikasi',
@@ -279,18 +278,6 @@ x-init="
                             <dd class="mt-1 text-sm text-slate-700">{{ $m->alamat ?? '-' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Jenis Kelamin</dt>
-                            <dd class="mt-1">
-                                @if($m->jenis_kelamin === 'L')
-                                    <span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">Laki-laki</span>
-                                @elseif($m->jenis_kelamin === 'P')
-                                    <span class="rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 ring-1 ring-pink-200">Perempuan</span>
-                                @else
-                                    <span class="text-sm text-slate-400">-</span>
-                                @endif
-                            </dd>
-                        </div>
-                        <div>
                             <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Status</dt>
                             <dd class="mt-1">
                                 @switch($m->status)
@@ -515,7 +502,6 @@ x-init="
                 <x-ui.form-input name="nik"          label="NIK"           placeholder="16 digit NIK"        maxlength="16" value="{{ old('nik', $m->nik) }}" />
                 <x-ui.form-input name="nisn"         label="NISN"          placeholder="10 digit NISN"       maxlength="10" value="{{ old('nisn', $m->nisn) }}" />
                 <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat', $m->alamat) }}" />
-                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin', $m->jenis_kelamin)" />
                 <x-ui.form-select name="status" label="Status" :options="$statusOptions" :selected="old('status', $m->status)" />
             </form>
         </x-slot>

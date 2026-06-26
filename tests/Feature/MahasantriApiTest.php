@@ -35,7 +35,6 @@ function pendaftaranSubmitPayloadForApiTest(array $overrides = []): array
     return array_replace_recursive([
         'nik' => '1234567890123456',
         'nisn' => '1234567890',
-        'jenis_kelamin' => 'L',
         'tempat_lahir' => 'Bandung',
         'alamat' => 'Jl. Pesantren No. 1',
         'tanggal_lahir' => '2010-01-10',
@@ -161,7 +160,6 @@ test('pendaftaran submit requires ayah and ibu', function () {
     $payload = [
         'nik' => '1234567890123456',
         'nisn' => '1234567890',
-        'jenis_kelamin' => 'L',
         'tempat_lahir' => 'Bandung',
         'alamat' => 'Jl. Pesantren No. 1',
         'tanggal_lahir' => '2010-01-10',

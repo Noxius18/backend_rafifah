@@ -37,7 +37,6 @@ class MahasantriPendaftaranController extends Controller
                 'digits:10',
                 Rule::unique('mahasantri', 'nisn')->ignore($mahasantri->id_mahasantri, 'id_mahasantri'),
             ],
-            'jenis_kelamin' => 'required|in:L,P',
             'tempat_lahir' => 'required|string|max:50',
             'alamat' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
@@ -66,7 +65,6 @@ class MahasantriPendaftaranController extends Controller
                 $mahasantri->update([
                     'nik' => $validated['nik'],
                     'nisn' => $validated['nisn'],
-                    'jenis_kelamin' => $validated['jenis_kelamin'],
                     'tempat_lahir' => $validated['tempat_lahir'],
                     'alamat' => $validated['alamat'],
                     'tanggal_lahir' => $validated['tanggal_lahir'],

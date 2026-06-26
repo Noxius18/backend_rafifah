@@ -15,7 +15,6 @@ class MahasantriResource extends JsonResource
             'email' => $this->email,
             'nik' => $this->nik,
             'nisn' => $this->nisn,
-            'jenis_kelamin' => $this->jenis_kelamin,
             'tempat_lahir' => $this->tempat_lahir,
             'alamat' => $this->alamat,
             'tanggal_lahir' => $this->tanggal_lahir,
@@ -33,7 +32,6 @@ class MahasantriResource extends JsonResource
     {
         return !empty($this->nik)
             && !empty($this->nisn)
-            && !empty($this->jenis_kelamin)
             && !empty($this->tempat_lahir)
             && !empty($this->alamat)
             && !empty($this->tanggal_lahir);

@@ -25,7 +25,6 @@ class User extends Authenticatable
         'password',
         'nik',
         'nisn',
-        'jenis_kelamin',
         'tempat_lahir',
         'alamat',
         'tanggal_lahir',

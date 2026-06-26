@@ -69,7 +69,6 @@ class MahasantriController extends Controller
             'nama_lengkap'  => 'required|string|max:35',
             'nik'           => 'nullable|size:16|unique:mahasantri,nik',
             'nisn'          => 'nullable|size:10|unique:mahasantri,nisn',
-            'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
             'alamat'        => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
@@ -80,7 +79,6 @@ class MahasantriController extends Controller
             'nik.unique'            => 'NIK sudah terdaftar.',
             'nisn.size'             => 'NISN harus 10 karakter.',
             'nisn.unique'           => 'NISN sudah terdaftar.',
-            'jenis_kelamin.in'      => 'Jenis kelamin harus L atau P.',
             'tempat_lahir.max'      => 'Tempat lahir maksimal 50 karakter.',
             'alamat.max'            => 'Alamat maksimal 255 karakter.',
             'tanggal_lahir.date'    => 'Format tanggal lahir tidak valid.',
@@ -186,7 +184,6 @@ class MahasantriController extends Controller
             'nama_lengkap'  => 'required|string|max:35',
             'nik'           => 'nullable|size:16|unique:mahasantri,nik,' . $mahasantri->id_mahasantri . ',id_mahasantri',
             'nisn'          => 'nullable|size:10|unique:mahasantri,nisn,' . $mahasantri->id_mahasantri . ',id_mahasantri',
-            'jenis_kelamin' => 'nullable|in:L,P',
             'tempat_lahir'  => 'nullable|string|max:50',
             'alamat'        => 'nullable|string|max:255',
             'tanggal_lahir' => 'nullable|date',
@@ -604,24 +601,6 @@ class MahasantriController extends Controller
     }
 
     /**
-     * ── Helper: konversi jenis kelamin ─────────────────────────────────────
-     */
-    private function parseJenisKelamin(?string $value): ?string
-    {
-        if (empty($value)) {
-            return null;
-        }
-
-        $value = trim(strtolower($value));
-
-        return match ($value) {
-            'l', 'laki-laki', 'laki laki', 'lakilaki' => 'L',
-            'p', 'perempuan'                          => 'P',
-            default                                   => null,
-        };
-    }
-
-    /**
      * ── Helper: validasi panjang string (shared) ──────────────────────────
      * Throws jika panjang karakter melebihi batas DB.
      */
@@ -900,22 +879,19 @@ class MahasantriController extends Controller
                         $idMahasantri . '@example.com'
                     );
 
-                    // ── 1g. Parse jenis kelamin ────────────────────────────
-                    $jenisKelamin = $this->parseJenisKelamin($data['Jenis Kelamin'] ?? null);
-
-                    // ── 1h. Validasi Tempat Lahir ───────────────────────────
+                    // ── 1g. Validasi Tempat Lahir ───────────────────────────
                     $tempatLahir = $this->validateTempatLahir($data['Tempat Lahir'] ?? null);
 
-                    // ── 1i. Parse alamat tempat tinggal ──────────────────────
+                    // ── 1h. Parse alamat tempat tinggal ──────────────────────
                     $alamat = trim($data['Alamat tempat tinggal'] ?? '');
                     if ($alamat !== '') {
                         $this->validateStringLength($alamat, 255, 'Alamat tempat tinggal');
                     }
 
-                    // ── 1j. Parse tanggal lahir ─────────────────────────────
+                    // ── 1i. Parse tanggal lahir ─────────────────────────────
                     $tanggalLahir = $this->parseExcelSerialNumber($data['Tanggal Lahir'] ?? null);
 
-                    // ── 1k. Validasi data Orangtua (koleksi + validasi) ─────
+                    // ── 1j. Validasi data Orangtua (koleksi + validasi) ─────
                     $seenPhones = [];
                     $orangtuaDefinitions = [];
 
@@ -1056,7 +1032,6 @@ class MahasantriController extends Controller
                         'email'          => $email,
                         'nik'            => $nikValue,
                         'nisn'           => $nisn,
-                        'jenis_kelamin'  => $jenisKelamin,
                         'tempat_lahir'   => $tempatLahir,
                         'alamat'         => $alamat ?: null,
                         'tanggal_lahir'  => $tanggalLahir ? $tanggalLahir->format('Y-m-d') : null,

@@ -3,7 +3,6 @@
 @section('content')
 
 @php
-    $jenisKelaminOptions = ['L' => 'Laki-laki', 'P' => 'Perempuan'];
     $statusOptions = [
         'Pendaftar Baru' => 'Pendaftar Baru',
         'Terverifikasi' => 'Terverifikasi',
@@ -209,7 +208,6 @@
                 <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required value="{{ old('nama_lengkap') }}" />
                 <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" value="{{ old('nik') }}" />
                 <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" value="{{ old('nisn') }}" />
-                <x-ui.form-select name="jenis_kelamin" label="Jenis Kelamin" :options="$jenisKelaminOptions" placeholder="Pilih jenis kelamin" :selected="old('jenis_kelamin')" />
                 <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir') }}" />
                 <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat') }}" />
                 <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir') }}" />
