@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RiwayatUnduhan extends Model
 {
-    protected $table = 'downloads_log';
+    protected $table = 'job_statuses';
 
     protected $fillable = [
         'id_berkas',

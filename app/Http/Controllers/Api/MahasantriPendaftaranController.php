@@ -46,7 +46,7 @@ class MahasantriPendaftaranController extends Controller
             'orangtua.*.nama_lengkap' => 'required|string|max:25',
             'orangtua.*.pekerjaan' => 'nullable|string|max:20',
             'orangtua.*.alamat' => 'nullable|string|max:255',
-            'orangtua.*.no_wa' => 'nullable|string|max:20',
+            'orangtua.*.no_wa' => 'nullable|string|max:13',
             'berkas' => 'required|array',
             // VALIDASI DINAMIS: Hanya required jika data berkas belum ada di DB
             'berkas.ktp' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'KTP')->exists()), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],

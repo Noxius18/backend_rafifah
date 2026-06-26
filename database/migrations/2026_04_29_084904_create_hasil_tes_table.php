@@ -15,7 +15,7 @@ return new class extends Migration
             $table->char('id_hasil', 5)->primary();
             $table->enum('status', ['Belum Tes', 'Pertimbangan', 'Lulus', 'Tidak Lulus'])->default('Belum Tes');
             $table->integer('total_nilai')->nullable();
-            $table->char('id_jadwal', 5);
+            $table->char('id_jadwal', 5)->unique();
 
             $table->foreign('id_jadwal')
                   ->references('id_jadwal')

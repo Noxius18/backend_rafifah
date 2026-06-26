@@ -11,11 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('berkas', function (Blueprint $table) {
-            $table->renameColumn('tipe_dokumen', 'tipe_berkas');
-            $table->renameColumn('original_url', 'link_sumber');
-            $table->renameColumn('is_valid', 'status_verifikasi');
-        });
+        // No-op for fresh schema: kolom akhir langsung dibuat di migration create_berkas.
     }
 
     /**
@@ -23,10 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('berkas', function (Blueprint $table) {
-            $table->renameColumn('tipe_berkas', 'tipe_dokumen');
-            $table->renameColumn('link_sumber', 'original_url');
-            $table->renameColumn('status_verifikasi', 'is_valid');
-        });
+        // No-op.
     }
 };

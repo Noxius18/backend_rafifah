@@ -151,7 +151,7 @@ test('mahasantri can submit full pendaftaran after login', function () {
     ]);
     $this->assertDatabaseCount('orangtua', 2);
     $this->assertDatabaseCount('berkas', 5);
-    $this->assertDatabaseCount('downloads_log', 5);
+    $this->assertDatabaseCount('job_statuses', 5);
 });
 
 test('pendaftaran submit requires ayah and ibu', function () {

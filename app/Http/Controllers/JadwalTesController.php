@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JadwalTes;
 use App\Models\JadwalPenguji;
 use App\Models\Panitia;
+use App\Models\ScheduleStatus;
 use App\Models\User;
 use App\Models\Gelombang;
 use App\Models\HasilTes;
@@ -527,7 +528,10 @@ class JadwalTesController extends Controller
         $mahasantri = $jadwalTes->mahasantri;
         if (!$mahasantri || !$mahasantri->email) return redirect()->back()->with('error', 'Mahasiswa tidak memiliki email');
 
-        $jadwalTes->update(['zoom_reminder_sent' => false]);
+        ScheduleStatus::updateOrCreate(
+            ['id_jadwal' => $jadwalTes->id_jadwal],
+            ['zoom_reminder_sent' => false, 'sent_at' => null]
+        );
         Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $mahasantri));
         return redirect()->back()->with('success', 'Notifikasi update terkirim ke ' . $mahasantri->nama_lengkap);
     }

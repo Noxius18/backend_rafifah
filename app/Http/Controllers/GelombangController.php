@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Gelombang;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class GelombangController extends Controller
 {
@@ -27,7 +26,7 @@ class GelombangController extends Controller
             'end_date.after_or_equal' => 'Tanggal akhir harus setelah atau sama dengan tanggal mulai.',
         ]);
 
-        $gelombang->update(['updated_by' => auth()->user()->id_panitia, ...$validated]);
+        $gelombang->update($validated);
 
         return back()->with('success', 'Rentang gelombang berhasil diperbarui.');
     }

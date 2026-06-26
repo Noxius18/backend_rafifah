@@ -25,7 +25,6 @@ class JadwalTes extends Model
         'catatan_perubahan',
         'status_jadwal',
         'diproses_oleh',
-        'zoom_reminder_sent',
     ];
 
     public function hasilTes() {
@@ -43,6 +42,10 @@ class JadwalTes extends Model
     // Relasi ke jadwal_penguji (hasil normalisasi)
     public function jadwalPenguji() {
         return $this->hasMany(JadwalPenguji::class, 'id_jadwal', 'id_jadwal');
+    }
+
+    public function scheduleStatus() {
+        return $this->hasOne(ScheduleStatus::class, 'id_jadwal', 'id_jadwal');
     }
 
     // Helper: ambil panitia penguji berdasarkan aspek tertentu

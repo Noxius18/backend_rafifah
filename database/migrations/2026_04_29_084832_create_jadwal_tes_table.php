@@ -19,8 +19,7 @@ return new class extends Migration
             $table->date('tanggal');
             $table->time('jam')->nullable();
             $table->unsignedInteger('interval')->default(30)->comment('Interval waktu dalam menit antar mahasantri');
-            $table->string('link_zoom')->nullable();
-            // Reminder flag added from 2026_04_29_084833_add_zoom_reminder_sent_to_jadwal_tes_table.php
+            $table->text('link_zoom')->nullable();
             $table->char('penanggung_jawab', 5)->nullable()->comment('Penanggung jawab (panitia)');
 
             // Foreign key ke tabel mahasantri

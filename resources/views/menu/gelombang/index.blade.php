@@ -38,12 +38,6 @@ x-init="
                         <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">{{ $g->id }}</span>
                         <h2 class="text-base font-semibold text-black">{{ $g->nama }}</h2>
                     </div>
-                    @if($g->updated_by)
-                        <span class="text-xs text-black/40">
-                            Diedit oleh {{ $g->updatedBy->nama_lengkap ?? '—' }}
-                            {{ $g->updated_at ? $g->updated_at->diffForHumans() : '' }}
-                        </span>
-                    @endif
                 </div>
 
                 <form method="POST" action="{{ route('gelombang.update', $g->id) }}" class="flex flex-col gap-4 sm:flex-row sm:items-end">

@@ -11,9 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('berkas', function (Blueprint $table) {
-            $table->dropColumn(['download_status', 'error_message']);
-        });
+        // No-op for fresh schema: kolom log unduhan tidak lagi dibuat di tabel berkas.
     }
 
     /**
@@ -21,9 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('berkas', function (Blueprint $table) {
-            $table->enum('download_status', ['pending', 'processing', 'success', 'failed'])->default('pending');
-            $table->text('error_message')->nullable();
-        });
+        // No-op.
     }
 };

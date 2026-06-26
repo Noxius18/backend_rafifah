@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string("email", 100)->unique();
 
             // Data tambahan saat daftar ulang
-            $table->string("nik", 16)->comment("Nomor Induk Keluarga")->nullable();
+            $table->string("nik", 16)->comment("Nomor Induk Kependudukan")->nullable();
             $table->string('nisn', 10)->comment('Nomor Induk Siswa Nasional')->nullable();
             $table->enum("jenis_kelamin", ["L", "P"])->nullable();
             $table->string("tempat_lahir", 50)->nullable();
