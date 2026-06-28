@@ -805,7 +805,7 @@ class MahasantriController extends Controller
     public function processImport(Request $request)
     {
         if (auth()->user()->jabatan !== 'Panitia') {
-            abort(403, 'Hanya panitia yang bisa import data mahasantri');
+            abort(403, 'Hanya panitia yang bisa upload data mahasantri');
         }
 
         $request->validate([
@@ -1126,7 +1126,7 @@ class MahasantriController extends Controller
                 DownloadGoogleDriveFile::dispatch($berkas);
             }
 
-            $message = "Berhasil mengimpor {$imported} data baru.";
+            $message = "Berhasil mengupload {$imported} data baru.";
             if (count($validationErrors) > 0) {
                 $message .= " " . count($validationErrors) . " baris gagal diimpor - lihat detail di bawah.";
             }

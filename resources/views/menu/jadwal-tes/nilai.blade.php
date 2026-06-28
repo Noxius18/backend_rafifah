@@ -226,7 +226,7 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                 @endif
             </div>
 
-            {{-- CARD INPUT NILAI + CATATAN PER ASPEK --}}
+           {{-- CARD INPUT NILAI + CATATAN PER ASPEK --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 @foreach([
                     ['key' => 'Bacaan Al-Quran', 'field' => 'nilai_bacaan_al_quran', 'catatanField' => 'catatan_bacaan_al_quran', 'label' => 'Bacaan Al-Qur\'an'],
@@ -235,21 +235,34 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                     ['key' => 'Wawancara', 'field' => 'nilai_wawancara', 'catatanField' => 'catatan_wawancara', 'label' => 'Wawancara'],
                 ] as $aspek)
                 @php
-                    $canEditThis = ($isApproved && (in_array($aspek['key'], $tugas) || $isCreator)) || $isKetuaPanitia;
                     $nilaiAwal = $nilaiPerAspek[$aspek['key']]['nilai'] ?? '';
-                    $isNilai70 = ($nilaiAwal === 70 || $nilaiAwal === '70');
                     $pengujiNama = $nilaiPerAspek[$aspek['key']]['penguji'] ?? '-';
+                    
+                    // ATURAN KETat BARU:
+                    // 1. Input Nilai hanya bisa diedit Panitia bertugas ATAU Ketua Panitia khusus pada aspek yang bernilai di bawah 71
+                    $canEditScore = false;
+                    if ($isPanitia && $isApproved && (in_array($aspek['key'], $tugas) || $isCreator)) {
+                        $canEditScore = true;
+                    } elseif ($isKetuaPanitia && $isPertimbangan && (int)$nilaiAwal < 71 && $nilaiAwal !== '') {
+                        $canEditScore = true;
+                    }
+
+                    // 2. Textarea Catatan Panitia HANYA boleh diisi oleh Panitia Operasional, Ketua Panitia murni View Only
+                    $canEditNote = $isPanitia && $isApproved && (in_array($aspek['key'], $tugas) || $isCreator);
+                    
+                    $isNilaiBelow71 = ((int)$nilaiAwal < 71 && $nilaiAwal !== '');
                 @endphp
                 <div class="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-sm flex flex-col gap-3
-                    {{ $canEditThis ? '' : 'opacity-70' }}
-                    {{ $isKetuaPanitia && $isPertimbangan && $isNilai70 ? 'ring-2 ring-amber-300 bg-amber-50/30' : '' }}">
+                    {{ $canEditScore || $canEditNote ? '' : 'opacity-70' }}
+                    {{ $isKetuaPanitia && $isPertimbangan && $isNilaiBelow71 ? 'ring-2 ring-amber-300 bg-amber-50/30' : '' }}">
+                    
                     {{-- Header card --}}
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-semibold text-slate-700">{{ $aspek['label'] }}</h3>
-                        @if($isKetuaPanitia && $isPertimbangan && $isNilai70)
-                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Perlu review</span>
-                        @elseif($canEditThis)
-                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Tugas Anda</span>
+                        @if($isKetuaPanitia && $isPertimbangan && $isNilaiBelow71)
+                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Perlu Perbaikan</span>
+                        @elseif($canEditScore)
+                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Dapat Diedit</span>
                         @else
                             <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Read-only</span>
                         @endif
@@ -260,12 +273,12 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         x-model="formData.{{ $aspek['field'] }}"
                         @input="clampNilai($event, '{{ $aspek['field'] }}')"
                         class="w-full rounded-lg border-2 px-3 py-2.5 text-center text-lg font-bold transition outline-none
-                            @if($canEditThis)
+                            @if($canEditScore)
                                 border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100
                             @else
                                 border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed
                             @endif"
-                        {{ $canEditThis ? '' : 'disabled' }}
+                        {{ $canEditScore ? '' : 'disabled' }}
                         placeholder="0-100" />
 
                     {{-- Penguji --}}
@@ -276,16 +289,16 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
 
                     {{-- Catatan per aspek --}}
                     <div>
-                        <label class="text-[11px] font-medium text-slate-400 mb-1 block">Catatan</label>
+                        <label class="text-[11px] font-medium text-slate-400 mb-1 block">Catatan Panitia</label>
                         <textarea x-model="formData.{{ $aspek['catatanField'] }}" rows="2"
                             class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs transition outline-none resize-none
-                                @if($canEditThis)
+                                @if($canEditNote)
                                     focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100
                                 @else
                                     bg-slate-50 text-slate-500 cursor-not-allowed
                                 @endif"
-                            placeholder="Catatan untuk {{ $aspek['label'] }}..."
-                            {{ $canEditThis ? '' : 'disabled' }}></textarea>
+                            placeholder="Catatan..."
+                            {{ $canEditNote ? '' : 'disabled' }}></textarea>
                     </div>
                 </div>
                 @endforeach
@@ -321,15 +334,8 @@ x-init="@if(session('success')) showToast('{{ session('success') }}') @endif @if
                         @endif
                     @endif
                 </div>
-                <div class="flex items-center gap-2">
-                    @if($isPanitia && !$isPertimbangan && $isApproved)
-                        <button type="button" @click="submitNilai()" :disabled="saving"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-95">
-                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                            Simpan Nilai
-                        </button>
-                    @endif
+               <div class="flex items-center gap-2">
+                    {{-- TOMBOL SIMPAN NILAI SUDAH DIHAPUS SEBAGAIMANA PERMINTAAN AGAR LANGSUNG SIMPAN HASIL --}}
                     @if(($isCreator || $isPanitia) && !$isPertimbangan && $isApproved)
                         <button type="button" @click="simpanHasil()" :disabled="saving"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95">

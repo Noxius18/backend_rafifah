@@ -67,8 +67,8 @@
                       </a>";
 
         // 2. TOMBOL EDIT (Panitia, untuk semua status jadwal kecuali Dibatalkan/Rescheduled)
-        if ($isPanitia && $j->status_jadwal !== 'Dibatalkan' && $j->status_jadwal !== 'Rescheduled') {
-            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>";
+       if ($isPanitia && $j->status_jadwal !== 'Dibatalkan' && $j->status_jadwal !== 'Rescheduled') {
+            $aksiHtml .= "<button type='button' onclick=\"openEditModal({ id: '{$j->id_jadwal}', jam: '" . ($j->jam ? \Carbon\Carbon::parse($j->jam)->format('H:i') : '') . "', link_zoom: '" . e($j->link_zoom ?? '') . "', tanggal: '{$j->tanggal}' })\" class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg></button>";
         }
         $aksiHtml .= "</div>";
 
@@ -144,7 +144,7 @@
             penguji_hafalan: '',
             penguji_wawancara: '',
         },
-        open(data) {
+       open(data) {
             this.selectedTanggal = data.tanggal;
             this.jamMulai = data.jam_mulai;
             this.interval = data.interval;
@@ -177,7 +177,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        Cetak Laporan
+                        Cetak Laporan Panitia
                     </a>
                     @endif
 
@@ -651,9 +651,15 @@
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-700">
                 Perubahan akan diterapkan ke <strong>SEMUA</strong> jadwal di tanggal yang dipilih. Status akan kembali menjadi <strong>Menunggu</strong> untuk review ulang Ketua Panitia.
             </div>
-            <form id="editByDateForm" action="" method="POST" class="space-y-4">
+           <form id="editByDateForm" action="" method="POST" class="space-y-4" onsubmit="return validateEditGelombangDate(this)">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {{-- INPUT TANGGAL BARU YANG TADI HILANG --}}
+                    <div class="form-control md:col-span-2">
+                        <label class="label"><span class="label-text font-semibold text-sm">Tanggal Ujian / Seleksi</span></label>
+                        <input type="date" name="tanggal_baru" x-model="editRevisi.selectedTanggal" class="input input-bordered input-sm w-full" required />
+                    </div>
+                    
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold text-sm">Jam Mulai</span></label>
                         <input type="time" name="jam_mulai" x-model="editRevisi.jamMulai" class="input input-bordered input-sm" required />
@@ -774,11 +780,29 @@
             @endif
         });
 
-        function openEditModal({ id, jam, link_zoom }) {
-            document.getElementById('editModal-form').action = '{{ route('seleksi.update', ':id') }}'.replace(':id', id);
-            document.querySelector('#editModal-form [name="jam"]').value = jam;
-            document.querySelector('#editModal-form [name="link_zoom"]').value = link_zoom;
-            document.getElementById('editModal').showModal();
+       function openEditModal(data) {
+            // 1. CEK APAKAH STATUS JADWAL ADALAH REVISI (Massal Per Tanggal)
+            // Di sini kita cek apakah data dipass dari sirkulasi revisi massal atau individu biasa
+            const formMassal = document.getElementById('editByDateForm');
+            
+            // Kita deteksi dari ketersediaan parameter/objek penguji massal, atau jika status jadwal adalah Revisi
+            if (formMassal && data.tanggal && (!data.id || document.querySelector(`[data-status="${data.id}"]`)?.value === 'Revisi')) {
+                formMassal.action = '{{ route("seleksi.update-by-date", ":tanggal") }}'.replace(':tanggal', data.tanggal);
+                
+                if (window.Alpine) {
+                    const alpineScope = document.querySelector('[x-data]').__x.$data;
+                    alpineScope.editRevisi.selectedTanggal = data.tanggal;
+                    alpineScope.editRevisi.jamMulai = data.jam;
+                    alpineScope.editRevisi.linkZoom = data.link_zoom;
+                }
+                document.getElementById('editByDateModal').showModal();
+            } else {
+                // 2. JIKA JADWAL BIASA / EDIT INDIVIDU
+                document.getElementById('editModal-form').action = '{{ route("seleksi.update", ":id") }}'.replace(':id', data.id);
+                document.querySelector('#editModal-form [name="jam"]').value = data.jam || '';
+                document.querySelector('#editModal-form [name="link_zoom"]').value = data.link_zoom || '';
+                document.getElementById('editModal').showModal();
+            }
         }
 
         function openCancelModal(id, nama) {
@@ -796,10 +820,13 @@
             document.getElementById('rejectModal').showModal();
         }
 
-        const gelombangs = @json($gelombangs->map(function($g) {
-            return ['nama' => $g->nama, 'start_date' => $g->start_date, 'end_date' => $g->end_date];
-        })->toArray());
-
+       const gelombangs = @json($gelombangs->map(function($g) {
+    return [
+        'nama' => $g->nama, 
+        'start_date' => $g->getRawOriginal('start_date'), // PAKAI RAW!
+        'end_date' => $g->getRawOriginal('end_date')       // PAKAI RAW!
+    ];
+})->toArray());
         function toggleAddJadwalAlert(show, message = '') {
             const alert = document.getElementById('form-error');
             const messageNode = document.getElementById('form-error-message');
@@ -823,34 +850,59 @@
             return !String(field.value ?? '').trim();
         }
 
-        function validateGelombangDate(form) {
-            const firstEmptyField = getAddJadwalRequiredFields(form).find(isFieldEmpty);
-            if (firstEmptyField) {
-                toggleAddJadwalAlert(true, 'Lengkapi semua field wajib terlebih dahulu.');
-                firstEmptyField.focus();
-                return false;
-            }
+function validateGelombangDate(form) {
+    const firstEmptyField = getAddJadwalRequiredFields(form).find(isFieldEmpty);
+    if (firstEmptyField) {
+        toggleAddJadwalAlert(true, 'Lengkapi semua field wajib terlebih dahulu.');
+        firstEmptyField.focus();
+        return false;
+    }
 
-            const date = form.querySelector('[name="tanggal"]')?.value;
-            if (!date) return true;
-            const valid = gelombangs.some(g => date >= g.start_date && date <= g.end_date);
+    const dateInput = form.querySelector('[name="tanggal"]')?.value;
+    if (!dateInput) return true;
+    
+    // NORMALISASI: Ambil 10 karakter pertama (YYYY-MM-DD) dari input date
+    const date = dateInput.substring(0, 10);
+    
+    // Cek apakah tanggal masuk dalam rentang gelombang manapun
+    const valid = gelombangs.some(g => {
+        // NORMALISASI: Ambil 10 karakter pertama dari start_date dan end_date
+        // Ini untuk handle berbagai format: "2026-06-30", "2026-06-30T00:00:00.000000Z", dll
+        const start = String(g.start_date).substring(0, 10);
+        const end = String(g.end_date).substring(0, 10);
+        
+        // Debug: kamu bisa lihat di console browser (F12)
+        console.log(`Cek: ${date} >= ${start} && ${date} <= ${end} = ${date >= start && date <= end}`);
+        
+        return date >= start && date <= end;
+    });
+    
+    if (!valid) {
+        toggleAddJadwalAlert(true, 'Tanggal tidak masuk dalam rentang gelombang manapun.');
+        form.querySelector('[name="tanggal"]')?.focus();
+        return false;
+    }
+
+    toggleAddJadwalAlert(false);
+    return valid;
+}
+
+       function validateEditGelombangDate(form) {
+            const dateInput = form.querySelector('[name="tanggal_baru"]')?.value;
+            if (!dateInput) return true;
+            
+            // NORMALISASI: Ambil 10 karakter pertama (YYYY-MM-DD)
+            const date = dateInput.substring(0, 10);
+            
+            const valid = gelombangs.some(g => {
+                const start = String(g.start_date).substring(0, 10);
+                const end = String(g.end_date).substring(0, 10);
+                return date >= start && date <= end;
+            });
+            
             if (!valid) {
-                toggleAddJadwalAlert(true, 'Tanggal tidak masuk dalam rentang gelombang manapun.');
-                form.querySelector('[name="tanggal"]')?.focus();
-                return false;
-            }
-
-            toggleAddJadwalAlert(false);
-            return valid;
-        }
-
-        function validateEditGelombangDate(form) {
-            const date = form.querySelector('[name="tanggal"]')?.value;
-            if (!date) return true;
-            const valid = gelombangs.some(g => date >= g.start_date && date <= g.end_date);
-            if (!valid) {
-                document.getElementById('edit-form-error').classList.remove('hidden');
-                document.getElementById('edit-form-error-message').innerHTML = 'Tanggal tidak masuk dalam rentang gelombang manapun.';
+                alert('Tanggal revisi baru tidak masuk dalam rentang gelombang manapun.');
+                form.querySelector('[name="tanggal_baru"]')?.focus();
                 return false;
             }
             return valid;

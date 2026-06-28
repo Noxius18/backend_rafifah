@@ -48,11 +48,12 @@ class MahasantriPendaftaranController extends Controller
             'orangtua.*.alamat' => 'nullable|string|max:255',
             'orangtua.*.no_wa' => 'nullable|string|max:20',
             'berkas' => 'required|array',
-            'berkas.ktp' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'berkas.kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'berkas.ijazah' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'berkas.surat_izin_orangtua' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'berkas.pas_foto' => 'required|file|mimes:jpg,jpeg,png|max:5120',
+            // VALIDASI DINAMIS: Hanya required jika data berkas belum ada di DB
+            'berkas.ktp' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'KTP')->exists()), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'berkas.kk' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'KK')->exists()), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'berkas.ijazah' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'Ijazah')->exists()), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'berkas.surat_izin_orangtua' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'Surat Izin Orangtua')->exists()), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'berkas.pas_foto' => [Rule::requiredIf(fn() => !$mahasantri->berkas()->where('tipe_berkas', 'Pas Foto')->exists()), 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
         ]);
 
         $items = $this->normalizeOrangtua($validated['orangtua'], $mahasantri->id_mahasantri);
@@ -84,6 +85,11 @@ class MahasantriPendaftaranController extends Controller
 
                 $nextBerkasNumber = $this->nextNumericId(Berkas::query()->pluck('id_berkas')->all());
                 foreach (self::DOCUMENT_FIELDS as $field => $tipeBerkas) {
+                    // JIKA FILE TIDAK DIUPLOAD, LEWATI (Keep file lama)
+                    if (!$request->hasFile("berkas.{$field}")) {
+                        continue;
+                    }
+
                     $file = $request->file("berkas.{$field}");
                     $berkas = $mahasantri->berkas()->where('tipe_berkas', $tipeBerkas)->first();
                     $idBerkas = $berkas?->id_berkas ?? 'BR' . str_pad($nextBerkasNumber++, 3, '0', STR_PAD_LEFT);
@@ -101,7 +107,7 @@ class MahasantriPendaftaranController extends Controller
                             'id_berkas' => $idBerkas,
                             'link_sumber' => null,
                             'file_path' => $path,
-                            'status_verifikasi' => false,
+                            'status_verifikasi' => false, // Set false agar panitia review kembali berkas baru
                             'tanggal_upload' => now(),
                         ]
                     );
@@ -120,18 +126,13 @@ class MahasantriPendaftaranController extends Controller
             foreach ($storedPaths as $path) {
                 Storage::disk('private_berkas')->delete($path);
             }
-
             throw $e;
         }
 
         return (new MahasantriResource($mahasantri->fresh()->load(['orangtuas', 'berkas.riwayatUnduhan'])))
-            ->additional(['message' => 'Data pendaftaran berhasil dikirim.']);
+            ->additional(['message' => 'Data pendaftaran berhasil diperbarui.']);
     }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $items
-     * @return array<int, array<string, mixed>>
-     */
+    
     private function normalizeOrangtua(array $items, string $currentMahasantriId): array
     {
         $seenPhoneInRequest = [];

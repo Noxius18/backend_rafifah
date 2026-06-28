@@ -218,4 +218,29 @@ class LaporanController extends Controller
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
     }
+
+    public function cetakSemuaMahasantri()
+    {
+        // Tarik seluruh data mahasantri lengkap dengan relasi orang tua
+        $mahasantris = User::with('orangtuas')->orderBy('id_mahasantri')->get();
+
+        $html = view('menu.laporan.pdf-semua-mahasantri', [
+            'mahasantris' => $mahasantris,
+            'date'        => now()->format('d/m/Y H:i'),
+        ])->render();
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        // Pakai landscape karena kolomnya sangat banyak mirip excel
+        $dompdf->setPaper('A4', 'landscape'); 
+        $dompdf->render();
+
+        return response($dompdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="data-seluruh-mahasantri.pdf"');
+    }
 }

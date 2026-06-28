@@ -2,33 +2,58 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
-use Illuminate\Queue\SerializesModels;
 use App\Models\JadwalTes;
 use App\Models\Panitia;
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
 
-class JadwalCreatedNotification extends Mailable implements ShouldQueue
+class JadwalCreatedNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $jadwal;
+    public $jadwalTes;
     public $pembuat;
-    public $jumlahMahasantri;
-    public $namaPenerima;
+    public $jumlah;
+    public $namaKetua;
+    public $isRevision; // <-- Tambahkan properti flag baru
 
-    public function __construct(JadwalTes $jadwal, Panitia $pembuat, int $jumlahMahasantri, ?string $namaPenerima = null)
+    /**
+     * Create a new message instance.
+     */
+    public function __construct(JadwalTes $jadwalTes, Panitia $pembuat, $jumlah, $namaKetua, $isRevision = false)
     {
-        $this->jadwal = $jadwal;
+        $this->jadwalTes = $jadwalTes;
         $this->pembuat = $pembuat;
-        $this->jumlahMahasantri = $jumlahMahasantri;
-        $this->namaPenerima = $namaPenerima;
+        $this->jumlah = $jumlah;
+        $this->namaKetua = $namaKetua;
+        $this->isRevision = $isRevision; // <-- Set value flag
     }
 
-    public function build()
+    /**
+     * Get the message envelope.
+     */
+    public function envelope(): Envelope
     {
-        return $this->subject('🔔 Jadwal Baru Perlu Persetujuan - ' . $this->jadwal->tanggal)
-                    ->view('emails.jadwal-created');
+        // Kondisikan subjek email berdasarkan status pembuatan / revisi
+        $subject = $this->isRevision 
+            ? 'Pemberitahuan: Perbaikan / Revisi Jadwal Ujian Seleksi Baru' 
+            : 'Pemberitahuan: Pengajuan Jadwal Ujian Seleksi Baru';
+
+        return new Envelope(
+            subject: $subject,
+        );
+    }
+
+    /**
+     * Get the message content definition.
+     */
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.jadwal-created', // Pastikan mengarah ke file view email kamu
+        );
     }
 }

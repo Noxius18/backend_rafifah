@@ -91,6 +91,7 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(
         Route::get('/cetak-nilai', [LaporanController::class, 'cetakNilai'])->name('cetak-nilai');
         Route::get('/cetak-overall', [LaporanController::class, 'cetakOverall'])->name('cetak-overall');
     });
+    Route::get('/cetak-semua-mahasantri', [LaporanController::class, 'cetakSemuaMahasantri'])->name('cetak-semua-mahasantri');
 
     Route::get('/seleksi/gelombang/{id}/cetak-laporan', [LaporanController::class, 'cetakLaporanPanitia'])
         ->name('laporan.panitia.seleksi');
