@@ -27,14 +27,23 @@ class MahasantriController extends Controller
     public function index()
     {
         $query = User::with(['orangtuas', 'berkas']);
+        $activeGelombang = Gelombang::activeOrFirst();
+        $gelombangList = Gelombang::orderBy('id')
+            ->get(['id', 'nama'])
+            ->map(fn($gelombang) => [
+                'value' => (string) $gelombang->id,
+                'label' => $gelombang->nama,
+            ])
+            ->values()
+            ->all();
 
         // Filter gelombang berdasarkan prefix id_mahasantri
         if ($gelombangFilter = request('gelombang')) {
-            $prefix = match ($gelombangFilter) {
-                '1' => date('y') . '01%', // 2601%
-                '2' => date('y') . '02%', // 2602%
-                default => null,
-            };
+            $prefix = null;
+            if ($activeGelombang) {
+                $prefix = $activeGelombang->tahunPrefix() . str_pad((string) $gelombangFilter, 2, '0', STR_PAD_LEFT) . '%';
+            }
+
             if ($prefix) {
                 $query->where('id_mahasantri', 'LIKE', $prefix);
             }
@@ -45,6 +54,7 @@ class MahasantriController extends Controller
         return view('menu.mahasantri.index', [
             'mahasantris'     => $mahasantris,
             'filterGelombang' => request('gelombang', ''),
+            'gelombangList'   => $gelombangList,
         ]);
     }
 
@@ -273,8 +283,14 @@ class MahasantriController extends Controller
             'hapus_file_fisik' => 'nullable|boolean',
         ]);
 
-        $tahun = date('y');
-        $prefix = $tahun; // 26 → cocokkan semua 26xxxxx (gel 1 + gel 2)
+        $targetGelombang = Gelombang::activeOrFirst();
+        if (!$targetGelombang) {
+            return redirect()->route('mahasantri.index')
+                ->with('error', 'Gagal menghapus: belum ada konfigurasi gelombang di sistem.');
+        }
+
+        $tahunAjaran = $targetGelombang->tahunAjaran();
+        $prefix = $targetGelombang->tahunPrefix();
 
         $alsoDeleteFiles = (bool) $request->boolean('hapus_file_fisik');
 
@@ -288,7 +304,7 @@ class MahasantriController extends Controller
                 ->with('error', 'Gagal menghapus: ' . $e->getMessage());
         }
 
-        $msg = "Berhasil menghapus semua data tahun ajaran 20{$tahun}: "
+        $msg = "Berhasil menghapus semua data tahun ajaran {$tahunAjaran}: "
              . "{$stats['mahasantri']} mahasantri, {$stats['orangtua']} data ortu, "
              . "{$stats['berkas']} berkas, {$stats['jadwal']} jadwal, {$stats['hasil_tes']} hasil tes.";
         if ($alsoDeleteFiles) {

@@ -10,12 +10,6 @@
         'Tidak Lulus' => 'Tidak Lulus',
     ];
 
-    $tahun = date('y');
-    $gelombangList = [
-        ['value' => '1', 'label' => "Gelombang 1"],
-        ['value' => '2', 'label' => "Gelombang 2"],
-    ];
-
     $columns = [
         ['label' => 'Kode Pendaftar',           'field' => 'id_mahasantri', 'html' => 'id_html'],
         ['label' => 'Nama',         'field' => 'nama_lengkap',  'html' => 'nama_html'],

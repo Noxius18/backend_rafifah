@@ -31,14 +31,7 @@ class JadwalTesController extends Controller
         $gelombangs = Gelombang::orderBy('start_date')->get(['id', 'nama', 'start_date', 'end_date']);
 
         $today = Carbon::today();
-        $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
-            ->whereDate('end_date', '>=', $today)
-            ->orderBy('start_date')
-            ->first();
-
-        if (!$activeGelombang && $gelombangs->isNotEmpty()) {
-            $activeGelombang = $gelombangs->first();
-        }
+        $activeGelombang = Gelombang::activeOrFirst($today);
 
         // Build nilaiPerAspek for each jadwal for the modal
         $nilaiPerAspekByJadwal = [];
@@ -169,20 +162,14 @@ class JadwalTesController extends Controller
         ]);
 
         $tanggal = Carbon::parse($validated['tanggal']);
-        $prefixTahun = date('y');
-        
-        // FIX BUG AKHIR BULAN: Menggunakan format string Y-m-d murni untuk SQL
-        $gelombang = Gelombang::where('start_date', '<=', $tanggal->copy()->endOfDay())
-            ->where('end_date', '>=', $tanggal->copy()->startOfDay())
-            ->orderBy('start_date')
-            ->first();
+        $gelombang = Gelombang::findByDate($tanggal);
 
         if (!$gelombang) {
             return redirect()->route('seleksi.index')
                 ->with('error', 'Tanggal ' . $validated['tanggal'] . ' tidak masuk rentang gelombang manapun.');
         }
 
-        $prefixId = $prefixTahun . str_pad($gelombang->id, 2, '0', STR_PAD_LEFT);
+        $prefixId = $gelombang->tahunPrefix() . str_pad($gelombang->id, 2, '0', STR_PAD_LEFT);
         
         // Eager load relasi jadwalTes untuk memvalidasi double scheduling
         $allMahasantri = User::with('jadwalTes')->where('id_mahasantri', 'LIKE', $prefixId . '%')->get();
