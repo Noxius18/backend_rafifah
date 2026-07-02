@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Panitia;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 
 class PanitiaController extends Controller
@@ -12,11 +14,41 @@ class PanitiaController extends Controller
      */
     public function index()
     {
-        $panitias = Panitia::all();
+        $panitias = Panitia::orderByRaw("CASE WHEN jabatan = 'Ketua Panitia' THEN 0 ELSE 1 END")
+            ->orderBy('id_panitia')
+            ->get();
         
         return view('menu.panitia.index', [
             'panitias' => $panitias
         ]);
+    }
+
+    /**
+     * Cetak daftar seluruh panitia dalam format PDF.
+     */
+    public function cetakPdf()
+    {
+        $panitias = Panitia::orderByRaw("CASE WHEN jabatan = 'Ketua Panitia' THEN 0 ELSE 1 END")
+            ->orderBy('id_panitia')
+            ->get();
+
+        $html = view('menu.panitia.pdf', [
+            'panitias' => $panitias,
+            'date' => now()->format('d/m/Y H:i'),
+        ])->render();
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="daftar-panitia.pdf"');
     }
 
     /**

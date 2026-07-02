@@ -110,6 +110,7 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(
 // ──────────────────────────────────────────────
 Route::middleware(['auth:panitia', 'cek_jabatan:Ketua Panitia'])->group(function () {
     // Panitia Management (full CRUD)
+    Route::get('/panitia/cetak-pdf', [PanitiaController::class, 'cetakPdf'])->name('panitia.cetak-pdf');
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
 
     // Hasil Tes – review pertimbangan
