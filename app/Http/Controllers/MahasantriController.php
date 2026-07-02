@@ -131,11 +131,17 @@ class MahasantriController extends Controller
             ? collect([$jadwal->hasilTes])
             : collect();
 
+        $suratMeta = $this->buildSuratKelulusanMeta($mahasantri);
+
         $html = view('menu.laporan.pdf-nilai-single', [
             'mahasantri' => $mahasantri,
             'hasilTes'   => $hasilTes,
             'jadwal'     => $jadwal,
             'date'       => now()->format('d/m/Y H:i'),
+            'nomorSurat' => $suratMeta['nomor_surat'],
+            'tahunAjaran' => $suratMeta['tahun_ajaran'],
+            'tahunAjaranBerikutnya' => $suratMeta['tahun_ajaran_berikutnya'],
+            'labelTahunAjaran' => $suratMeta['label_tahun_ajaran'],
         ])->render();
 
         $options = new Options();
@@ -152,6 +158,20 @@ class MahasantriController extends Controller
         return response($dompdf->output(), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
+    private function buildSuratKelulusanMeta(User $mahasantri): array
+    {
+        $tahunAjaran = User::extractTahunAjaran($mahasantri->id_mahasantri);
+        $tahunAjaranBerikutnya = $tahunAjaran + 1;
+        $idNum = preg_replace('/[^0-9]/', '', $mahasantri->id_mahasantri ?? '001');
+
+        return [
+            'tahun_ajaran' => $tahunAjaran,
+            'tahun_ajaran_berikutnya' => $tahunAjaranBerikutnya,
+            'label_tahun_ajaran' => "{$tahunAjaran}/{$tahunAjaranBerikutnya}",
+            'nomor_surat' => str_pad($idNum ?: '1', 3, '0', STR_PAD_LEFT) . "/PMB/RAMQ/{$tahunAjaran}",
+        ];
     }
 
     public function show(User $mahasantri)

@@ -83,6 +83,12 @@ class LaporanController extends Controller
             'total_jadwal'       => JadwalTes::count(),
         ];
 
+        $gelombangByTahunDanNama = Gelombang::orderBy('start_date')
+            ->get()
+            ->keyBy(function ($gelombang) {
+                return $gelombang->tahunAjaran() . ':' . $gelombang->nama;
+            });
+
         // Ambil semua data dengan eager loading
         $semuaHasil = HasilTes::with([
             'mahasantri',
@@ -95,39 +101,55 @@ class LaporanController extends Controller
         $gelombangData = [];
         foreach ($semuaHasil as $hasil) {
             $mhs = $hasil->jadwalTes->mahasantri ?? $hasil->mahasantri;
-            if (!$mhs) continue;
+            if (!$mhs) {
+                continue;
+            }
 
+            $tahunAjaran = User::extractTahunAjaran($mhs->id_mahasantri);
             $gelombangNama = User::extractGelombangNama($mhs->id_mahasantri);
+            $groupKey = sprintf('%04d-%02d', $tahunAjaran, User::extractGelombangNomor($mhs->id_mahasantri));
+            $gelombang = $gelombangByTahunDanNama->get($tahunAjaran . ':' . $gelombangNama);
 
-            if (!isset($gelombangData[$gelombangNama])) {
-                $gelombangData[$gelombangNama] = [
+            $periode = $gelombang
+                ? Carbon::parse($gelombang->start_date)->locale('id')->translatedFormat('d F Y') . ' - ' .
+                    Carbon::parse($gelombang->end_date)->locale('id')->translatedFormat('d F Y')
+                : "Tahun Ajaran {$tahunAjaran}";
+
+            if (!isset($gelombangData[$groupKey])) {
+                $gelombangData[$groupKey] = [
                     'nama' => $gelombangNama,
+                    'tahun_ajaran' => $tahunAjaran,
                     'penanggung_jawab' => $hasil->jadwalTes->penanggungJawab?->nama_lengkap ?? '-',
                     'mahasantri' => [],
-                    'periode' => '',
+                    'periode' => $periode,
                 ];
             }
 
-            $gelombangData[$gelombangNama]['mahasantri'][] = $hasil;
+            $gelombangData[$groupKey]['mahasantri'][] = $hasil;
         }
 
         // Urutkan gelombang
         ksort($gelombangData);
 
-        // Tambahkan periode ke setiap gelombang (SUDAH DISESUAIKAN KE BAHASA INDONESIA)
-        foreach ($gelombangData as $gelombangNama => &$data) {
-            $gelombang = Gelombang::where('nama', $gelombangNama)->first();
-            if ($gelombang) {
-                $data['periode'] = Carbon::parse($gelombang->start_date)->locale('id')->translatedFormat('d F Y') . ' - ' .
-                                   Carbon::parse($gelombang->end_date)->locale('id')->translatedFormat('d F Y');
-            }
-        }
+        $reportYears = collect($gelombangData)
+            ->pluck('tahun_ajaran')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $reportYearLabel = match ($reportYears->count()) {
+            0 => 'Tanpa Tahun Ajaran',
+            1 => 'Tahun Ajaran ' . $reportYears->first(),
+            default => 'Lintas Tahun Ajaran (' . $reportYears->implode(', ') . ')',
+        };
 
         $html = view('menu.laporan.pdf-overall', [
             'summary'          => $summary,
             'gelombangData'    => $gelombangData,
             'mahasantriBelumTes' => $mahasantriBelumTes,
             'date'             => now()->format('d/m/Y H:i'),
+            'reportYearLabel'  => $reportYearLabel,
         ])->render();
 
         $options = new Options();

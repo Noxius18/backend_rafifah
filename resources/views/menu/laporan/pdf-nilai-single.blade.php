@@ -17,10 +17,10 @@
     }
         /* Ukuran margin pas untuk 1 halaman penuh tanpa terkesan sesak */
         @page { size: A4; margin: 25px 40px; }
-        
+
         /* Font size standar surat resmi (14px) agar enak dibaca */
         body { font-family: 'Times New Roman', Times, serif; font-size: 14px; color: #000; line-height: 1.35; }
-        
+
         /* KOP SURAT */
         .kop-surat { text-align: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 15px; margin-top: 5px; }
         .kop-surat h1 { font-size: 20px; margin: 0; font-weight: bold; letter-spacing: 1px; }
@@ -29,11 +29,11 @@
 
         /* JUDUL SURAT */
         .judul-surat { text-align: center; margin-bottom: 15px; }
-        
+
         /* PENGATURAN GAMBAR BASMALAH YANG SUDAH DI-CUT */
         /* Tinggi diset 45px agar pas, margin negatif dihapus supaya ada jarak dengan teks bawahnya */
         .judul-surat img.basmalah { height: 45px; width: auto; margin-top: 5px; margin-bottom: 10px; object-fit: contain; }
-        
+
         .judul-surat .teks-basmalah { font-size: 24px; font-family: 'Traditional Arabic', 'Amiri', 'DejaVu Sans', serif; margin-bottom: 5px; }
         .judul-surat h3 { font-size: 16px; margin: 0; text-decoration: underline; font-weight: bold; }
         .judul-surat h4 { font-size: 14px; margin: 3px 0 0; font-weight: bold; }
@@ -41,7 +41,7 @@
 
         /* KONTEN SURAT */
         .content { margin-bottom: 10px; }
-        
+
         table.biodata { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
         table.biodata td { padding: 4px 5px; vertical-align: top; }
         table.biodata td.label { width: 190px; }
@@ -77,7 +77,7 @@
             $base64 = 'data:image/png;base64,' . $imageData;
         }
     @endphp
-    
+
     @if($base64)
         <img src="{{ $base64 }}" style="width: 100%;" />
     @endif
@@ -85,20 +85,16 @@
 
     @php
         $h = $hasil ?? (isset($hasilTes) ? $hasilTes->first() : null);
-        
+
         $nama = $mahasantri->nama_lengkap ?? '-';
         $tempat_lahir = $mahasantri->tempat_lahir ?? '-';
         $tgl_lahir = $mahasantri->tanggal_lahir ? \Carbon\Carbon::parse($mahasantri->tanggal_lahir)->locale('id')->translatedFormat('d F Y') : '-';
-        
+
         $alamat = $mahasantri->alamat ?? '-';
 
         // Cari nama Ketua Panitia dari user dengan jabatan Ketua Panitia
         $ketuaPanitia = \App\Models\Panitia::where('jabatan', 'Ketua Panitia')->first();
         $namaKetuaPanitia = $ketuaPanitia ? $ketuaPanitia->nama_lengkap : '-';
-
-        $tahun = date('Y');
-        $idNum = preg_replace('/[^0-9]/', '', $mahasantri->id_mahasantri ?? '001');
-        $nomorSurat = str_pad($idNum ?: '1', 3, '0', STR_PAD_LEFT) . "/PMB/RAMQ/{$tahun}";
 
         // Trik Base64 Gambar tetap dipertahankan supaya email tidak error
         $basmalahPath = public_path('images/basmalah.png');
@@ -134,7 +130,7 @@
 
     <div class="content">
         <p><i>Assalamu'alaikum warahmatullahi wabarakatuh</i></p>
-        <p>Berdasarkan hasil seleksi dan tes penerimaan mahasantri baru Tahun Ajaran {{ $tahun }}/{{ $tahun + 1 }}. Maka dengan ini kami menyatakan bahwa:</p>
+        <p>Berdasarkan hasil seleksi dan tes penerimaan mahasantri baru Tahun Ajaran {{ $labelTahunAjaran }}. Maka dengan ini kami menyatakan bahwa:</p>
 
         <table class="biodata">
             <tr>

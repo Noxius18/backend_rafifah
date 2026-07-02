@@ -107,6 +107,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Ekstrak prefix tahun 2 digit dari ID mahasantri.
+     * Contoh: "270101" → "27"
+     */
+    public static function extractTahunPrefix(string $id): string
+    {
+        return substr($id, 0, 2);
+    }
+
+    /**
+     * Ekstrak tahun ajaran 4 digit dari ID mahasantri.
+     * Contoh: "270101" → 2027
+     */
+    public static function extractTahunAjaran(string $id): int
+    {
+        return 2000 + (int) static::extractTahunPrefix($id);
+    }
+
+    /**
      * Ekstrak nama gelombang dari ID mahasantri.
      * Contoh: "260101" → "Gelombang 1"
      */

@@ -90,6 +90,7 @@
     <div class="header">
         <h1>Laporan Hasil Tes Mahasantri</h1>
         <div class="sub">Ma'had Rafifah Andalusia MQ</div>
+        <p>{{ $reportYearLabel }}</p>
         <p>Dicetak: {{ $date }}</p>
     </div>
 
@@ -98,7 +99,7 @@
         @forelse ($gelombangData as $gelombang)
             {{-- Header Gelombang --}}
             <div class="gelombang-header">
-                <div class="gelombang-nama">{{ $gelombang['nama'] }}</div>
+                <div class="gelombang-nama">{{ $gelombang['nama'] }} - {{ $gelombang['tahun_ajaran'] }}</div>
                 <div class="periode">Periode: {{ $gelombang['periode'] }}</div>
             </div>
 
@@ -249,7 +250,7 @@
     </div>
 
     <div class="footer">
-        <p>© {{ date('Y') }} Ma'had Rafifah Andalusia MQ — Sistem Manajemen Pendaftaran Santri Baru</p>
+        <p>© {{ $reportYearLabel }} Ma'had Rafifah Andalusia MQ — Sistem Manajemen Pendaftaran Santri Baru</p>
     </div>
 </body>
 </html>
