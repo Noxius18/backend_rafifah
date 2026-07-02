@@ -3,12 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PanitiaAuthController;
 use App\Http\Controllers\PanitiaController;
-use App\Http\Controllers\MahasantriController;
-use App\Http\Controllers\JadwalTesController;
-use App\Http\Controllers\HasilTesController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GelombangController;
+use App\Http\Controllers\HasilTes\HasilTesInputController;
+use App\Http\Controllers\HasilTes\HasilTesReviewController;
+use App\Http\Controllers\JadwalTes\JadwalTesApprovalController;
+use App\Http\Controllers\JadwalTes\JadwalTesBulkController;
+use App\Http\Controllers\JadwalTes\JadwalTesCrudController;
+use App\Http\Controllers\Mahasantri\MahasantriBerkasController;
+use App\Http\Controllers\Mahasantri\MahasantriCrudController;
+use App\Http\Controllers\Mahasantri\MahasantriDocumentController;
+use App\Http\Controllers\Mahasantri\MahasantriImportController;
+use App\Http\Controllers\Mahasantri\MahasantriWorkflowController;
 
 Route::middleware('guest')->group(function () {
     // redirect ke halaman login
@@ -26,37 +33,37 @@ Route::middleware('guest')->group(function () {
 // ──────────────────────────────────────────────
 Route::middleware(['auth:panitia', 'cek_jabatan:Panitia'])->group(function () {
     // Mahasantri – write ops
-    Route::post('/mahasantri', [MahasantriController::class, 'store'])->name('mahasantri.store');
-    Route::put('/mahasantri/{mahasantri}', [MahasantriController::class, 'update'])->name('mahasantri.update');
-    Route::delete('/mahasantri/{mahasantri}', [MahasantriController::class, 'destroy'])->name('mahasantri.destroy');
-    Route::post('/mahasantri/import', [MahasantriController::class, 'processImport'])->name('mahasantri.import');
-    Route::post('/mahasantri/{mahasantri}/verifikasi', [MahasantriController::class, 'verifikasi'])->name('mahasantri.verifikasi');
+    Route::post('/mahasantri', [MahasantriCrudController::class, 'store'])->name('mahasantri.store');
+    Route::put('/mahasantri/{mahasantri}', [MahasantriCrudController::class, 'update'])->name('mahasantri.update');
+    Route::delete('/mahasantri/{mahasantri}', [MahasantriCrudController::class, 'destroy'])->name('mahasantri.destroy');
+    Route::post('/mahasantri/import', [MahasantriImportController::class, 'processImport'])->name('mahasantri.import');
+    Route::post('/mahasantri/{mahasantri}/verifikasi', [MahasantriWorkflowController::class, 'verifikasi'])->name('mahasantri.verifikasi');
 
     // Seleksi (Jadwal Tes) – write ops
-    Route::post('/seleksi', [JadwalTesController::class, 'store'])->name('seleksi.store');
-    Route::put('/seleksi/{jadwalTes}', [JadwalTesController::class, 'update'])->name('seleksi.update');
-    Route::delete('/seleksi/{jadwalTes}', [JadwalTesController::class, 'destroy'])->name('seleksi.destroy');
-    Route::post('/seleksi/update-link-zoom', [JadwalTesController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
+    Route::post('/seleksi', [JadwalTesCrudController::class, 'store'])->name('seleksi.store');
+    Route::put('/seleksi/{jadwalTes}', [JadwalTesCrudController::class, 'update'])->name('seleksi.update');
+    Route::delete('/seleksi/{jadwalTes}', [JadwalTesCrudController::class, 'destroy'])->name('seleksi.destroy');
+    Route::post('/seleksi/update-link-zoom', [JadwalTesBulkController::class, 'updateLinkZoomMassal'])->name('seleksi.update-link-zoom');
 
     // 👇 INI DIA ROUTENYA (Sekarang sudah aman terlindungi middleware Panitia)
-    Route::post('/seleksi/send-bulk-results', [JadwalTesController::class, 'sendBulkResults'])->name('seleksi.send-bulk-results');
+    Route::post('/seleksi/send-bulk-results', [JadwalTesBulkController::class, 'sendBulkResults'])->name('seleksi.send-bulk-results');
 
-    Route::post('/seleksi/{jadwalTes}/notify-update', [JadwalTesController::class, 'sendUpdateNotification'])->name('seleksi.notify-update');
+    Route::post('/seleksi/{jadwalTes}/notify-update', [JadwalTesBulkController::class, 'sendUpdateNotification'])->name('seleksi.notify-update');
 
     // Bulk cancel (Panitia)
-    Route::post('/seleksi/bulk-cancel', [JadwalTesController::class, 'bulkCancel'])->name('seleksi.bulk-cancel');
+    Route::post('/seleksi/bulk-cancel', [JadwalTesBulkController::class, 'bulkCancel'])->name('seleksi.bulk-cancel');
 
     // Edit jadwal per tanggal (Panitia — saat status Revisi)
-    Route::post('/seleksi/update-by-date/{tanggal}', [JadwalTesController::class, 'updateByDate'])->name('seleksi.update-by-date');
+    Route::post('/seleksi/update-by-date/{tanggal}', [JadwalTesBulkController::class, 'updateByDate'])->name('seleksi.update-by-date');
 
     // Hasil Tes – input nilai (hanya Panitia)
-    Route::post('/hasil-tes', [HasilTesController::class, 'store'])->name('hasil-tes.store');
-    Route::post('/hasil-tes/preview-hasil', [HasilTesController::class, 'previewHasil'])->name('hasil-tes.preview-hasil');
-    Route::post('/hasil-tes/simpan-hasil', [HasilTesController::class, 'simpanHasil'])->name('hasil-tes.simpan-hasil');
+    Route::post('/hasil-tes', [HasilTesInputController::class, 'store'])->name('hasil-tes.store');
+    Route::post('/hasil-tes/preview-hasil', [HasilTesInputController::class, 'previewHasil'])->name('hasil-tes.preview-hasil');
+    Route::post('/hasil-tes/simpan-hasil', [HasilTesInputController::class, 'simpanHasil'])->name('hasil-tes.simpan-hasil');
 
     // Berkas – update status, retry download & data mahasantri
-    Route::patch('/berkas/{berkas}', [MahasantriController::class, 'updateBerkas'])->name('berkas.update');
-    Route::post('/berkas/{berkas}/retry-download', [MahasantriController::class, 'retryDownload'])->name('berkas.retry-download');
+    Route::patch('/berkas/{berkas}', [MahasantriBerkasController::class, 'updateBerkas'])->name('berkas.update');
+    Route::post('/berkas/{berkas}/retry-download', [MahasantriBerkasController::class, 'retryDownload'])->name('berkas.retry-download');
 });
 
 // ──────────────────────────────────────────────
@@ -68,23 +75,23 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(
     Route::post('/dashboard/refresh', [DashboardController::class, 'refresh'])->name('dashboard.refresh');
 
     // Mahasantri – view & form
-    Route::get('/mahasantri', [MahasantriController::class, 'index'])->name('mahasantri.index');
-    Route::get('/mahasantri/{mahasantri}', [MahasantriController::class, 'show'])->name('mahasantri.show');
-    Route::get('/mahasantri/{mahasantri}/edit', [MahasantriController::class, 'edit'])->name('mahasantri.edit');
-    Route::get('/mahasantri/create', [MahasantriController::class, 'create'])->name('mahasantri.create');
-    Route::get('/mahasantri/import', [MahasantriController::class, 'import'])->name('mahasantri.import.form');
+    Route::get('/mahasantri/create', [MahasantriCrudController::class, 'create'])->name('mahasantri.create');
+    Route::get('/mahasantri/import', [MahasantriImportController::class, 'import'])->name('mahasantri.import.form');
+    Route::get('/mahasantri', [MahasantriCrudController::class, 'index'])->name('mahasantri.index');
+    Route::get('/mahasantri/{mahasantri}/edit', [MahasantriCrudController::class, 'edit'])->name('mahasantri.edit');
+    Route::get('/mahasantri/{mahasantri}', [MahasantriCrudController::class, 'show'])->name('mahasantri.show');
 
     // Berkas
-    Route::get('/berkas/{berkas}/download', [MahasantriController::class, 'downloadBerkas'])->name('berkas.download');
-    Route::get('/berkas/{berkas}/preview', [MahasantriController::class, 'previewBerkas'])->name('berkas.preview');
-    Route::get('/mahasantri/{mahasantri}/cetak-pdf', [MahasantriController::class, 'cetakPdf'])->name('mahasantri.cetak-pdf');
+    Route::get('/berkas/{berkas}/download', [MahasantriBerkasController::class, 'downloadBerkas'])->name('berkas.download');
+    Route::get('/berkas/{berkas}/preview', [MahasantriBerkasController::class, 'previewBerkas'])->name('berkas.preview');
+    Route::get('/mahasantri/{mahasantri}/cetak-pdf', [MahasantriDocumentController::class, 'cetakPdf'])->name('mahasantri.cetak-pdf');
 
     // Seleksi (Jadwal Tes) – view only
-    Route::get('/seleksi', [JadwalTesController::class, 'index'])->name('seleksi.index');
-    Route::get('/seleksi/{jadwalTes}/edit', [JadwalTesController::class, 'edit'])->name('seleksi.edit');
+    Route::get('/seleksi/{jadwalTes}/edit', [JadwalTesCrudController::class, 'edit'])->name('seleksi.edit');
+    Route::get('/seleksi', [JadwalTesCrudController::class, 'index'])->name('seleksi.index');
 
     // Hasil Tes – view nilai per jadwal
-    Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesController::class, 'index'])->name('seleksi.nilai');
+    Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesInputController::class, 'index'])->name('seleksi.nilai');
 
     // Laporan – cetak PDF (Panitia & Ketua Panitia)
     Route::prefix('laporan')->name('laporan.')->group(function () {
@@ -106,20 +113,20 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Ketua Panitia'])->group(function
     Route::resource('panitia', PanitiaController::class)->parameters(['panitia' => 'panitia']);
 
     // Hasil Tes – review pertimbangan
-    Route::post('/hasil-tes/{hasilTes}/review', [HasilTesController::class, 'review'])->name('hasil-tes.review');
+    Route::post('/hasil-tes/{hasilTes}/review', [HasilTesReviewController::class, 'review'])->name('hasil-tes.review');
 
     // Digital Handshake: Ketua Panitia approve/reject jadwal
-    Route::post('/seleksi/{jadwalTes}/approve', [JadwalTesController::class, 'approve'])->name('seleksi.approve');
-    Route::post('/seleksi/{jadwalTes}/reject', [JadwalTesController::class, 'reject'])->name('seleksi.reject');
+    Route::post('/seleksi/{jadwalTes}/approve', [JadwalTesApprovalController::class, 'approve'])->name('seleksi.approve');
+    Route::post('/seleksi/{jadwalTes}/reject', [JadwalTesApprovalController::class, 'reject'])->name('seleksi.reject');
 
     // Bulk approve/reject (Ketua Panitia)
-    Route::post('/seleksi/approve-all', [JadwalTesController::class, 'approveAll'])->name('seleksi.approve-all');
-    Route::post('/seleksi/reject-all', [JadwalTesController::class, 'rejectAll'])->name('seleksi.reject-all');
+    Route::post('/seleksi/approve-all', [JadwalTesApprovalController::class, 'approveAll'])->name('seleksi.approve-all');
+    Route::post('/seleksi/reject-all', [JadwalTesApprovalController::class, 'rejectAll'])->name('seleksi.reject-all');
 
     // Pengaturan Gelombang – hanya untuk Ketua Panitia
     Route::get('/pengaturan-gelombang', [GelombangController::class, 'index'])->name('gelombang.index');
     Route::put('/pengaturan-gelombang/{gelombang}', [GelombangController::class, 'update'])->name('gelombang.update');
 
     // Hapus massal mahasantri – hanya Ketua Panitia
-    Route::post('/mahasantri/hapus/semua', [MahasantriController::class, 'destroyByTahunAjaran'])->name('mahasantri.destroy-by-tahun-ajaran');
+    Route::post('/mahasantri/hapus/semua', [MahasantriWorkflowController::class, 'destroyByTahunAjaran'])->name('mahasantri.destroy-by-tahun-ajaran');
 });
