@@ -21,8 +21,12 @@ class HasilTesService
     {
         $jadwalTes->load(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia']);
         $hasilTes = HasilTes::where('id_jadwal', $jadwalTes->id_jadwal)->first();
+        $user = auth()->user();
+        $userId = $user->id_panitia;
+        $isCreator = $jadwalTes->penanggung_jawab == $userId;
 
         $nilaiPerAspek = [];
+        $tugas = [];
         foreach ($jadwalTes->jadwalPenguji as $jp) {
             $nilaiPerAspek[$jp->aspek_penguji] = [
                 'nilai' => $jp->nilai,
@@ -30,6 +34,10 @@ class HasilTesService
                 'penguji' => $jp->panitia?->nama_lengkap,
                 'id_panitia' => $jp->id_panitia,
             ];
+
+            if ($jp->id_panitia == $userId || $isCreator) {
+                $tugas[] = $jp->aspek_penguji;
+            }
         }
 
         $hasilTesCollection = collect();
@@ -38,11 +46,41 @@ class HasilTesService
             $hasilTesCollection = collect([$mhsId => $hasilTes]);
         }
 
+        $statusHasil = $hasilTes ? $hasilTes->status : 'Belum Tes';
+        $isPertimbangan = $statusHasil === 'Pertimbangan';
+        $isKetuaPanitia = $user->jabatan === 'Ketua Panitia';
+        $isPanitia = $user->jabatan === 'Panitia';
+        $isApproved = $jadwalTes->status_jadwal === 'Disetujui';
+
         return [
             'jadwalTes' => $jadwalTes,
             'mahasantris' => $jadwalTes->mahasantri ? collect([$jadwalTes->mahasantri]) : collect(),
             'hasilTes' => $hasilTesCollection,
             'nilaiPerAspek' => $nilaiPerAspek,
+            'nilaiAspekCards' => $this->buildNilaiAspekCards($nilaiPerAspek, $tugas, $isCreator, $isPanitia, $isKetuaPanitia, $isApproved, $isPertimbangan),
+            'pageState' => [
+                'userId' => $userId,
+                'isCreator' => $isCreator,
+                'canInput' => count($tugas) > 0,
+                'tugas' => $tugas,
+                'isKetuaPanitia' => $isKetuaPanitia,
+                'isPanitia' => $isPanitia,
+                'isApproved' => $isApproved,
+                'statusHasil' => $statusHasil,
+                'isPertimbangan' => $isPertimbangan,
+                'reviewId' => $hasilTes?->id_hasil,
+                'formData' => [
+                    'nilai_bacaan_al_quran' => (string) ($nilaiPerAspek['Bacaan Al-Quran']['nilai'] ?? ''),
+                    'nilai_tajwid_tahsin' => (string) ($nilaiPerAspek['Tajwid/Tahsin']['nilai'] ?? ''),
+                    'nilai_hafalan' => (string) ($nilaiPerAspek['Hafalan']['nilai'] ?? ''),
+                    'nilai_wawancara' => (string) ($nilaiPerAspek['Wawancara']['nilai'] ?? ''),
+                    'catatan_bacaan_al_quran' => (string) ($nilaiPerAspek['Bacaan Al-Quran']['catatan'] ?? ''),
+                    'catatan_tajwid_tahsin' => (string) ($nilaiPerAspek['Tajwid/Tahsin']['catatan'] ?? ''),
+                    'catatan_hafalan' => (string) ($nilaiPerAspek['Hafalan']['catatan'] ?? ''),
+                    'catatan_wawancara' => (string) ($nilaiPerAspek['Wawancara']['catatan'] ?? ''),
+                    'catatan_ketua' => (string) ($jadwalTes->catatan_ketua ?? ''),
+                ],
+            ],
         ];
     }
 
@@ -238,6 +276,42 @@ class HasilTesService
             'nilai_hafalan' => ['aspek' => 'Hafalan', 'catatan' => 'catatan_hafalan'],
             'nilai_wawancara' => ['aspek' => 'Wawancara', 'catatan' => 'catatan_wawancara'],
         ];
+    }
+
+    private function buildNilaiAspekCards(
+        array $nilaiPerAspek,
+        array $tugas,
+        bool $isCreator,
+        bool $isPanitia,
+        bool $isKetuaPanitia,
+        bool $isApproved,
+        bool $isPertimbangan
+    ): array {
+        return collect([
+            ['key' => 'Bacaan Al-Quran', 'field' => 'nilai_bacaan_al_quran', 'catatanField' => 'catatan_bacaan_al_quran', 'label' => "Bacaan Al-Qur'an"],
+            ['key' => 'Tajwid/Tahsin', 'field' => 'nilai_tajwid_tahsin', 'catatanField' => 'catatan_tajwid_tahsin', 'label' => 'Tajwid & Tahsin'],
+            ['key' => 'Hafalan', 'field' => 'nilai_hafalan', 'catatanField' => 'catatan_hafalan', 'label' => 'Hafalan'],
+            ['key' => 'Wawancara', 'field' => 'nilai_wawancara', 'catatanField' => 'catatan_wawancara', 'label' => 'Wawancara'],
+        ])->map(function (array $aspek) use ($nilaiPerAspek, $tugas, $isCreator, $isPanitia, $isKetuaPanitia, $isApproved, $isPertimbangan) {
+            $nilaiAwal = $nilaiPerAspek[$aspek['key']]['nilai'] ?? '';
+            $canEditScore = false;
+
+            if ($isPanitia && $isApproved && (in_array($aspek['key'], $tugas, true) || $isCreator)) {
+                $canEditScore = true;
+            } elseif ($isKetuaPanitia && $isPertimbangan && (int) $nilaiAwal < 71 && $nilaiAwal !== '') {
+                $canEditScore = true;
+            }
+
+            $canEditNote = $isPanitia && $isApproved && (in_array($aspek['key'], $tugas, true) || $isCreator);
+            $isNilaiBelow71 = ((int) $nilaiAwal < 71 && $nilaiAwal !== '');
+
+            return array_merge($aspek, [
+                'pengujiNama' => $nilaiPerAspek[$aspek['key']]['penguji'] ?? '-',
+                'canEditScore' => $canEditScore,
+                'canEditNote' => $canEditNote,
+                'isNilaiBelow71' => $isNilaiBelow71,
+            ]);
+        })->all();
     }
 
     /**

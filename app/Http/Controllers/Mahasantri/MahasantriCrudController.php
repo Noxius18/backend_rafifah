@@ -100,7 +100,32 @@ class MahasantriCrudController extends Controller
             return response()->json($mahasantri);
         }
 
-        return view('menu.mahasantri.show', ['mahasantri' => $mahasantri]);
+        $previewDocs = $mahasantri->berkas
+            ->filter(fn($berkas) => $berkas->riwayatUnduhan?->download_status === 'success' && $berkas->file_path)
+            ->values()
+            ->map(fn($berkas) => [
+                'url' => route('berkas.preview', $berkas->id_berkas),
+                'title' => $berkas->tipe_berkas,
+                'id' => $berkas->id_berkas,
+                'isValid' => (bool) $berkas->status_verifikasi,
+                'isImage' => $berkas->tipe_berkas === 'Pas Foto',
+                'uploadDate' => $berkas->tanggal_upload
+                    ? (is_string($berkas->tanggal_upload) ? $berkas->tanggal_upload : $berkas->tanggal_upload->translatedFormat('d F Y'))
+                    : '-',
+            ])
+            ->values()
+            ->all();
+
+        return view('menu.mahasantri.show', [
+            'mahasantri' => $mahasantri,
+            'previewDocs' => $previewDocs,
+            'statusOptions' => [
+                'Pendaftar Baru' => 'Pendaftar Baru',
+                'Terverifikasi' => 'Terverifikasi',
+                'Lulus' => 'Lulus',
+                'Tidak Lulus' => 'Tidak Lulus',
+            ],
+        ]);
     }
 
     public function edit(User $mahasantri)

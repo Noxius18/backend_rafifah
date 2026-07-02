@@ -13,7 +13,6 @@ use App\Models\Panitia;
 use App\Models\ScheduleStatus;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -37,6 +36,8 @@ class JadwalTesService
             'activeGelombang' => Gelombang::activeOrFirst(Carbon::today()),
             'nilaiPerAspekByJadwal' => $this->buildNilaiPerAspekByJadwal($jadwals),
             'aspekMapping' => $this->aspectSlugMap(),
+            'columns' => $this->buildTableColumns(),
+            'rows' => $this->buildTableRows($jadwals),
             'totalMenunggu' => $jadwals->filter(fn($jadwal) => in_array($jadwal->status_jadwal, ['Menunggu', 'Revisi']))->count(),
             'totalPerluReview' => $jadwals->filter(fn($jadwal) => $jadwal->hasilTes && $jadwal->hasilTes->status === 'Pertimbangan')->count(),
             'totalRevisi' => $jadwals->filter(fn($jadwal) => $jadwal->status_jadwal === 'Revisi')->count(),
@@ -359,6 +360,109 @@ class JadwalTesService
         }
 
         return $data;
+    }
+
+    private function buildTableColumns(): array
+    {
+        return [
+            ['label' => 'ID', 'field' => 'id_jadwal', 'html' => 'id_html'],
+            ['label' => 'Mahasantri', 'field' => 'mhs_nama', 'html' => 'mhs_html'],
+            ['label' => 'Gelombang', 'field' => 'gelombang', 'html' => 'gelombang_html'],
+            ['label' => 'Tanggal', 'field' => 'tanggal', 'html' => 'tgl_html'],
+            ['label' => 'Jam', 'field' => 'jam', 'html' => 'jam_html'],
+            ['label' => 'Status', 'field' => 'status_jadwal', 'html' => 'status_konfirmasi_html'],
+            ['label' => 'Hasil', 'field' => 'hasil', 'html' => 'hasil_html'],
+            ['label' => 'Link Zoom', 'field' => 'link_zoom', 'html' => 'link_html', 'class' => 'hidden lg:table-cell'],
+            ['label' => 'Aksi', 'field' => 'id_jadwal', 'html' => 'aksi_html', 'class' => 'text-right'],
+        ];
+    }
+
+    private function buildTableRows($jadwals): array
+    {
+        $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
+        $isPanitia = auth()->user()->jabatan === 'Panitia';
+        $nilaiPerAspekByJadwal = $this->buildNilaiPerAspekByJadwal($jadwals);
+
+        return $jadwals->map(function ($jadwal) use ($isKetuaPanitia, $isPanitia, $nilaiPerAspekByJadwal) {
+            $hasil = $jadwal->hasilTes;
+            $statusHasil = $hasil ? $hasil->status : 'Belum Tes';
+            $nilaiPerAspek = $nilaiPerAspekByJadwal[$jadwal->id_jadwal] ?? [];
+
+            $editPayload = htmlspecialchars(json_encode([
+                'id' => $jadwal->id_jadwal,
+                'jam' => $jadwal->jam ? Carbon::parse($jadwal->jam)->format('H:i') : '',
+                'link_zoom' => $jadwal->link_zoom ?? '',
+                'tanggal' => $jadwal->tanggal,
+                'status_jadwal' => $jadwal->status_jadwal,
+            ]), ENT_QUOTES, 'UTF-8');
+
+            $aksiHtml = "<div class='flex items-center justify-end gap-0.5'>";
+            $aksiHtml .= "<a href='" . route('seleksi.nilai', $jadwal->id_jadwal) . "' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Detail Nilai'>
+                            <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'/></svg>
+                          </a>";
+
+            if ($isPanitia && !in_array($jadwal->status_jadwal, ['Dibatalkan', 'Rescheduled', 'Revisi'], true)) {
+                $aksiHtml .= "<button type='button' onclick='window.menuJadwalTesIndex?.openEditModalFromRow({$editPayload})' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Edit'>
+                                <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'/></svg>
+                              </button>";
+            }
+            $aksiHtml .= '</div>';
+
+            return [
+                'id_jadwal' => $jadwal->id_jadwal,
+                'gelombang' => $jadwal->mahasantri ? User::extractGelombangNama($jadwal->mahasantri->id_mahasantri) : '-',
+                'status_jadwal' => $jadwal->status_jadwal ?? 'Menunggu',
+                'search' => strtolower("{$jadwal->id_jadwal} {$jadwal->mahasantri?->nama_lengkap} {$jadwal->tanggal} {$jadwal->status_jadwal}"),
+                'id_html' => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$jadwal->id_jadwal}</code>",
+                'mhs_html' => $jadwal->mahasantri
+                    ? "<span class='font-medium text-black'>" . e($jadwal->mahasantri->nama_lengkap) . "</span><br><span class='text-[10px] text-black/60'>" . e($jadwal->mahasantri->id_mahasantri) . '</span>'
+                    : "<span class='text-black/50 text-xs'>-</span>",
+                'gelombang_html' => $jadwal->mahasantri
+                    ? "<span class='rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-200'>" . e(User::extractGelombangNama($jadwal->mahasantri->id_mahasantri)) . '</span>'
+                    : "<span class='text-slate-400'>-</span>",
+                'tgl_html' => "<span class='text-xs text-black'>" . Carbon::parse($jadwal->tanggal)->format('d/m/Y') . '</span>',
+                'jam_html' => $jadwal->jam
+                    ? "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 ring-1 ring-slate-200'>" . Carbon::parse($jadwal->jam)->format('H:i') . '</span>'
+                    : "<span class='text-slate-400 text-xs'>-</span>",
+                'status_konfirmasi_html' => $this->jadwalStatusBadge($jadwal->status_jadwal ?? 'Menunggu'),
+                'hasil_html' => $this->hasilStatusBadge($statusHasil),
+                'link_html' => $jadwal->link_zoom
+                    ? "<a href='" . e($this->formatLinkZoom($jadwal->link_zoom)) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>"
+                    : "<span class='text-black/50 text-xs'>-</span>",
+                'aksi_html' => $aksiHtml,
+            ];
+        })->toArray();
+    }
+
+    private function formatLinkZoom(?string $link): ?string
+    {
+        if (!$link) {
+            return null;
+        }
+
+        return preg_match('#^https?://#i', $link) ? $link : 'https://' . $link;
+    }
+
+    private function jadwalStatusBadge(string $status): string
+    {
+        return match ($status) {
+            'Menunggu' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>⏳ Menunggu</span>",
+            'Disetujui' => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>✅ Disetujui</span>",
+            'Revisi' => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>❌ Perlu Revisi</span>",
+            'Dibatalkan' => "<span class='rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200'>🚫 Dibatalkan</span>",
+            'Rescheduled' => "<span class='rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200'>🔄 Dijadwalkan Ulang</span>",
+            default => "<span class='text-xs text-slate-500'>" . e($status) . '</span>',
+        };
+    }
+
+    private function hasilStatusBadge(string $status): string
+    {
+        return match ($status) {
+            'Lulus' => "<span class='rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200'>✅ Lulus</span>",
+            'Tidak Lulus' => "<span class='rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200'>❌ Tidak Lulus</span>",
+            'Pertimbangan' => "<span class='rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200'>⚠️ Pertimbangan</span>",
+            default => "<span class='rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-400 ring-1 ring-slate-200'>⏳ Belum Tes</span>",
+        };
     }
 
     /**
