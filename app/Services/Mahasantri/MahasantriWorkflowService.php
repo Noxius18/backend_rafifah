@@ -59,7 +59,7 @@ class MahasantriWorkflowService
         });
     }
 
-    /**
+   /**
      * Saat verifikasi manual berhasil, sistem mencoba menyalin pola jadwal terakhir
      * pada gelombang yang sama agar mahasantri baru langsung masuk antrean seleksi.
      */
@@ -84,7 +84,8 @@ class MahasantriWorkflowService
             ->max()) + 1;
         $newId = 'JDS' . str_pad((string) $nextJadwalNum, 2, '0', STR_PAD_LEFT);
 
-        JadwalTes::create([
+        // Buat data jadwal baru status 'Menunggu'
+        $newJadwal = JadwalTes::create([
             'id_jadwal' => $newId,
             'id_mahasantri' => $mahasantri->id_mahasantri,
             'tanggal' => $lastJadwal->tanggal,
@@ -101,6 +102,26 @@ class MahasantriWorkflowService
                 'id_panitia' => $pengujiRow->id_panitia,
                 'aspek_penguji' => $pengujiRow->aspek_penguji,
             ]);
+        }
+
+        // ====================================================================
+        // FIX BUG 1: KIRIM EMAIL NOTIFIKASI APPROVAL KE KETUA PANITIA SECARA OTOMATIS
+        // ====================================================================
+        $ketuaPanitiaList = \App\Models\Panitia::where('jabatan', 'Ketua Panitia')->get();
+        $pembuat = \App\Models\Panitia::find($newJadwal->penanggung_jawab);
+        
+        if ($pembuat) {
+            foreach ($ketuaPanitiaList as $ketua) {
+                if ($ketua->email) {
+                    \Illuminate\Support\Facades\Mail::to($ketua->email)->send(new \App\Mail\JadwalCreatedNotification(
+                        $newJadwal,
+                        $pembuat,
+                        1, // 1 Mahasantri baru auto-generate
+                        $ketua->nama_lengkap,
+                        false // Parameter isRevision = false karena ini jadwal baru
+                    ));
+                }
+            }
         }
 
         return true;

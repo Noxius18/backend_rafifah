@@ -1,3 +1,6 @@
+@php
+    /** @var \App\Models\User $m */
+@endphp
 <x-ui.modal-form id="editModal" title="Edit Mahasantri">
     <x-slot name="body">
         @if($errors->any())

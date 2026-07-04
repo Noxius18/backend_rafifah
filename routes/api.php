@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\MahasantriAuthController;
 use App\Http\Controllers\Api\MahasantriPendaftaranController;
 use App\Http\Controllers\Api\MahasantriRegistrationController;
 use App\Http\Controllers\Api\MahasantriStatusController;
+use App\Http\Controllers\Api\PanitiaApiController; // <-- IMPORT CONTROLLER BARU LU DI SINI
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mahasantri')->group(function () {
@@ -20,3 +21,9 @@ Route::prefix('mahasantri')->group(function () {
 });
 
 Route::get('/gelombang/active', [GelombangController::class, 'active']);
+
+// ==============================================================================
+// FIX: DAFTARKAN ROUTE API PANITIA (REVIEW BERKAS & UNGHAH SURAT KELULUSAN)
+// ==============================================================================
+Route::post('/panitia/berkas/{id_berkas}/review', [PanitiaApiController::class, 'reviewBerkas']);
+Route::post('/panitia/mahasantri/{id_mahasantri}/unggah-kelulusan', [PanitiaApiController::class, 'unggahKelulusan']);

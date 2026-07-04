@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TestResultPdf;
 use App\Models\JadwalTes; 
+use App\Models\User; // Import Model Mahasantri
+use Illuminate\Support\Facades\DB;
 
 class SendBulkTestResults extends Command
 {
@@ -21,7 +23,7 @@ class SendBulkTestResults extends Command
      *
      * @var string
      */
-    protected $description = 'Kirim email hasil tes massal beserta lampiran PDF otomatis';
+    protected $description = 'Kirim email hasil tes massal beserta lampiran PDF otomatis sekaligus sinkronisasi ke Flutter';
 
     /**
      * Execute the console command.
@@ -33,8 +35,7 @@ class SendBulkTestResults extends Command
         
         $this->info("Memulai pengiriman hasil tes untuk tanggal: {$date}");
 
-        // Ambil jadwal yang sesuai (pastikan query ini sesuai dengan struktur database-mu)
-        // Kita juga memuat relasi mahasantri dan hasilTes agar lebih cepat (eager loading)
+        // Ambil jadwal yang sesuai beserta eager loading relasi mahasantri dan hasilTes
         $scheduled = JadwalTes::with(['mahasantri', 'hasilTes'])
             ->where('tanggal', $date)
             ->get();
@@ -48,27 +49,48 @@ class SendBulkTestResults extends Command
 
         foreach ($scheduled as $jadwal) {
             $mahasantri = $jadwal->mahasantri;
-            
-            // PERBAIKAN DI SINI: hapus ->first() karena relasinya hasOne
             $hasil = $jadwal->hasilTes;
 
-            // Skip jika data mahasantri atau hasil tesnya belum ada
+            // Skip jika data mahasantri atau hasil tesnya belum di-input nilainya oleh penguji/panitia
             if (!$mahasantri || !$hasil) {
                 $this->warn("No mahasiswa or result found for jadwal {$jadwal->id_jadwal} - skipping");
                 continue;
             }
 
-            // Siapkan string judul tanggal untuk dikirim ke Mailable
+            // ====================================================================
+            // INTEGRASI MULTI-PLATFORM (WEB & FLUTTER SINKRONISASI MASSAL)
+            // ====================================================================
+            // Bungkus dalam Database Transaction agar aman anti-corrupt data
+            DB::transaction(function () use ($mahasantri, $hasil, $jadwal) {
+                
+                // 1. Tentukan status kelulusan berdasarkan rekam data review di hasil_tes
+                // (Mengambil status kelulusan 'Lulus' atau 'Tidak Lulus' yang sudah disiapkan panitia)
+                $statusFinal = $hasil->status ?? 'Lulus'; 
+
+                // 2. Update status ENUM di tabel utama mahasantri agar Flutter bisa baca via API
+                User::where('id_mahasantri', $mahasantri->id_mahasantri)->update([
+                    'status' => $statusFinal
+                ]);
+
+                // 3. Update tanggal pengumuman resmi di tabel hasil_tes sesuai hari eksekusi ini
+                DB::table('hasil_tes')
+                    ->where('id_mahasantri', $mahasantri->id_mahasantri)
+                    ->update([
+                        'tanggal_pengumuman' => now()->format('Y-m-d')
+                    ]);
+            });
+
+            // Siapkan string judul tanggal untuk dikirim ke Mailable email
             $judulTanggal = $jadwal->tanggal . ' – ' . $jadwal->jam;
 
-            // Eksekusi Mailable, PDF akan di-generate otomatis di dalam file TestResultPdf
+            // Eksekusi pengiriman email resmi beserta lampiran PDF-nya
             Mail::to($mahasantri->email)->send(new TestResultPdf($mahasantri, $hasil, $judulTanggal));
             
             $sentCount++;
-            $this->line("Sent test result to {$mahasantri->nama_lengkap} ({$mahasantri->id_mahasantri})");
+            $this->line("Sent test result & synchronized Flutter for {$mahasantri->nama_lengkap} ({$mahasantri->id_mahasantri})");
         }
 
-        $this->info("Selesai! Berhasil mengirim {$sentCount} email hasil tes.");
+        $this->info("Selesai! Berhasil mengirim {$sentCount} email hasil tes dan sukses disinkronkan ke Flutter.");
         return 0;
     }
 }

@@ -15,24 +15,29 @@ class ZoomLinkReminder extends Mailable implements ShouldQueue
 
     public $jadwalTes;
     public $mahasantri;
+    public $isUpdate; // <-- Properti flag baru
 
     /**
      * Create a new message instance.
      */
-    public function __construct(JadwalTes $jadwalTes, User $mahasantri)
+    public function __construct(JadwalTes $jadwalTes, User $mahasantri, bool $isUpdate = false)
     {
         $this->jadwalTes = $jadwalTes;
         $this->mahasantri = $mahasantri;
+        $this->isUpdate = $isUpdate; // Default false (pengingat biasa)
     }
 
     /**
      * Build the message.
-     *
-     * @return $this
      */
     public function build()
     {
-        return $this->subject('Jadwal Ujian Anda: Link Zoom Siap')
+        // Subjek dinamis membedakan pengingat biasa dan perbaruan data info
+        $subject = $this->isUpdate 
+            ? '🔄 Perbaruan Informasi Jadwal Ujian Seleksi Anda' 
+            : 'Jadwal Ujian Anda: Link Zoom Siap';
+
+        return $this->subject($subject)
                     ->view('emails.zoom-reminder');
     }
 }

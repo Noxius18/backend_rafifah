@@ -16,6 +16,7 @@ use App\Http\Controllers\Mahasantri\MahasantriCrudController;
 use App\Http\Controllers\Mahasantri\MahasantriDocumentController;
 use App\Http\Controllers\Mahasantri\MahasantriImportController;
 use App\Http\Controllers\Mahasantri\MahasantriWorkflowController;
+use App\Http\Controllers\Api\PanitiaApiController;
 
 Route::middleware('guest')->group(function () {
     // redirect ke halaman login
@@ -92,6 +93,10 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(
 
     // Hasil Tes – view nilai per jadwal
     Route::get('/seleksi/{jadwalTes}/nilai', [HasilTesInputController::class, 'index'])->name('seleksi.nilai');
+
+    // Route API untuk Review Berkas & Unggah Kelulusan Panitia
+    Route::post('/panitia/berkas/{id_berkas}/review', [PanitiaApiController::class, 'reviewBerkas']);
+    Route::post('/panitia/mahasantri/{id_mahasantri}/unggah-kelulusan', [PanitiaApiController::class, 'unggahKelulusan']);
 
     // Laporan – cetak PDF (Panitia & Ketua Panitia)
     Route::prefix('laporan')->name('laporan.')->group(function () {
