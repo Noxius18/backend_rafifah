@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Berkas;
 use App\Services\Mahasantri\MahasantriWorkflowService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MahasantriBerkasController extends Controller
 {
@@ -67,12 +68,14 @@ class MahasantriBerkasController extends Controller
     public function updateBerkas(Request $request, Berkas $berkas)
     {
         $validated = $request->validate([
-            'status_verifikasi' => 'required|boolean',
+            'status_verifikasi' => ['nullable', Rule::in(Berkas::verificationStatuses())],
+            'catatan_revisi' => 'required_if:status_verifikasi,' . Berkas::STATUS_DITOLAK . '|nullable|string|max:255',
             'nik' => 'nullable|size:16|unique:mahasantri,nik,' . $berkas->id_mahasantri . ',id_mahasantri',
             'nisn' => 'nullable|size:10|unique:mahasantri,nisn,' . $berkas->id_mahasantri . ',id_mahasantri',
             'tempat_lahir' => 'nullable|string|max:50',
             'tanggal_lahir' => 'nullable|date',
         ], [
+            'catatan_revisi.required_if' => 'Catatan revisi wajib diisi saat berkas ditolak.',
             'nik.size' => 'NIK harus 16 karakter.',
             'nik.unique' => 'NIK sudah terdaftar.',
             'nisn.size' => 'NISN harus 10 karakter.',

@@ -86,8 +86,6 @@ class JadwalTesService
         $count = 0;
         $newJadwal = null;
 
-        // Satu tanggal input menghasilkan banyak row jadwal, masing-masing
-        // diberi jam berurutan berdasarkan interval yang sama.
         foreach ($verifiedMahasantri as $mhs) {
             $idJadwal = 'JDS' . str_pad((string) $urut, 2, '0', STR_PAD_LEFT);
             $urut++;
@@ -128,8 +126,7 @@ class JadwalTesService
     }
 
     /**
-     * Menggeser satu kelompok jadwal pada tanggal tertentu ke tanggal/jam baru,
-     * lalu membangun ulang penugasan penguji untuk seluruh row pada kelompok itu.
+     * Menggeser satu kelompok jadwal pada tanggal tertentu ke tanggal/jam baru.
      */
     public function updateByDate(string $tanggal, array $validated, string $creatorId): array
     {
@@ -167,8 +164,6 @@ class JadwalTesService
         $jadwalIds = $jadwals->pluck('id_jadwal');
         JadwalPenguji::whereIn('id_jadwal', $jadwalIds)->delete();
 
-        // Penugasan penguji dibangun ulang supaya satu perubahan batch tidak
-        // meninggalkan row penguji lama yang sudah tidak relevan.
         foreach ($jadwalIds as $idJadwal) {
             foreach ($this->aspectFieldMap() as $field => $aspek) {
                 if (!empty($validated[$field])) {
@@ -200,8 +195,7 @@ class JadwalTesService
     }
 
     /**
-     * Edit ringan pada satu jadwal tetap mengembalikan status ke Menunggu
-     * agar ketua panitia melakukan review ulang.
+     * Edit ringan pada satu jadwal tetap mengembalikan status ke Menunggu.
      */
     public function updateSingleJadwal(JadwalTes $jadwalTes, array $validated, string $creatorId): void
     {
@@ -234,10 +228,6 @@ class JadwalTesService
         return JadwalTes::where('tanggal', $tanggal)->update(['link_zoom' => $linkZoom]);
     }
 
-    /**
-     * Notifikasi update memakai tabel status pengiriman untuk menandai bahwa
-     * reminder berikutnya perlu dihitung ulang.
-     */
     public function sendUpdateNotification(JadwalTes $jadwalTes): void
     {
         ScheduleStatus::updateOrCreate(
@@ -245,13 +235,9 @@ class JadwalTesService
             ['zoom_reminder_sent' => false, 'sent_at' => null]
         );
 
-        Mail::to($jadwalTes->mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $jadwalTes->mahasantri));
+        Mail::to($jadwalTes->mahasantri->email)->send(new ZoomLinkReminder($jadwalTes, $jadwalTes->mahasantri, true));
     }
 
-    /**
-     * Pembatalan massal hanya berlaku untuk jadwal yang sudah disetujui,
-     * lalu mengirim notifikasi ringkas ke ketua panitia.
-     */
     public function bulkCancel(string $jenisPembatalan, string $alasanPembatalan): int
     {
         $tanggalLabel = $this->tanggalLabel(JadwalTes::where('status_jadwal', 'Disetujui'));
@@ -276,10 +262,6 @@ class JadwalTesService
         return $updated;
     }
 
-    /**
-     * Menjadwalkan email hasil tes untuk gelombang aktif/terakhir.
-     * Hanya mahasantri dengan status final yang akan diproses.
-     */
     public function sendBulkResults(Carbon $waktuKirim): array
     {
         $today = Carbon::today();
@@ -305,7 +287,6 @@ class JadwalTesService
             $mahasantri = $jadwal->mahasantri;
             $hasil = $jadwal->hasilTes;
 
-            // Status "Pertimbangan" sengaja dilewati karena masih menunggu keputusan ketua.
             if (!$mahasantri || !$hasil || !in_array($mahasantri->status, ['Lulus', 'Tidak Lulus'])) {
                 continue;
             }
@@ -341,10 +322,6 @@ class JadwalTesService
         ];
     }
 
-    /**
-     * Mengubah hasil relasi jadwal_penguji menjadi struktur key-value yang
-     * lebih mudah langsung dipakai oleh modal di layer view.
-     */
     private function buildNilaiPerAspekByJadwal($jadwals): array
     {
         $data = [];
@@ -358,7 +335,6 @@ class JadwalTesService
                 ];
             }
         }
-
         return $data;
     }
 
@@ -379,14 +355,12 @@ class JadwalTesService
 
     private function buildTableRows($jadwals): array
     {
-        $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
         $isPanitia = auth()->user()->jabatan === 'Panitia';
         $nilaiPerAspekByJadwal = $this->buildNilaiPerAspekByJadwal($jadwals);
 
-        return $jadwals->map(function ($jadwal) use ($isKetuaPanitia, $isPanitia, $nilaiPerAspekByJadwal) {
+        return $jadwals->map(function ($jadwal) use ($isPanitia, $nilaiPerAspekByJadwal) {
             $hasil = $jadwal->hasilTes;
             $statusHasil = $hasil ? $hasil->status : 'Belum Tes';
-            $nilaiPerAspek = $nilaiPerAspekByJadwal[$jadwal->id_jadwal] ?? [];
 
             $editPayload = htmlspecialchars(json_encode([
                 'id' => $jadwal->id_jadwal,
@@ -439,7 +413,6 @@ class JadwalTesService
         if (!$link) {
             return null;
         }
-
         return preg_match('#^https?://#i', $link) ? $link : 'https://' . $link;
     }
 
@@ -465,10 +438,6 @@ class JadwalTesService
         };
     }
 
-    /**
-     * Grouping ini dipakai untuk modal review ketua panitia, sehingga data yang
-     * disimpan cukup representatif per tanggal, bukan per row jadwal.
-     */
     private function buildPendingGroups($jadwals): array
     {
         $groups = [];
@@ -489,14 +458,9 @@ class JadwalTesService
                 $groups[$tgl]['penanggung_jawab'] = $jadwal->penanggungJawab?->nama_lengkap ?? '-';
             }
         }
-
         return array_values($groups);
     }
 
-    /**
-     * Grouping revisi membawa payload yang lebih kaya karena dipakai ulang
-     * untuk form edit massal oleh panitia.
-     */
     private function buildRevisionGroups($jadwals): array
     {
         $revisi = $jadwals->filter(fn($j) => $j->status_jadwal === 'Revisi');
@@ -529,16 +493,11 @@ class JadwalTesService
                     'penguji' => $penguji,
                 ];
             }
-
             $groups[$tgl]['total']++;
         }
-
         return array_values($groups);
     }
 
-    /**
-     * Menyamakan field form dengan label aspek yang dipakai di tabel jadwal_penguji.
-     */
     private function extractPengujiList(array $validated): array
     {
         $pengujiList = [];
@@ -550,14 +509,9 @@ class JadwalTesService
                 ];
             }
         }
-
         return $pengujiList;
     }
 
-    /**
-     * Setelah batch jadwal dibuat, ketua panitia perlu diberi satu notifikasi
-     * yang mewakili batch tersebut untuk proses approval.
-     */
     private function notifyKetuaJadwalCreated(?JadwalTes $jadwal, string $creatorId, int $count): void
     {
         $ketuaPanitia = Panitia::where('jabatan', 'Ketua Panitia')->first();
@@ -565,28 +519,30 @@ class JadwalTesService
             return;
         }
 
-        $pembuat = Panitia::findOrFail($creatorId);
+        // FIX BUG: Tarik data panitia pengirim/pembuat dari database menggunakan $creatorId agar terdefinisi sempurna
+        $pembuat = Panitia::find($creatorId);
+        if (!$pembuat) {
+            return;
+        }
+
         foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $ketua) {
-            Mail::to($ketua->email)->send(new JadwalCreatedNotification(
-                $jadwal,
-                $pembuat,
-                $count,
-                $ketua->nama_lengkap
-            ));
+            if ($ketua->email) {
+                Mail::to($ketua->email)->send(new JadwalCreatedNotification(
+                    $jadwal,
+                    $pembuat,
+                    $count,
+                    $ketua->nama_lengkap
+                ));
+            }
         }
     }
 
-    /**
-     * Utility untuk menampilkan rentang tanggal yang manusiawi di notifikasi massal.
-     */
     private function tanggalLabel($query): string
     {
         $tanggalRange = $query->selectRaw('MIN(tanggal) as tgl_awal, MAX(tanggal) as tgl_akhir')->first();
-
         if (!$tanggalRange || !$tanggalRange->tgl_awal) {
             return '-';
         }
-
         return $tanggalRange->tgl_awal === $tanggalRange->tgl_akhir
             ? $tanggalRange->tgl_awal
             : $tanggalRange->tgl_awal . ' s.d. ' . $tanggalRange->tgl_akhir;

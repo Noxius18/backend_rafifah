@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Berkas;
 use App\Models\Gelombang;
 use App\Models\HasilTes;
 use App\Models\JadwalTes;
@@ -221,6 +222,71 @@ class MahasantriApiTest extends TestCase
             ->assertJsonPath('data.mahasantri.documents_completed', true);
     }
 
+    public function test_status_returns_document_review_status_and_revision_note(): void
+    {
+        Storage::fake('private_berkas');
+        $token = $this->registerAndLogin();
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/mahasantri/pendaftaran/submit', $this->pendaftaranSubmitPayload())
+            ->assertOk();
+
+        Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'KTP')
+            ->update([
+                'status_verifikasi' => Berkas::STATUS_DITOLAK,
+                'catatan_revisi' => 'File buram, mohon upload ulang.',
+            ]);
+
+        $response = $this->getJson('/api/mahasantri/status', [
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $response->assertJsonFragment([
+            'id_berkas' => Berkas::where('id_mahasantri', '260101')->where('tipe_berkas', 'KTP')->value('id_berkas'),
+            'status_verifikasi' => Berkas::STATUS_DITOLAK,
+            'catatan_revisi' => 'File buram, mohon upload ulang.',
+        ]);
+    }
+
+    public function test_reuploading_rejected_document_resets_status_to_menunggu(): void
+    {
+        Storage::fake('private_berkas');
+        $token = $this->registerAndLogin();
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/mahasantri/pendaftaran/submit', $this->pendaftaranSubmitPayload())
+            ->assertOk();
+
+        $berkas = Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'KTP')
+            ->firstOrFail();
+
+        $berkas->update([
+            'status_verifikasi' => Berkas::STATUS_DITOLAK,
+            'catatan_revisi' => 'Dokumen salah upload.',
+        ]);
+
+        $payload = $this->pendaftaranSubmitPayload([
+            'berkas' => [
+                'ktp' => UploadedFile::fake()->create('ktp-baru.pdf', 120, 'application/pdf'),
+            ],
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/mahasantri/pendaftaran/submit', $payload)
+            ->assertOk();
+
+        $this->assertDatabaseHas('berkas', [
+            'id_berkas' => $berkas->id_berkas,
+            'status_verifikasi' => Berkas::STATUS_MENUNGGU,
+            'catatan_revisi' => null,
+        ]);
+    }
+
     public function test_status_returns_jadwal_seleksi_and_zoom_link_for_mahasantri(): void
     {
         $token = $this->registerAndLogin();
@@ -289,7 +355,6 @@ class MahasantriApiTest extends TestCase
             'status' => 'Pendaftar Baru',
             'tanggal_daftar' => now(),
         ]);
-
         $this->postJson('/api/mahasantri/login', [
             'email' => 'legacy@example.com',
             'password' => 'password123',

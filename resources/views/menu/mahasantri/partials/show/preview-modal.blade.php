@@ -1,5 +1,5 @@
 <dialog id="previewModal" class="modal" x-on:click="if ($event.target === $el) $el.close();">
-    <div class="modal-box w-full max-w-5xl">
+    <div class="modal-box w-full max-w-5xl bg-white text-slate-800">
         <div class="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
             <h3 class="text-base font-semibold text-slate-800" x-text="previewTitle"></h3>
             <button type="button" class="btn btn-ghost btn-sm btn-square" x-on:click="document.getElementById('previewModal').close()">
@@ -24,7 +24,7 @@
                             <template x-for="(doc, idx) in previewDocs" :key="doc.id">
                                 <button type="button" x-on:click="previewDocIndex = idx"
                                     class="relative flex min-w-[64px] flex-col items-center gap-1 rounded-lg border-2 p-1.5 transition hover:bg-slate-50"
-                                    :class="idx === previewDocIndex ? 'border-emerald-500 bg-emerald-50' : (doc.isValid !== doc.localIsValid ? 'border-amber-400 bg-amber-50' : 'border-slate-200')">
+                                    :class="idx === previewDocIndex ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'">
                                     <template x-if="doc.isImage">
                                         <img :src="doc.url" class="h-10 w-10 rounded object-cover" />
                                     </template>
@@ -61,31 +61,57 @@
                     <div>
                         <div class="mb-3 flex items-center gap-2">
                             <x-heroicon-s-clipboard-document-check class="h-4 w-4 text-emerald-600" />
-                            <span class="text-sm font-semibold text-slate-700">Verifikasi Dokumen</span>
+                            <span class="text-sm font-semibold text-slate-700">Tindakan Verifikasi</span>
                         </div>
                         <div class="mb-4 flex items-center gap-1.5 rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
                             <x-heroicon-s-calendar-days class="h-3.5 w-3.5" />
                             <span>Upload:</span>
                             <span class="font-medium text-slate-700" x-text="previewDoc.uploadDate || '-'"></span>
                         </div>
-                        <div class="mb-4 rounded-lg border p-3" :class="currentLocalIsValid ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-semibold uppercase tracking-wider" :class="currentLocalIsValid ? 'text-emerald-700' : 'text-amber-700'" x-text="currentLocalIsValid ? 'Terverifikasi' : 'Belum Verifikasi'"></span>
-                                <button type="button" x-on:click="togglePreviewStatus()"
-                                    :class="currentLocalIsValid ? 'bg-emerald-500' : 'bg-gray-300'"
-                                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                                    <span :class="currentLocalIsValid ? 'translate-x-5' : 'translate-x-0'" class="inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+
+                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status Draft</p>
+                                    <div class="mt-1 flex items-center gap-2">
+                                        <span :class="statusBadgeClass(previewDoc.draftStatusVerifikasi)" x-text="statusLabel(previewDoc.draftStatusVerifikasi)"></span>
+                                        <span x-show="isDraftDirtyById(previewDoc.id)" class="rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-sky-200">
+                                            Belum disimpan
+                                        </span>
+                                    </div>
+                                </div>
+                                <div x-show="hasDirtyReviewChanges" class="text-right text-[11px] text-slate-500">
+                                    <span class="font-semibold text-slate-700" x-text="dirtyReviewCount"></span>
+                                    perubahan belum disimpan
+                                </div>
+                            </div>
+                            <p x-show="previewDoc.draftStatusVerifikasi === 'ditolak' && previewDoc.draftCatatanRevisi" class="mt-2 text-xs italic text-rose-600" x-text="`Catatan: ${previewDoc.draftCatatanRevisi}`"></p>
+                        </div>
+
+                        {{-- PANEL AKSI UTAMA DI DALAM PREVIEW YANG TERKONEKSI KE GLOBAL AJAX SCRIPT --}}
+                        <div class="mb-5 space-y-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Verifikasi Berkas Ini</label>
+                            <div class="grid grid-cols-1 gap-2">
+                                <button type="button" 
+                                    x-on:click="document.getElementById('previewModal').close(); openApproveModal(previewDoc.id, previewDoc.title)"
+                                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-95 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+                                    <span>✅</span> Setujui Berkas
+                                </button>
+                                <button type="button" 
+                                    x-on:click="document.getElementById('previewModal').close(); openRejectModal(previewDoc.id, previewDoc.title)"
+                                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-95 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100">
+                                    <span>❌</span> Tolak & Minta Catatan Revisi
                                 </button>
                             </div>
                         </div>
-                        <div class="space-y-3">
+
+                        <div class="space-y-3 border-t border-slate-100 pt-3">
                             <div class="mb-2 flex items-center gap-2">
                                 <x-heroicon-s-identification class="h-3.5 w-3.5 text-slate-400" />
-                                <span class="text-xs font-semibold text-slate-600">Data Pribadi</span>
-                                <span class="text-[10px] text-slate-400">Cocokkan dengan dokumen</span>
+                                <span class="text-xs font-semibold text-slate-600">Data Identitas Identifikasi</span>
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">NIK</label>
+                                <label class="mb-1 block text-xs font-medium text-slate-500">Nomor Induk Kependudukan (NIK)</label>
                                 <div class="relative">
                                     <input type="text" x-model="previewNik" maxlength="16" placeholder="16 digit NIK"
                                         x-on:input="previewNik = previewNik.replace(/\D/g, '').slice(0, 16)"
@@ -94,7 +120,7 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">NISN</label>
+                                <label class="mb-1 block text-xs font-medium text-slate-500">Nomor Induk Siswa Nasional (NISN)</label>
                                 <div class="relative">
                                     <input type="text" x-model="previewNisn" maxlength="10" placeholder="10 digit NISN"
                                         x-on:input="previewNisn = previewNisn.replace(/\D/g, '').slice(0, 10)"
@@ -105,11 +131,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 flex items-center justify-end border-t border-slate-100 pt-3">
-                        <button type="button" x-on:click="saveBerkasStatus()" :disabled="saving"
+                    <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
+                        <button type="button" x-on:click="saveReviewChanges()" :disabled="savingReview || !hasDirtyReviewChanges"
                             class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
-                            <span x-text="saving ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                            <span x-show="savingReview" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="savingReview ? 'Menyimpan Verifikasi...' : 'Simpan Perubahan Verifikasi'"></span>
+                        </button>
+                        <button type="button" x-on:click="saveIdentityData()" :disabled="savingIdentity || !hasIdentityChanges"
+                            class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-show="savingIdentity" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="savingIdentity ? 'Menyimpan Data...' : 'Simpan Data NIK & NISN'"></span>
                         </button>
                     </div>
                 </div>

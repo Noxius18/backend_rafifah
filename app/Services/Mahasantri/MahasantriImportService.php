@@ -94,7 +94,7 @@ class MahasantriImportService
                             'id_mahasantri' => $rowPayload['mahasantri']['id_mahasantri'],
                             'tipe_berkas' => $berkasDefinition['tipe_berkas'],
                             'link_sumber' => $berkasDefinition['link_sumber'],
-                            'status_verifikasi' => false,
+                            'status_verifikasi' => Berkas::STATUS_MENUNGGU,
                             'tanggal_upload' => now(),
                         ]);
 

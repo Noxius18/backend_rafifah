@@ -1,3 +1,6 @@
+@php
+    /** @var \App\Models\User $m */
+@endphp
 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
     <div class="border-b border-slate-100 bg-slate-50 px-5 py-3">
         <h2 class="text-sm font-semibold text-slate-700">Data Orangtua / Wali</h2>

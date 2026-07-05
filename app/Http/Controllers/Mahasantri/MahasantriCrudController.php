@@ -107,7 +107,8 @@ class MahasantriCrudController extends Controller
                 'url' => route('berkas.preview', $berkas->id_berkas),
                 'title' => $berkas->tipe_berkas,
                 'id' => $berkas->id_berkas,
-                'isValid' => (bool) $berkas->status_verifikasi,
+                'statusVerifikasi' => $berkas->status_verifikasi,
+                'catatanRevisi' => $berkas->catatan_revisi,
                 'isImage' => $berkas->tipe_berkas === 'Pas Foto',
                 'uploadDate' => $berkas->tanggal_upload
                     ? (is_string($berkas->tanggal_upload) ? $berkas->tanggal_upload : $berkas->tanggal_upload->translatedFormat('d F Y'))

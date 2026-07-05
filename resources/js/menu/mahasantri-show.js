@@ -8,11 +8,18 @@ export function registerMahasantriShow(Alpine) {
         deleteName: config.deleteName ?? '',
         previewDocs: [],
         previewDocIndex: 0,
-        saving: false,
-        previewNik: '',
-        previewNisn: '',
+        savingReview: false,
+        savingIdentity: false,
+        previewNik: config.nik ?? '',
+        previewNisn: config.nisn ?? '',
+        originalNik: config.nik ?? '',
+        originalNisn: config.nisn ?? '',
+        approveTarget: { id: '', title: '' },
+        rejectTarget: { id: '', title: '' },
+        rejectDraftNote: '',
         init() {
-            this.previewDocs = this.previewDocsSource.map((doc) => ({ ...doc }));
+            this.previewDocs = this.previewDocsSource.map((doc) => this.normalizePreviewDoc(doc));
+            this.previewDocsSource = this.previewDocs.map((doc) => ({ ...doc }));
         },
         showToast(message, type = 'success') {
             if (this.toast.timer) clearTimeout(this.toast.timer);
@@ -36,17 +43,36 @@ export function registerMahasantriShow(Alpine) {
         get isImageDoc() {
             return this.previewDoc.isImage || false;
         },
-        get currentLocalIsValid() {
-            return this.previewDoc.localIsValid ?? this.previewDoc.isValid ?? false;
+        get dirtyReviewCount() {
+            return this.previewDocs.filter((doc) => this.isReviewDirty(doc)).length;
         },
-        openPreview(index, nik, nisn) {
-            this.previewDocs = this.previewDocsSource.map((doc) => ({
+        get hasDirtyReviewChanges() {
+            return this.dirtyReviewCount > 0;
+        },
+        get hasIdentityChanges() {
+            return this.previewNik !== this.originalNik || this.previewNisn !== this.originalNisn;
+        },
+        normalizePreviewDoc(doc) {
+            const status = doc.statusVerifikasi ?? 'menunggu';
+            const catatan = doc.catatanRevisi ?? '';
+
+            return {
                 ...doc,
-                localIsValid: doc.localIsValid ?? doc.isValid,
-            }));
+                originalStatusVerifikasi: status,
+                draftStatusVerifikasi: doc.draftStatusVerifikasi ?? status,
+                originalCatatanRevisi: catatan,
+                draftCatatanRevisi: doc.draftCatatanRevisi ?? catatan,
+            };
+        },
+        isReviewDirty(doc) {
+            return (doc?.draftStatusVerifikasi ?? 'menunggu') !== (doc?.originalStatusVerifikasi ?? 'menunggu')
+                || (doc?.draftCatatanRevisi ?? '') !== (doc?.originalCatatanRevisi ?? '');
+        },
+        findPreviewDoc(id) {
+            return this.previewDocs.find((doc) => doc.id === id) ?? null;
+        },
+        openPreview(index) {
             this.previewDocIndex = index;
-            this.previewNik = nik || '';
-            this.previewNisn = nisn || '';
             document.getElementById('previewModal')?.showModal();
         },
         prevDoc() {
@@ -55,11 +81,75 @@ export function registerMahasantriShow(Alpine) {
         nextDoc() {
             if (this.previewDocIndex < this.previewDocs.length - 1) this.previewDocIndex += 1;
         },
-        togglePreviewStatus() {
-            const doc = this.previewDocs[this.previewDocIndex];
-            if (doc) {
-                doc.localIsValid = !(doc.localIsValid ?? doc.isValid ?? false);
+        getDisplayStatus(berkasId, fallbackStatus = 'menunggu') {
+            return this.findPreviewDoc(berkasId)?.draftStatusVerifikasi ?? fallbackStatus;
+        },
+        getDisplayCatatan(berkasId, fallbackCatatan = '') {
+            return this.findPreviewDoc(berkasId)?.draftCatatanRevisi ?? fallbackCatatan ?? '';
+        },
+        isDraftDirtyById(berkasId) {
+            const doc = this.findPreviewDoc(berkasId);
+            return doc ? this.isReviewDirty(doc) : false;
+        },
+        statusBadgeClass(status) {
+            if (status === 'disetujui') {
+                return 'rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200';
             }
+
+            if (status === 'ditolak') {
+                return 'rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200';
+            }
+
+            return 'rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200';
+        },
+        statusLabel(status) {
+            if (status === 'disetujui') return '✅ Disetujui';
+            if (status === 'ditolak') return '❌ Ditolak';
+            return '⏳ Menunggu';
+        },
+        openApproveModal(id, title) {
+            this.approveTarget = { id, title };
+            document.getElementById('approveBerkasModal')?.showModal();
+        },
+        confirmApproveDraft() {
+            const doc = this.findPreviewDoc(this.approveTarget.id);
+            if (!doc) {
+                this.showToast('Dokumen tidak ditemukan', 'error');
+                return;
+            }
+
+            doc.draftStatusVerifikasi = 'disetujui';
+            doc.draftCatatanRevisi = '';
+            document.getElementById('approveBerkasModal')?.close();
+            document.getElementById('previewModal')?.showModal();
+            this.showToast(`Draft verifikasi ${doc.title} disimpan lokal.`);
+        },
+        openRejectModal(id, title) {
+            const doc = this.findPreviewDoc(id);
+            this.rejectTarget = { id, title };
+            this.rejectDraftNote = doc?.draftCatatanRevisi ?? '';
+            document.getElementById('rejectBerkasModal')?.showModal();
+        },
+        confirmRejectDraft() {
+            const doc = this.findPreviewDoc(this.rejectTarget.id);
+            const catatan = this.rejectDraftNote.trim();
+
+            if (!doc) {
+                this.showToast('Dokumen tidak ditemukan', 'error');
+                return;
+            }
+
+            if (!catatan) {
+                this.showToast('Alasan catatan revisi wajib diisi jika berkas ditolak!', 'error');
+                document.getElementById('inputCatatanRevisi')?.focus();
+                return;
+            }
+
+            doc.draftStatusVerifikasi = 'ditolak';
+            doc.draftCatatanRevisi = catatan;
+            document.getElementById('rejectBerkasModal')?.close();
+            document.getElementById('previewModal')?.showModal();
+            this.showToast(`Draft penolakan ${doc.title} disimpan lokal.`);
         },
         openDeleteModal() {
             document.getElementById('deleteModal-name').textContent = this.deleteName;
@@ -87,54 +177,90 @@ export function registerMahasantriShow(Alpine) {
                 this.showToast('Gagal menghubungi server', 'error');
             }
         },
-        async saveBerkasStatus() {
+        async saveReviewChanges() {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
             if (!csrfToken) {
                 this.showToast('CSRF token tidak ditemukan', 'error');
                 return;
             }
 
-            const changed = this.previewDocs.filter((doc) => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
-            if (changed.length === 0 && !this.previewNik && !this.previewNisn) {
+            if (!this.hasDirtyReviewChanges) {
                 this.showToast('Tidak ada perubahan yang perlu disimpan', 'error');
                 return;
             }
 
-            this.saving = true;
+            this.savingReview = true;
+            const changedDocs = this.previewDocs.filter((doc) => this.isReviewDirty(doc));
+            const failedDocs = [];
+
             try {
-                const requests = [];
-                for (const [index, doc] of changed.entries()) {
-                    const body = { status_verifikasi: doc.localIsValid ?? false };
-                    if (index === 0) {
-                        body.nik = this.previewNik || null;
-                        body.nisn = this.previewNisn || null;
+                for (const doc of changedDocs) {
+                    const result = await this.patchBerkas(doc.id, {
+                        status_verifikasi: doc.draftStatusVerifikasi,
+                        catatan_revisi: doc.draftStatusVerifikasi === 'ditolak'
+                            ? doc.draftCatatanRevisi
+                            : null,
+                    }, csrfToken);
+
+                    if (result.ok) {
+                        doc.originalStatusVerifikasi = doc.draftStatusVerifikasi;
+                        doc.originalCatatanRevisi = doc.draftStatusVerifikasi === 'ditolak'
+                            ? doc.draftCatatanRevisi
+                            : '';
+                    } else {
+                        failedDocs.push(result.data?.message ? `${doc.title} (${result.data.message})` : doc.title);
                     }
-                    requests.push(this.patchBerkas(doc.id, body, csrfToken));
                 }
 
-                if (changed.length === 0 && (this.previewNik || this.previewNisn)) {
-                    requests.push(this.patchBerkas(this.previewDocs[0]?.id, {
-                        status_verifikasi: this.previewDocs[0]?.isValid ?? false,
-                        nik: this.previewNik || null,
-                        nisn: this.previewNisn || null,
-                    }, csrfToken));
+                this.previewDocsSource = this.previewDocs.map((doc) => ({ ...doc }));
+
+                if (failedDocs.length === 0) {
+                    this.showToast('Semua perubahan verifikasi berhasil disimpan');
+                    return;
                 }
 
-                const results = await Promise.all(requests);
-                if (results.every((result) => result.message)) {
-                    changed.forEach((doc) => {
-                        doc.isValid = doc.localIsValid;
-                    });
-                    this.previewDocsSource = this.previewDocs.map((doc) => ({ ...doc, isValid: doc.localIsValid ?? doc.isValid }));
-                    this.showToast('Semua perubahan berhasil disimpan');
-                    setTimeout(() => window.location.reload(), 500);
+                this.showToast(`Sebagian perubahan gagal disimpan: ${failedDocs.join(', ')}`, 'error');
+            } catch {
+                this.showToast('Gagal menghubungi server', 'error');
+            } finally {
+                this.savingReview = false;
+            }
+        },
+        async saveIdentityData() {
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+            if (!csrfToken) {
+                this.showToast('CSRF token tidak ditemukan', 'error');
+                return;
+            }
+
+            if (!this.previewDocs[0]?.id) {
+                this.showToast('Dokumen tidak tersedia', 'error');
+                return;
+            }
+
+            if (!this.hasIdentityChanges) {
+                this.showToast('Tidak ada perubahan identitas yang perlu disimpan', 'error');
+                return;
+            }
+
+            this.savingIdentity = true;
+            try {
+                const result = await this.patchBerkas(this.previewDocs[0].id, {
+                    nik: this.previewNik || null,
+                    nisn: this.previewNisn || null,
+                }, csrfToken);
+
+                if (result.ok) {
+                    this.originalNik = this.previewNik;
+                    this.originalNisn = this.previewNisn;
+                    this.showToast(result.data.message || 'Data NIK & NISN berhasil disimpan');
                 } else {
-                    this.showToast('Beberapa perubahan gagal disimpan', 'error');
-                    this.saving = false;
+                    this.showToast(result.data?.message || 'Gagal menyimpan perubahan', 'error');
                 }
             } catch {
                 this.showToast('Gagal menghubungi server', 'error');
-                this.saving = false;
+            } finally {
+                this.savingIdentity = false;
             }
         },
         async patchBerkas(id, body, csrfToken) {
@@ -147,7 +273,12 @@ export function registerMahasantriShow(Alpine) {
                 },
                 body: JSON.stringify(body),
             });
-            return res.json();
+            const data = await res.json();
+
+            return {
+                ok: res.ok,
+                data,
+            };
         },
     }));
 }

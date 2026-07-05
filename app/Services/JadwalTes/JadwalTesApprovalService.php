@@ -21,6 +21,11 @@ class JadwalTesApprovalService
      */
     public function approveByTanggal(JadwalTes $jadwalTes, string $ketuaId): array
     {
+        $jadwalsToApprove = JadwalTes::with('mahasantri')
+            ->where('tanggal', $jadwalTes->tanggal)
+            ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
+            ->get();
+
         JadwalTes::where('tanggal', $jadwalTes->tanggal)
             ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->update([
@@ -28,16 +33,18 @@ class JadwalTesApprovalService
                 'diproses_oleh' => $ketuaId,
             ]);
 
-        $approvedJadwals = JadwalTes::with('mahasantri')
-            ->where('tanggal', $jadwalTes->tanggal)
-            ->where('status_jadwal', 'Disetujui')
-            ->get();
-
-        // Setelah jadwal sah disetujui, link Zoom langsung dikirim ke mahasantri.
-        foreach ($approvedJadwals as $approved) {
+        foreach ($jadwalsToApprove as $approved) {
+            /** @var \App\Models\JadwalTes $approved */ // <-- FIX TYPE HINT UNTUK LINTER
             $mhs = $approved->mahasantri;
             if ($approved->link_zoom && $mhs && $mhs->email) {
-                Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs));
+                $isUpdate = ($approved->status_jadwal === 'Revisi' || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
+                
+                Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs, $isUpdate));
+
+                \App\Models\ScheduleStatus::updateOrCreate(
+                    ['id_jadwal' => $approved->id_jadwal],
+                    ['zoom_reminder_sent' => true, 'sent_at' => now()]
+                );
             }
         }
 
@@ -47,14 +54,18 @@ class JadwalTesApprovalService
             Mail::to($pembuat->email)->send(new JadwalApprovedNotification(
                 $jadwalTes->tanggal,
                 $ketua,
-                $approvedJadwals->count(),
+                $jadwalsToApprove->count(),
                 $pembuat->nama_lengkap
             ));
         }
 
+        $totalApprovedOnDate = JadwalTes::where('tanggal', $jadwalTes->tanggal)
+            ->where('status_jadwal', 'Disetujui')
+            ->count();
+
         return [
             'tanggal' => $jadwalTes->tanggal,
-            'jumlah' => $approvedJadwals->count(),
+            'jumlah' => $totalApprovedOnDate,
         ];
     }
 
@@ -89,23 +100,33 @@ class JadwalTesApprovalService
     }
 
     /**
-     * Approval massal mengirim notifikasi terpisah per penanggung jawab agar
-     * masing-masing pembuat hanya menerima ringkasan jadwal yang relevan.
+     * Approval massal mengirim notifikasi terpisah per penanggung jawab.
      */
     public function approveAll(string $ketuaId): int
     {
-        $updatedIds = JadwalTes::whereIn('status_jadwal', ['Menunggu', 'Revisi'])->pluck('id_jadwal');
+        $jadwalsToApprove = JadwalTes::with('mahasantri')
+            ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
+            ->get();
+
+        $updatedIds = $jadwalsToApprove->pluck('id_jadwal');
 
         JadwalTes::whereIn('id_jadwal', $updatedIds)->update([
             'status_jadwal' => 'Disetujui',
             'diproses_oleh' => $ketuaId,
         ]);
 
-        $approvedJadwals = JadwalTes::with('mahasantri')->whereIn('id_jadwal', $updatedIds)->get();
-        foreach ($approvedJadwals as $approved) {
+        foreach ($jadwalsToApprove as $approved) {
+            /** @var \App\Models\JadwalTes $approved */ // <-- FIX TYPE HINT UNTUK LINTER
             $mhs = $approved->mahasantri;
             if ($approved->link_zoom && $mhs && $mhs->email) {
-                Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs));
+                $isUpdate = ($approved->status_jadwal === 'Revisi' || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
+                
+                Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs, $isUpdate));
+
+                \App\Models\ScheduleStatus::updateOrCreate(
+                    ['id_jadwal' => $approved->id_jadwal],
+                    ['zoom_reminder_sent' => true, 'sent_at' => now()]
+                );
             }
         }
 
@@ -114,13 +135,13 @@ class JadwalTesApprovalService
         );
         $ketua = Panitia::findOrFail($ketuaId);
 
-        foreach ($approvedJadwals->pluck('penanggung_jawab')->unique() as $pjId) {
+        foreach ($jadwalsToApprove->pluck('penanggung_jawab')->unique() as $pjId) {
             $pembuat = Panitia::find($pjId);
             if ($pembuat && $pembuat->email) {
                 Mail::to($pembuat->email)->send(new JadwalApprovedNotification(
                     $tanggalLabel,
                     $ketua,
-                    $approvedJadwals->where('penanggung_jawab', $pjId)->count(),
+                    $jadwalsToApprove->where('penanggung_jawab', $pjId)->count(),
                     $pembuat->nama_lengkap
                 ));
             }

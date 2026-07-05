@@ -105,7 +105,8 @@ class MahasantriPendaftaranController extends Controller
                             'id_berkas' => $idBerkas,
                             'link_sumber' => null,
                             'file_path' => $path,
-                            'status_verifikasi' => false, // Set false agar panitia review kembali berkas baru
+                            'status_verifikasi' => Berkas::STATUS_MENUNGGU,
+                            'catatan_revisi' => null,
                             'tanggal_upload' => now(),
                         ]
                     );

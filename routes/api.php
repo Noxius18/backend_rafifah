@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\MahasantriAuthController;
 use App\Http\Controllers\Api\MahasantriPendaftaranController;
 use App\Http\Controllers\Api\MahasantriRegistrationController;
 use App\Http\Controllers\Api\MahasantriStatusController;
+use App\Http\Controllers\Api\PanitiaApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mahasantri')->group(function () {
@@ -20,3 +21,8 @@ Route::prefix('mahasantri')->group(function () {
 });
 
 Route::get('/gelombang/active', [GelombangController::class, 'active']);
+
+Route::middleware(['web', 'auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(function () {
+    Route::post('/panitia/berkas/{berkas}/review', [PanitiaApiController::class, 'reviewBerkas']);
+    Route::post('/panitia/mahasantri/{id_mahasantri}/unggah-kelulusan', [PanitiaApiController::class, 'unggahKelulusan']);
+});
