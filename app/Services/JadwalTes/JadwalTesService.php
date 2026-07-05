@@ -198,30 +198,35 @@ class JadwalTesService
      * Edit ringan pada satu jadwal tetap mengembalikan status ke Menunggu.
      */
     public function updateSingleJadwal(JadwalTes $jadwalTes, array $validated, string $creatorId): void
-    {
-        if (Carbon::parse($jadwalTes->tanggal)->lt(Carbon::today())) {
-            throw new \RuntimeException('Jadwal tidak dapat diubah karena sudah berlangsung');
-        }
+{
+    $jadwalTes->update(array_merge($validated, [
+        'status_jadwal' => 'Menunggu',
+        'catatan_ketua' => null,
+        'catatan_perubahan' => null,
+    ]));
 
-        $jadwalTes->update(array_merge($validated, [
-            'status_jadwal' => 'Menunggu',
-            'catatan_ketua' => null,
-            'catatan_perubahan' => null,
-        ]));
-
-        $pembuat = Panitia::findOrFail($creatorId);
-        foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $ketua) {
-            if ($ketua->email) {
-                Mail::to($ketua->email)->send(new JadwalCreatedNotification(
-                    $jadwalTes,
-                    $pembuat,
-                    1,
-                    $ketua->nama_lengkap,
-                    true
-                ));
-            }
+    $pembuat = Panitia::findOrFail($creatorId);
+    foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $ketua) {
+        if ($ketua->email) {
+            Mail::to($ketua->email)->send(new JadwalCreatedNotification(
+                $jadwalTes,
+                $pembuat,
+                1,
+                $ketua->nama_lengkap,
+                true
+            ));
         }
     }
+
+    // === HAPUS / KOMENTAR BAGIAN INI ===
+    // if ($jadwalTes->hasilTes && $jadwalTes->hasilTes->status === 'Pertimbangan') {
+    //     if ($jadwalTes->mahasantri && $jadwalTes->mahasantri->email) {
+    //         Mail::to($jadwalTes->mahasantri->email)->send(new \App\Mail\ZoomLinkReminder($jadwalTes, $jadwalTes->mahasantri, true));
+    //     }
+    // }
+    // ===================================
+}
+        
 
     public function updateLinkZoomMassal(string $tanggal, string $linkZoom): int
     {
@@ -401,8 +406,8 @@ class JadwalTesService
                 'status_konfirmasi_html' => $this->jadwalStatusBadge($jadwal->status_jadwal ?? 'Menunggu'),
                 'hasil_html' => $this->hasilStatusBadge($statusHasil),
                 'link_html' => $jadwal->link_zoom
-                    ? "<a href='" . e($this->formatLinkZoom($jadwal->link_zoom)) . "' target='_blank' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>"
-                    : "<span class='text-black/50 text-xs'>-</span>",
+                ? "<a href='" . e($this->formatLinkZoom($jadwal->link_zoom)) . "' target='_blank' onclick='event.stopPropagation();' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-blue-600 hover:bg-blue-50' title='Buka Zoom'><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z'/></svg></a>"
+                : "<span class='text-black/50 text-xs'>-</span>",
                 'aksi_html' => $aksiHtml,
             ];
         })->toArray();

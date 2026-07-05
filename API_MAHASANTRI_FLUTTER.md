@@ -86,7 +86,11 @@ Field:
 data.berkas[].status_verifikasi
 ```
 
-Nilai yang mungkin:
+Tipe data:
+
+- string enum
+
+Nilai enum yang valid:
 
 - `menunggu`
 - `disetujui`
@@ -94,6 +98,8 @@ Nilai yang mungkin:
 
 Catatan:
 
+- meskipun kolom database sekarang memakai enum, response JSON ke Flutter tetap dikirim sebagai string
+- backend hanya akan mengembalikan salah satu dari tiga nilai di atas
 - jika `status_verifikasi = ditolak`, tampilkan `catatan_revisi`
 - jika user upload ulang file yang ditolak lewat endpoint submit final, status akan kembali ke `menunggu` dan `catatan_revisi` akan dihapus
 
@@ -386,6 +392,7 @@ Accept: application/json
 
 - ambil data akun / profil yang sedang login
 - hydrate ulang local state setelah app dibuka kembali
+- `status_verifikasi` di setiap item `berkas` selalu bernilai `menunggu`, `disetujui`, atau `ditolak`
 
 ### 5. Submit Data Pendaftaran Final
 
@@ -572,6 +579,7 @@ Token tidak ada / tidak valid:
 
 - kirim request sebagai `multipart/form-data`
 - wizard bisa disimpan lokal per step, tetapi backend baru menerima saat submit final
+- treat `status_verifikasi` sebagai enum aplikasi di Flutter, bukan string bebas
 - jika ada dokumen yang ditolak, frontend cukup kirim ulang file yang direvisi bersama field biodata / orangtua yang tetap wajib dikirim
 
 ### 6. Ambil Status Pendaftaran, Jadwal, dan Hasil
@@ -657,6 +665,12 @@ Accept: application/json
 }
 ```
 
+Pada semua response di atas, `status_verifikasi` tetap dikirim sebagai string JSON dengan nilai terbatas:
+
+- `menunggu`
+- `disetujui`
+- `ditolak`
+
 **Response contoh saat jadwal sudah ada**
 
 ```json
@@ -711,6 +725,7 @@ Accept: application/json
 - jika `hasil = null`, hasil seleksi belum ada
 - tetap tampilkan `mahasantri.status` sebagai status utama user
 - tampilkan status tiap item di `berkas`
+- mapping `berkas[].status_verifikasi` ke badge / label UI dengan enum tetap: `menunggu`, `disetujui`, `ditolak`
 - jika ada `status_verifikasi = ditolak`, tampilkan `catatan_revisi`
 - response ini mengandung data berkas dua kali:
   - `data.mahasantri.berkas`
@@ -789,6 +804,7 @@ Contoh:
 - submit pendaftaran final sebagai `multipart/form-data`
 - tampilkan `mahasantri.status`
 - tampilkan `berkas[].status_verifikasi` dan `berkas[].catatan_revisi`
+- treat `berkas[].status_verifikasi` sebagai enum/string terbatas dengan nilai `menunggu`, `disetujui`, atau `ditolak`
 - tampilkan `jadwal.tanggal`, `jadwal.jam`, dan `jadwal.link_zoom` jika `jadwal` tidak null
 - tampilkan `hasil.status` dan `hasil.total_nilai` jika `hasil` tidak null
 - gunakan `profile_completed`, `orangtua_completed`, `documents_completed` untuk indikator progres

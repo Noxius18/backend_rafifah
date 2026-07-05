@@ -21,7 +21,7 @@ class JadwalTesApprovalService
      */
     public function approveByTanggal(JadwalTes $jadwalTes, string $ketuaId): array
     {
-        $jadwalsToApprove = JadwalTes::with('mahasantri')
+        $jadwalsToApprove = JadwalTes::with(['mahasantri', 'hasilTes'])
             ->where('tanggal', $jadwalTes->tanggal)
             ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->get();
@@ -37,7 +37,8 @@ class JadwalTesApprovalService
             /** @var \App\Models\JadwalTes $approved */ // <-- FIX TYPE HINT UNTUK LINTER
             $mhs = $approved->mahasantri;
             if ($approved->link_zoom && $mhs && $mhs->email) {
-                $isUpdate = ($approved->status_jadwal === 'Revisi' || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
+                // TEMPAT 1: Sudah diperbarui agar mendeteksi status Pertimbangan
+                $isUpdate = ($approved->status_jadwal === 'Revisi' || ($approved->hasilTes && ($approved->hasilTes->status === 'Pertimbangan' || $approved->hasilTes->status === 'pertimbangan')) || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
                 
                 Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs, $isUpdate));
 
@@ -104,10 +105,10 @@ class JadwalTesApprovalService
      */
     public function approveAll(string $ketuaId): int
     {
-        $jadwalsToApprove = JadwalTes::with('mahasantri')
+        $jadwalsToApprove = JadwalTes::with(['mahasantri', 'hasilTes'])
             ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->get();
-
+        
         $updatedIds = $jadwalsToApprove->pluck('id_jadwal');
 
         JadwalTes::whereIn('id_jadwal', $updatedIds)->update([
@@ -119,7 +120,8 @@ class JadwalTesApprovalService
             /** @var \App\Models\JadwalTes $approved */ // <-- FIX TYPE HINT UNTUK LINTER
             $mhs = $approved->mahasantri;
             if ($approved->link_zoom && $mhs && $mhs->email) {
-                $isUpdate = ($approved->status_jadwal === 'Revisi' || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
+                // TEMPAT 2: Sudah diperbarui agar mendeteksi status Pertimbangan
+                $isUpdate = ($approved->status_jadwal === 'Revisi' || ($approved->hasilTes && ($approved->hasilTes->status === 'Pertimbangan' || $approved->hasilTes->status === 'pertimbangan')) || \App\Models\ScheduleStatus::where('id_jadwal', $approved->id_jadwal)->exists());
                 
                 Mail::to($mhs->email)->send(new ZoomLinkReminder($approved, $mhs, $isUpdate));
 

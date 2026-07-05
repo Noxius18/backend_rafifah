@@ -8,9 +8,6 @@
 </head>
 @php
     $linkZoom = $jadwalTes->link_zoom;
-    if ($linkZoom && !preg_match('#^https?://#i', $linkZoom)) {
-        $linkZoom = 'https://' . $linkZoom;
-    }
 @endphp
 <body style="margin: 0; padding: 0; background-color: #eef2f7; font-family: Arial, Helvetica, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
 
@@ -41,16 +38,31 @@
                     <tr>
                         <td style="padding: 36px 40px 28px 40px;">
 
-                            <p style="color: #064e3b; font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">
+                            <p style="color: #064e3b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">
                                 Halo, {{ $mahasantri->nama_lengkap }} 👋
                             </p>
-                            <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 0 0 28px 0;">
-                                @if($isUpdate)
+                            
+                            {{-- STRUKTUR STRIP DOWN: Pengecekan Bersih Bebas dari Tag <p> Bersarang --}}
+                            @if($isUpdate)
+                                <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 0 0 24px 0;">
                                     <strong style="color: #b45309;">PENTING:</strong> Terdapat perubahan atau perbaruan informasi data pada jadwal seleksi ujian Anda (seperti link wawancara Zoom atau penyesuaian waktu). Silakan jadikan rincian data terbaru di bawah ini sebagai acuan:
-                                @else
-                                    Jadwal seleksi Anda telah ditetapkan. Pastikan Anda bersiap sebelum waktu seleksi dimulai dan koneksi internet Anda stabil.
+                                </p>
+
+                                {{-- Pengecekan Multi-Kondisi: Cek ke model mahasantri maupun hasil tes sekaligus agar 100% akurat --}}
+                                @if(
+                                    (isset($mahasantri) && in_array(strtolower($mahasantri->status ?? ''), ['pertimbangan'])) ||
+                                    (isset($mahasantri) && in_array(strtolower($mahasantri->status_seleksi ?? ''), ['pertimbangan'])) ||
+                                    ($jadwalTes->hasilTes && in_array(strtolower($jadwalTes->hasilTes->status ?? ''), ['pertimbangan']))
+                                )
+                                    <div style="margin-bottom: 24px; padding: 14px; background-color: #fff3cd; border-left: 4px solid #ffc107; color: #856404; border-radius: 6px; font-size: 13px; line-height: 1.6;">
+                                        <strong>Catatan Ujian Ulang:</strong> Berhubung status hasil seleksi Anda saat ini berada dalam tahap <strong>Pertimbangan</strong>, Anda diwajibkan untuk mengikuti proses tes ulang. Ujian ini akan diuji langsung oleh <strong>Ketua Panitia</strong> pada jadwal baru yang tertera di bawah.
+                                    </div>
                                 @endif
-                            </p>
+                            @else
+                                <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 0 0 24px 0;">
+                                    Jadwal seleksi Anda telah ditetapkan. Pastikan Anda bersiap sebelum waktu seleksi dimulai dan koneksi internet Anda stabil.
+                                </p>
+                            @endif
 
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 28px;">
                                 <tr>
