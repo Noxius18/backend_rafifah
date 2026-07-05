@@ -9,6 +9,8 @@
         'updateUrlTemplate' => url('/berkas/__ID__'),
         'deleteAction' => route('mahasantri.destroy', $m->id_mahasantri),
         'deleteName' => $m->nama_lengkap,
+        'nik' => $m->nik,
+        'nisn' => $m->nisn,
     ];
 @endphp
 

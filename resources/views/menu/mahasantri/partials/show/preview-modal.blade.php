@@ -69,17 +69,36 @@
                             <span class="font-medium text-slate-700" x-text="previewDoc.uploadDate || '-'"></span>
                         </div>
 
+                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status Draft</p>
+                                    <div class="mt-1 flex items-center gap-2">
+                                        <span :class="statusBadgeClass(previewDoc.draftStatusVerifikasi)" x-text="statusLabel(previewDoc.draftStatusVerifikasi)"></span>
+                                        <span x-show="isDraftDirtyById(previewDoc.id)" class="rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-sky-200">
+                                            Belum disimpan
+                                        </span>
+                                    </div>
+                                </div>
+                                <div x-show="hasDirtyReviewChanges" class="text-right text-[11px] text-slate-500">
+                                    <span class="font-semibold text-slate-700" x-text="dirtyReviewCount"></span>
+                                    perubahan belum disimpan
+                                </div>
+                            </div>
+                            <p x-show="previewDoc.draftStatusVerifikasi === 'ditolak' && previewDoc.draftCatatanRevisi" class="mt-2 text-xs italic text-rose-600" x-text="`Catatan: ${previewDoc.draftCatatanRevisi}`"></p>
+                        </div>
+
                         {{-- PANEL AKSI UTAMA DI DALAM PREVIEW YANG TERKONEKSI KE GLOBAL AJAX SCRIPT --}}
                         <div class="mb-5 space-y-2">
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Verifikasi Berkas Ini</label>
                             <div class="grid grid-cols-1 gap-2">
                                 <button type="button" 
-                                    x-on:click="document.getElementById('previewModal').close(); openApproveBerkasModal(previewDoc.id, previewDoc.title)"
+                                    x-on:click="document.getElementById('previewModal').close(); openApproveModal(previewDoc.id, previewDoc.title)"
                                     class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-95 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
                                     <span>✅</span> Setujui Berkas
                                 </button>
                                 <button type="button" 
-                                    x-on:click="document.getElementById('previewModal').close(); openRejectBerkasModal(previewDoc.id, previewDoc.title)"
+                                    x-on:click="document.getElementById('previewModal').close(); openRejectModal(previewDoc.id, previewDoc.title)"
                                     class="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-95 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100">
                                     <span>❌</span> Tolak & Minta Catatan Revisi
                                 </button>
@@ -112,11 +131,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 flex items-center justify-end border-t border-slate-100 pt-3">
-                        <button type="button" x-on:click="saveBerkasStatus()" :disabled="saving"
+                    <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
+                        <button type="button" x-on:click="saveReviewChanges()" :disabled="savingReview || !hasDirtyReviewChanges"
+                            class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-show="savingReview" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="savingReview ? 'Menyimpan Verifikasi...' : 'Simpan Perubahan Verifikasi'"></span>
+                        </button>
+                        <button type="button" x-on:click="saveIdentityData()" :disabled="savingIdentity || !hasIdentityChanges"
                             class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
-                            <span x-text="saving ? 'Menyimpan...' : 'Simpan Data NIK & NISN'"></span>
+                            <span x-show="savingIdentity" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="savingIdentity ? 'Menyimpan Data...' : 'Simpan Data NIK & NISN'"></span>
                         </button>
                     </div>
                 </div>

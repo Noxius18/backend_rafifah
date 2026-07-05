@@ -1,25 +1,21 @@
 # API Mahasantri Flutter
 
-Dokumentasi ini menjelaskan endpoint REST API yang dipakai aplikasi Flutter untuk alur mahasantri:
-
-1. Register akun
-2. Login
-3. Isi data pendaftaran melalui wizard
-4. Melihat status pendaftaran, jadwal seleksi, dan hasil seleksi
-5. Logout
+Dokumentasi ini menjelaskan endpoint REST API yang dipakai frontend Flutter untuk alur mahasantri pada backend Laravel 12 saat ini.
 
 ## Ringkasan Flow
 
-1. User membuat akun lewat `POST /api/mahasantri/register`
-2. User login lewat `POST /api/mahasantri/login`
-3. Setelah login, user membuka menu `Isi Data Pendaftaran`
-4. Flutter menampung isian wizard secara lokal
-5. Saat user menekan tombol submit di langkah evaluasi, Flutter mengirim satu request ke `POST /api/mahasantri/pendaftaran/submit`
-6. Flutter menampilkan progres dan status akhir dari `GET /api/mahasantri/status`
+1. Flutter cek gelombang aktif lewat `GET /api/gelombang/active`
+2. User register akun lewat `POST /api/mahasantri/register`
+3. User login lewat `POST /api/mahasantri/login`
+4. Flutter simpan `access_token`
+5. Flutter ambil profil login lewat `GET /api/mahasantri/me`
+6. User isi wizard pendaftaran dan submit final lewat `POST /api/mahasantri/pendaftaran/submit`
+7. Flutter polling / refresh status lewat `GET /api/mahasantri/status`
+8. User logout lewat `POST /api/mahasantri/logout`
 
 ## Base URL
 
-Sesuaikan dengan environment backend. Contoh:
+Sesuaikan dengan environment backend.
 
 ```text
 http://127.0.0.1:8000/api
@@ -27,7 +23,7 @@ http://127.0.0.1:8000/api
 
 ## Authentication
 
-Endpoint yang membutuhkan login memakai Bearer token:
+Endpoint yang membutuhkan login memakai Bearer token.
 
 ```http
 Authorization: Bearer <access_token>
@@ -38,8 +34,6 @@ Token diperoleh dari endpoint login.
 
 ## Status yang Perlu Dipahami Frontend
 
-Ada dua jenis status yang berbeda:
-
 ### 1. Status Mahasantri
 
 Field:
@@ -48,7 +42,7 @@ Field:
 data.mahasantri.status
 ```
 
-Nilai yang mungkin:
+Nilai yang mungkin saat ini:
 
 - `Pendaftar Baru`
 - `Terverifikasi`
@@ -57,10 +51,10 @@ Nilai yang mungkin:
 
 Arti umum:
 
-- `Pendaftar Baru`: akun sudah ada, tetapi belum diverifikasi panitia
-- `Terverifikasi`: data dan berkas sudah diverifikasi panitia
-- `Lulus`: hasil seleksi akhir lulus
-- `Tidak Lulus`: hasil seleksi akhir tidak lulus
+- `Pendaftar Baru`: akun sudah dibuat, proses seleksi belum selesai
+- `Terverifikasi`: data / berkas sudah diverifikasi
+- `Lulus`: hasil akhir lulus
+- `Tidak Lulus`: hasil akhir tidak lulus
 
 ### 2. Status Hasil Tes
 
@@ -79,10 +73,10 @@ Nilai yang mungkin:
 
 Arti umum:
 
-- `null`: hasil tes belum tersedia
-- `Pertimbangan`: hasil tes masih menunggu review akhir
-- `Lulus`: hasil seleksi lulus
-- `Tidak Lulus`: hasil seleksi tidak lulus
+- `null`: hasil belum tersedia
+- `Pertimbangan`: hasil belum final
+- `Lulus`: lulus seleksi
+- `Tidak Lulus`: tidak lulus seleksi
 
 ### 3. Status Berkas
 
@@ -98,20 +92,14 @@ Nilai yang mungkin:
 - `disetujui`
 - `ditolak`
 
-Arti umum:
+Catatan:
 
-- `menunggu`: berkas sedang menunggu review panitia
-- `disetujui`: berkas sudah diverifikasi panitia
-- `ditolak`: berkas ditolak dan mahasantri harus upload ulang
+- jika `status_verifikasi = ditolak`, tampilkan `catatan_revisi`
+- jika user upload ulang file yang ditolak lewat endpoint submit final, status akan kembali ke `menunggu` dan `catatan_revisi` akan dihapus
 
-Catatan tambahan:
+### 4. Completion Flags
 
-- jika `status_verifikasi = ditolak`, frontend harus menampilkan `data.berkas[].catatan_revisi`
-- saat file pengganti diupload lewat endpoint submit yang sama, status otomatis kembali ke `menunggu`
-
-## Completion Flags
-
-Field ini ada di response `GET /api/mahasantri/status`:
+Field:
 
 - `data.mahasantri.profile_completed`
 - `data.mahasantri.orangtua_completed`
@@ -119,18 +107,64 @@ Field ini ada di response `GET /api/mahasantri/status`:
 
 Arti:
 
-- `profile_completed`: biodata pribadi sudah lengkap
+- `profile_completed`: biodata wajib sudah terisi
 - `orangtua_completed`: data orangtua sudah ada
-- `documents_completed`: semua berkas wajib sudah ada
+- `documents_completed`: semua dokumen wajib tersedia
 
 ## Endpoint List
 
-### 1. Register Akun
+### 1. Cek Gelombang Aktif
+
+**Endpoint**
+
+```http
+GET /api/gelombang/active
+```
+
+**Auth**
+
+Tidak perlu login.
+
+**Response sukses**
+
+```json
+{
+  "data": {
+    "id": 1,
+    "nama": "Gelombang 1",
+    "start_date": "2026-07-01",
+    "end_date": "2026-07-31"
+  }
+}
+```
+
+**Response saat tidak ada gelombang aktif**
+
+```json
+{
+  "message": "Tidak ada gelombang aktif.",
+  "data": null
+}
+```
+
+**Catatan frontend**
+
+- endpoint ini cocok dipanggil sebelum register
+- jika `404`, frontend bisa menonaktifkan tombol daftar atau menampilkan info pendaftaran belum dibuka
+
+### 2. Register Akun
 
 **Endpoint**
 
 ```http
 POST /api/mahasantri/register
+```
+
+**Headers**
+
+```http
+Accept: application/json
+Content-Type: application/json
 ```
 
 **Body**
@@ -144,7 +178,16 @@ POST /api/mahasantri/register
 }
 ```
 
+**Validasi utama**
+
+- `nama_lengkap`: wajib, string, maksimum 35 karakter
+- `email`: wajib, format email, maksimum 100 karakter, unik
+- `password`: wajib, minimum 8 karakter, wajib cocok dengan `password_confirmation`
+- register gagal jika tidak ada gelombang aktif
+
 **Response sukses**
+
+Status code: `201 Created`
 
 ```json
 {
@@ -155,12 +198,11 @@ POST /api/mahasantri/register
     "email": "ahmad@example.com",
     "nik": null,
     "nisn": null,
-    "jenis_kelamin": null,
     "tempat_lahir": null,
     "alamat": null,
     "tanggal_lahir": null,
     "status": "Pendaftar Baru",
-    "tanggal_daftar": "2026-06-25T10:00:00.000000Z",
+    "tanggal_daftar": "2026-07-05T10:00:00.000000Z",
     "profile_completed": false,
     "orangtua_completed": false,
     "documents_completed": false,
@@ -170,12 +212,45 @@ POST /api/mahasantri/register
 }
 ```
 
-### 2. Login
+**Response error umum**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": [
+      "The email has already been taken."
+    ]
+  }
+}
+```
+
+Jika gelombang tidak aktif:
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "gelombang": [
+      "Tidak ada gelombang aktif untuk tanggal pendaftaran saat ini."
+    ]
+  }
+}
+```
+
+### 3. Login
 
 **Endpoint**
 
 ```http
 POST /api/mahasantri/login
+```
+
+**Headers**
+
+```http
+Accept: application/json
+Content-Type: application/json
 ```
 
 **Body**
@@ -188,6 +263,12 @@ POST /api/mahasantri/login
 }
 ```
 
+**Validasi utama**
+
+- `email`: wajib, format email
+- `password`: wajib
+- `device_name`: opsional, string, maksimum 100 karakter
+
 **Response sukses**
 
 ```json
@@ -198,14 +279,43 @@ POST /api/mahasantri/login
   "data": {
     "id_mahasantri": "260101",
     "nama_lengkap": "Ahmad Rafif",
-    "email": "ahmad@example.com"
+    "email": "ahmad@example.com",
+    "nik": null,
+    "nisn": null,
+    "tempat_lahir": null,
+    "alamat": null,
+    "tanggal_lahir": null,
+    "status": "Pendaftar Baru",
+    "tanggal_daftar": "2026-07-05T10:00:00.000000Z",
+    "profile_completed": false,
+    "orangtua_completed": null,
+    "documents_completed": null,
+    "orangtua": [],
+    "berkas": []
   }
 }
 ```
 
-Simpan `access_token` di Flutter dan pakai untuk request terautentikasi.
+**Response jika email / password salah**
 
-### 3. Ambil Profil Mahasantri Login
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": [
+      "Email atau password salah."
+    ]
+  }
+}
+```
+
+**Catatan frontend**
+
+- simpan `access_token`
+- kirim `token_type` dan `access_token` sebagai Bearer token ke endpoint auth
+- user lama yang belum punya password tidak bisa login sampai punya password di backend
+
+### 4. Ambil Profil Mahasantri Login
 
 **Endpoint**
 
@@ -220,14 +330,66 @@ Authorization: Bearer <access_token>
 Accept: application/json
 ```
 
+**Response sukses**
+
+```json
+{
+  "data": {
+    "id_mahasantri": "260101",
+    "nama_lengkap": "Ahmad Rafif",
+    "email": "ahmad@example.com",
+    "nik": "1234567890123456",
+    "nisn": "1234567890",
+    "tempat_lahir": "Bandung",
+    "alamat": "Jl. Pesantren No. 1",
+    "tanggal_lahir": "2010-01-10",
+    "status": "Pendaftar Baru",
+    "tanggal_daftar": "2026-07-05T10:00:00.000000Z",
+    "profile_completed": true,
+    "orangtua_completed": true,
+    "documents_completed": true,
+    "orangtua": [
+      {
+        "id_orangtua": "ORT01",
+        "tipe_hubungan": "Ayah",
+        "nama_lengkap": "Bapak Ahmad",
+        "pekerjaan": "Wiraswasta",
+        "alamat": "Jl. Pesantren No. 1",
+        "no_wa": "081234567890"
+      },
+      {
+        "id_orangtua": "ORT02",
+        "tipe_hubungan": "Ibu",
+        "nama_lengkap": "Ibu Ahmad",
+        "pekerjaan": "Ibu Rumah Tangga",
+        "alamat": "Jl. Pesantren No. 1",
+        "no_wa": "081298765432"
+      }
+    ],
+    "berkas": [
+      {
+        "id_berkas": "BR001",
+        "tipe_berkas": "KTP",
+        "status_verifikasi": "menunggu",
+        "catatan_revisi": null,
+        "tanggal_upload": "2026-07-05T10:30:00.000000Z",
+        "file_available": true,
+        "download_status": "success",
+        "error_message": null
+      }
+    ]
+  }
+}
+```
+
 **Kegunaan**
 
-- menampilkan data akun yang sedang login
-- cek data dasar profil
+- ambil data akun / profil yang sedang login
+- hydrate ulang local state setelah app dibuka kembali
 
-### 4. Submit Data Pendaftaran Final
+### 5. Submit Data Pendaftaran Final
 
-Endpoint ini dipanggil sekali saat user menyelesaikan wizard dan menekan tombol submit di langkah evaluasi.
+Endpoint ini dipanggil saat user menekan submit di langkah akhir wizard.
 
 **Endpoint**
 
@@ -253,7 +415,6 @@ multipart/form-data
 ```text
 nik
 nisn
-jenis_kelamin
 tempat_lahir
 alamat
 tanggal_lahir
@@ -284,84 +445,88 @@ berkas[surat_izin_orangtua]
 berkas[pas_foto]
 ```
 
-**Aturan field orangtua**
+**Aturan orangtua**
 
-- `Ayah` wajib
-- `Ibu` wajib
+- array `orangtua` wajib, minimal 2 item, maksimal 3 item
+- `Ayah` wajib ada
+- `Ibu` wajib ada
 - `Wali` opsional
-- maksimal 3 item: `Ayah`, `Ibu`, `Wali`
+- `tipe_hubungan` yang valid: `Ayah`, `Ibu`, `Wali`
 
-**Contoh field orangtua**
+**Aturan file**
 
-```text
-orangtua[0][tipe_hubungan]: Ayah
-orangtua[0][nama_lengkap]: Budi Santoso
-orangtua[0][pekerjaan]: Wiraswasta
-orangtua[0][alamat]: Jl. Melati No. 10, Bandung
-orangtua[0][no_wa]: 081234567890
+- `ktp`, `kk`, `ijazah`, `surat_izin_orangtua`: `pdf`, `jpg`, `jpeg`, `png`
+- `pas_foto`: `jpg`, `jpeg`, `png`
+- ukuran maksimum tiap file: `5 MB`
+- file hanya wajib untuk dokumen yang belum ada sebelumnya
+- jika dokumen sudah ada dan tidak ingin diganti, field file itu boleh tidak dikirim
 
-orangtua[1][tipe_hubungan]: Ibu
-orangtua[1][nama_lengkap]: Siti Aminah
-orangtua[1][pekerjaan]: Ibu Rumah Tangga
-orangtua[1][alamat]: Jl. Melati No. 10, Bandung
-orangtua[1][no_wa]: 081298765432
+**Validasi utama**
 
-orangtua[2][tipe_hubungan]: Wali
-orangtua[2][nama_lengkap]: H. Rahmat
-orangtua[2][pekerjaan]: Guru
-orangtua[2][alamat]: Jl. Kenanga No. 2, Bandung
-orangtua[2][no_wa]: 081277788899
-```
-
-**Contoh field file**
-
-```text
-berkas[ktp]                 -> file PDF/JPG/JPEG/PNG
-berkas[kk]                  -> file PDF/JPG/JPEG/PNG
-berkas[ijazah]              -> file PDF/JPG/JPEG/PNG
-berkas[surat_izin_orangtua] -> file PDF/JPG/JPEG/PNG
-berkas[pas_foto]            -> file JPG/JPEG/PNG
-```
-
-**Validasi**
-
-- `nik`: wajib, 16 digit, unik
-- `nisn`: wajib, 10 digit, unik
-- `jenis_kelamin`: wajib, `L` atau `P`
-- `tempat_lahir`: wajib, maksimal 50 karakter
-- `alamat`: wajib, maksimal 255 karakter
+- `nik`: wajib, 16 digit, unik kecuali milik user saat ini
+- `nisn`: wajib, 10 digit, unik kecuali milik user saat ini
+- `tempat_lahir`: wajib, maksimum 50 karakter
+- `alamat`: wajib, maksimum 255 karakter
 - `tanggal_lahir`: wajib, format tanggal valid
-- `no_wa`: format nomor Indonesia valid
-- semua berkas wajib ada
-- ukuran maksimal tiap file: `5 MB`
+- `no_wa`: opsional, tetapi jika diisi harus nomor Indonesia valid seperti `08xx` atau `+62xx`
+- nomor WA tidak boleh duplikat dalam satu request
+- nomor WA tidak boleh dipakai mahasantri lain
+
+**Contoh body tekstual**
+
+```text
+nik: 1234567890123456
+nisn: 1234567890
+tempat_lahir: Bandung
+alamat: Jl. Pesantren No. 1
+tanggal_lahir: 2010-01-10
+orangtua[0][tipe_hubungan]: Ayah
+orangtua[0][nama_lengkap]: Bapak Ahmad
+orangtua[0][pekerjaan]: Wiraswasta
+orangtua[0][alamat]: Jl. Pesantren No. 1
+orangtua[0][no_wa]: 081234567890
+orangtua[1][tipe_hubungan]: Ibu
+orangtua[1][nama_lengkap]: Ibu Ahmad
+orangtua[1][pekerjaan]: Ibu Rumah Tangga
+orangtua[1][alamat]: Jl. Pesantren No. 1
+orangtua[1][no_wa]: 081298765432
+```
 
 **Response sukses**
 
 ```json
 {
-  "message": "Data pendaftaran berhasil dikirim.",
+  "message": "Data pendaftaran berhasil diperbarui.",
   "data": {
     "id_mahasantri": "260101",
     "nama_lengkap": "Ahmad Rafif",
     "email": "ahmad@example.com",
     "nik": "1234567890123456",
     "nisn": "1234567890",
-    "jenis_kelamin": "L",
     "tempat_lahir": "Bandung",
-    "alamat": "Jl. Melati No. 10, Bandung",
-    "tanggal_lahir": "2010-01-15",
+    "alamat": "Jl. Pesantren No. 1",
+    "tanggal_lahir": "2010-01-10",
     "status": "Pendaftar Baru",
+    "tanggal_daftar": "2026-07-05T10:00:00.000000Z",
     "profile_completed": true,
     "orangtua_completed": true,
     "documents_completed": true,
     "orangtua": [
       {
+        "id_orangtua": "ORT01",
         "tipe_hubungan": "Ayah",
-        "nama_lengkap": "Budi Santoso"
+        "nama_lengkap": "Bapak Ahmad",
+        "pekerjaan": "Wiraswasta",
+        "alamat": "Jl. Pesantren No. 1",
+        "no_wa": "081234567890"
       },
       {
+        "id_orangtua": "ORT02",
         "tipe_hubungan": "Ibu",
-        "nama_lengkap": "Siti Aminah"
+        "nama_lengkap": "Ibu Ahmad",
+        "pekerjaan": "Ibu Rumah Tangga",
+        "alamat": "Jl. Pesantren No. 1",
+        "no_wa": "081298765432"
       }
     ],
     "berkas": [
@@ -370,14 +535,46 @@ berkas[pas_foto]            -> file JPG/JPEG/PNG
         "tipe_berkas": "KTP",
         "status_verifikasi": "menunggu",
         "catatan_revisi": null,
-        "file_available": true
+        "tanggal_upload": "2026-07-05T10:30:00.000000Z",
+        "file_available": true,
+        "download_status": "success",
+        "error_message": null
       }
     ]
   }
 }
 ```
 
-### 5. Ambil Status Pendaftaran, Jadwal, dan Hasil
+**Contoh error**
+
+Ayah / Ibu tidak lengkap:
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "orangtua": [
+      "Data Ibu wajib diisi."
+    ]
+  }
+}
+```
+
+Token tidak ada / tidak valid:
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+**Catatan frontend**
+
+- kirim request sebagai `multipart/form-data`
+- wizard bisa disimpan lokal per step, tetapi backend baru menerima saat submit final
+- jika ada dokumen yang ditolak, frontend cukup kirim ulang file yang direvisi bersama field biodata / orangtua yang tetap wajib dikirim
+
+### 6. Ambil Status Pendaftaran, Jadwal, dan Hasil
 
 **Endpoint**
 
@@ -394,12 +591,10 @@ Accept: application/json
 
 **Kegunaan**
 
-Endpoint ini dipakai Flutter untuk:
-
 - menampilkan status pendaftaran
 - menampilkan progres kelengkapan data
+- menampilkan status review berkas
 - menampilkan jadwal seleksi
-- menampilkan link Zoom
 - menampilkan hasil seleksi
 
 **Response contoh saat belum ada jadwal dan hasil**
@@ -410,12 +605,52 @@ Endpoint ini dipakai Flutter untuk:
     "mahasantri": {
       "id_mahasantri": "260101",
       "nama_lengkap": "Ahmad Rafif",
+      "email": "ahmad@example.com",
+      "nik": "1234567890123456",
+      "nisn": "1234567890",
+      "tempat_lahir": "Bandung",
+      "alamat": "Jl. Pesantren No. 1",
+      "tanggal_lahir": "2010-01-10",
       "status": "Pendaftar Baru",
+      "tanggal_daftar": "2026-07-05T10:00:00.000000Z",
       "profile_completed": true,
       "orangtua_completed": true,
-      "documents_completed": true
+      "documents_completed": true,
+      "orangtua": [
+        {
+          "id_orangtua": "ORT01",
+          "tipe_hubungan": "Ayah",
+          "nama_lengkap": "Bapak Ahmad",
+          "pekerjaan": "Wiraswasta",
+          "alamat": "Jl. Pesantren No. 1",
+          "no_wa": "081234567890"
+        }
+      ],
+      "berkas": [
+        {
+          "id_berkas": "BR001",
+          "tipe_berkas": "KTP",
+          "status_verifikasi": "menunggu",
+          "catatan_revisi": null,
+          "tanggal_upload": "2026-07-05T10:30:00.000000Z",
+          "file_available": true,
+          "download_status": "success",
+          "error_message": null
+        }
+      ]
     },
-    "berkas": [],
+    "berkas": [
+      {
+        "id_berkas": "BR001",
+        "tipe_berkas": "KTP",
+        "status_verifikasi": "menunggu",
+        "catatan_revisi": null,
+        "tanggal_upload": "2026-07-05T10:30:00.000000Z",
+        "file_available": true,
+        "download_status": "success",
+        "error_message": null
+      }
+    ],
     "jadwal": null,
     "hasil": null
   }
@@ -430,6 +665,7 @@ Endpoint ini dipakai Flutter untuk:
     "mahasantri": {
       "status": "Terverifikasi"
     },
+    "berkas": [],
     "jadwal": {
       "id_jadwal": "JDS01",
       "tanggal": "2026-07-10",
@@ -437,7 +673,9 @@ Endpoint ini dipakai Flutter untuk:
       "link_zoom": "https://zoom.us/j/123456789",
       "status_jadwal": "Disetujui",
       "catatan_ketua": null,
-      "catatan_perubahan": null
+      "catatan_perubahan": null,
+      "penanggung_jawab": null,
+      "penguji": []
     },
     "hasil": null
   }
@@ -452,6 +690,7 @@ Endpoint ini dipakai Flutter untuk:
     "mahasantri": {
       "status": "Lulus"
     },
+    "berkas": [],
     "jadwal": {
       "tanggal": "2026-07-10",
       "jam": "08:30",
@@ -468,14 +707,17 @@ Endpoint ini dipakai Flutter untuk:
 
 **Catatan frontend**
 
-- jika `jadwal = null`, berarti panitia belum membuat jadwal seleksi
-- jika `hasil = null`, berarti hasil seleksi belum tersedia
-- `mahasantri.status` tetap harus ditampilkan karena itu status utama user
-- `hasil.status` dipakai untuk detail hasil tes bila sudah ada
-- tampilkan status tiap item `berkas`
-- jika ada `status_verifikasi = ditolak`, tampilkan `catatan_revisi` dan minta user upload ulang file itu
+- jika `jadwal = null`, jadwal seleksi belum ada
+- jika `hasil = null`, hasil seleksi belum ada
+- tetap tampilkan `mahasantri.status` sebagai status utama user
+- tampilkan status tiap item di `berkas`
+- jika ada `status_verifikasi = ditolak`, tampilkan `catatan_revisi`
+- response ini mengandung data berkas dua kali:
+  - `data.mahasantri.berkas`
+  - `data.berkas`
+- untuk Flutter, lebih aman pilih satu sumber utama secara konsisten, disarankan `data.berkas`
 
-### 6. Logout
+### 7. Logout
 
 **Endpoint**
 
@@ -498,7 +740,10 @@ Accept: application/json
 }
 ```
 
-Setelah logout, token lama tidak bisa dipakai lagi.
+**Catatan frontend**
+
+- hapus token lokal setelah logout sukses
+- token lama tidak bisa dipakai lagi
 
 ## Error Umum
 
@@ -509,6 +754,7 @@ Terjadi jika:
 - token tidak dikirim
 - token salah
 - token sudah di-logout
+- token sudah expired
 
 Contoh:
 
@@ -538,21 +784,21 @@ Contoh:
 ## Checklist Integrasi Flutter
 
 - simpan `access_token` setelah login
-- pakai `Bearer token` untuk endpoint yang butuh auth
-- wizard pendaftaran disubmit sekali di langkah evaluasi
-- kirim request submit final sebagai `multipart/form-data`
+- kirim header `Accept: application/json`
+- pakai Bearer token untuk endpoint auth
+- submit pendaftaran final sebagai `multipart/form-data`
 - tampilkan `mahasantri.status`
-- tampilkan `berkas[].status_verifikasi` dan `berkas[].catatan_revisi` bila ada
+- tampilkan `berkas[].status_verifikasi` dan `berkas[].catatan_revisi`
 - tampilkan `jadwal.tanggal`, `jadwal.jam`, dan `jadwal.link_zoom` jika `jadwal` tidak null
 - tampilkan `hasil.status` dan `hasil.total_nilai` jika `hasil` tidak null
 - gunakan `profile_completed`, `orangtua_completed`, `documents_completed` untuk indikator progres
 
 ## Endpoint Aktif Saat Ini
 
+- `GET /api/gelombang/active`
 - `POST /api/mahasantri/register`
 - `POST /api/mahasantri/login`
 - `GET /api/mahasantri/me`
 - `POST /api/mahasantri/pendaftaran/submit`
 - `GET /api/mahasantri/status`
 - `POST /api/mahasantri/logout`
-- `GET /api/gelombang/active`
