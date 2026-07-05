@@ -228,9 +228,20 @@ class JadwalTesService
 }
         
 
-    public function updateLinkZoomMassal(string $tanggal, string $linkZoom): int
+   public function updateLinkZoomMassal(string $tanggal, string $linkZoom): int
     {
-        return JadwalTes::where('tanggal', $tanggal)->update(['link_zoom' => $linkZoom]);
+        $updated = JadwalTes::where('tanggal', $tanggal)->update(['link_zoom' => $linkZoom]);
+        
+        if ($updated > 0) {
+            // KIRIM NOTIFIKASI ZOOM TERUPDATE BRAY!
+            \App\Helpers\FcmHelper::sendToTopic(
+                'mahasantri', 
+                'Ruang Ujian Zoom Diperbarui!', 
+                'Panitia baru saja memperbarui link ruang Zoom ujian untuk tanggal ' . \Carbon\Carbon::parse($tanggal)->format('d/m/Y') . '. Silakan cek dashboard anda!'
+            );
+        }
+
+        return $updated;
     }
 
     public function sendUpdateNotification(JadwalTes $jadwalTes): void
@@ -340,11 +351,21 @@ class JadwalTesService
             $sentCount++;
         }
 
-        return [
-            'gelombang_nama' => $activeGelombang->nama,
-            'sent_count' => $sentCount,
-            'waktu_kirim' => $waktuKirim,
-        ];
+
+        if ($sentCount > 0) {
+                // KIRIM NOTIFIKASI SURAT KEPUTUSAN TERBIT BRAY!
+                \App\Helpers\FcmHelper::sendToTopic(
+                    'mahasantri', 
+                    'Pengumuman Hasil Seleksi Terbit!', 
+                    'Surat Keputusan Kelulusan resmi Ma\'had Rafifah Andalusia MQ gelombang ini sudah diterbitkan. Buka aplikasi untuk melihat hasil perjuanganmu bray, Ahay!'
+                );
+            }
+
+            return [
+                'gelombang_nama' => $activeGelombang->nama,
+                'sent_count' => $sentCount,
+                'waktu_kirim' => $waktuKirim,
+            ];
     }
 
     public function aspectFieldMap(): array
