@@ -49,6 +49,14 @@ class Berkas extends Model
         ];
     }
 
+    public static function reviewableVerificationStatuses(): array
+    {
+        return [
+            self::STATUS_DISETUJUI,
+            self::STATUS_DITOLAK,
+        ];
+    }
+
     /**
      * Get the latest download history record.
      */

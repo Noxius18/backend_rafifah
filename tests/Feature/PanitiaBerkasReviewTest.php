@@ -89,6 +89,19 @@ class PanitiaBerkasReviewTest extends TestCase
             ->assertJsonValidationErrors('catatan_revisi');
     }
 
+    public function test_review_rejects_menunggu_status(): void
+    {
+        $panitia = $this->createPanitia();
+        $berkas = $this->createBerkas();
+
+        $this->actingAs($panitia, 'panitia')
+            ->postJson(route('panitia.berkas.review', $berkas), [
+                'status' => Berkas::STATUS_MENUNGGU,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+    }
+
     public function test_approving_last_pending_document_verifies_mahasantri(): void
     {
         $panitia = $this->createPanitia();

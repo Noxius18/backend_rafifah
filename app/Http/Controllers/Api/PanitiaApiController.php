@@ -24,10 +24,7 @@ class PanitiaApiController extends Controller
     public function reviewBerkas(Request $request, Berkas $berkas)
     {
         $validator = Validator::make($request->all(), [
-            'status' => ['required', Rule::in([
-                Berkas::STATUS_DISETUJUI,
-                Berkas::STATUS_DITOLAK,
-            ])],
+            'status' => ['required', Rule::in(Berkas::reviewableVerificationStatuses())],
             'catatan_revisi' => 'required_if:status,' . Berkas::STATUS_DITOLAK . '|nullable|string|max:255',
         ], [
             'status.in' => 'Status harus berupa disetujui atau ditolak.',
