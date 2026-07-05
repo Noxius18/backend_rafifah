@@ -89,7 +89,7 @@ class JadwalTesBulkController extends Controller
         return redirect()->route('seleksi.index')->with('success', "{$updated} jadwal berhasil di" . strtolower($request->jenis_pembatalan));
     }
 
-    public function sendBulkResults(Request $request)
+  public function sendBulkResults(Request $request)
     {
         abort_unless(auth()->user()->jabatan === 'Panitia', 403, 'Hanya panitia yang bisa kirim hasil test');
 
@@ -99,6 +99,7 @@ class JadwalTesBulkController extends Controller
         ]);
 
         try {
+            // Tinggal panggil service bawaan, pembuatan PDF otomatis jalan di dalam bray!
             $result = $this->jadwalTesService->sendBulkResults(
                 Carbon::parse($request->tanggal_kirim . ' ' . $request->jam_kirim)
             );

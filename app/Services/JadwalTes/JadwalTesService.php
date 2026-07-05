@@ -267,7 +267,7 @@ class JadwalTesService
         return $updated;
     }
 
-    public function sendBulkResults(Carbon $waktuKirim): array
+   public function sendBulkResults(Carbon $waktuKirim): array
     {
         $today = Carbon::today();
         $activeGelombang = Gelombang::whereDate('start_date', '<=', $today)
@@ -278,7 +278,8 @@ class JadwalTesService
             throw new \RuntimeException('Gagal: Belum ada konfigurasi gelombang di sistem.');
         }
 
-        $scheduled = JadwalTes::with(['mahasantri', 'hasilTes'])
+        // FIX EAGER LOADING: Muat sekalian relasi penguji agar layout PDF tidak kosong bray
+        $scheduled = JadwalTes::with(['mahasantri', 'hasilTes', 'jadwalPenguji.panitia'])
             ->where('status_jadwal', 'Disetujui')
             ->whereBetween('tanggal', [$activeGelombang->start_date, $activeGelombang->end_date])
             ->get();
@@ -288,7 +289,11 @@ class JadwalTesService
         }
 
         $sentCount = 0;
-        foreach ($scheduled as $jadwal) {
+        
+        // Panggil service pendukung untuk data nomor surat kelulusan bray
+        $workflowService = app(\App\Services\Mahasantri\MahasantriWorkflowService::class);
+
+       foreach ($scheduled as $jadwal) {
             $mahasantri = $jadwal->mahasantri;
             $hasil = $jadwal->hasilTes;
 
@@ -296,7 +301,42 @@ class JadwalTesService
                 continue;
             }
 
+            // 1. Antrekan Pengiriman Email Kelulusan
             Mail::to($mahasantri->email)->later($waktuKirim, new TestResultPdf($mahasantri, $hasil));
+            
+            // 2. FIX LOGIKA: Generate PDF secara dinamis untuk Lulus maupun Tidak Lulus bray!
+            $prefix = $mahasantri->status === 'Lulus' ? 'surat_lulus_' : 'surat_tidak_lulus_';
+            $fileName = $prefix . $mahasantri->id_mahasantri . '.pdf';
+            $path = 'private/surat_kelulusan/' . $fileName;
+
+            if (!\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
+                $hasilTesCollection = collect([$hasil]);
+                $suratMeta = $workflowService->buildSuratKelulusanMeta($mahasantri);
+
+                $html = view('menu.laporan.pdf-nilai-single', [
+                    'mahasantri' => $mahasantri,
+                    'hasilTes' => $hasilTesCollection,
+                    'jadwal' => $jadwal,
+                    'date' => now()->format('d/m/Y H:i'),
+                    'nomorSurat' => $suratMeta['nomor_surat'],
+                    'tahunAjaran' => $suratMeta['tahun_ajaran'],
+                    'tahunAjaranBerikutnya' => $suratMeta['tahun_ajaran_berikutnya'],
+                    'labelTahunAjaran' => $suratMeta['label_tahun_ajaran'],
+                ])->render();
+
+                $options = new \Dompdf\Options();
+                $options->set('isHtml5ParserEnabled', true);
+                $options->set('isRemoteEnabled', false);
+
+                $dompdf = new \Dompdf\Dompdf($options);
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+
+                // Simpan ke disk local private storage
+                \Illuminate\Support\Facades\Storage::disk('local')->put($path, $dompdf->output());
+            }
+
             $sentCount++;
         }
 

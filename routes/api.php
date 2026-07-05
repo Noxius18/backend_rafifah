@@ -20,6 +20,10 @@ Route::prefix('mahasantri')->group(function () {
     });
 });
 
+Route::get('/mahasantri/download-skl/{id_mahasantri}', [MahasantriStatusController::class, 'downloadSkl'])
+        ->name('api.mahasantri.download-skl')
+        ->middleware('signed');
+
 Route::get('/gelombang/active', [GelombangController::class, 'active']);
 
 Route::middleware(['web', 'auth:panitia', 'cek_jabatan:Panitia,Ketua Panitia'])->group(function () {

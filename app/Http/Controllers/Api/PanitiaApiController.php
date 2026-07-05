@@ -54,13 +54,13 @@ class PanitiaApiController extends Controller
     }
 
     /**
-     * FITUR 2: Unggah Surat Kelulusan (PDF) Tanpa Mengubah Struktur Tabel Hasil
+     * FITUR 2: Unggah Surat Kelulusan (Bisa Manual / Otomatis Otomatis Generate PDF)
      */
     public function unggahKelulusan(Request $request, $id_mahasantri)
     {
         $validator = Validator::make($request->all(), [
             'total_nilai' => 'required|integer',
-            'surat_kelulusan' => 'required|file|mimes:pdf|max:4096', // Max 4MB
+            'surat_kelulusan' => 'nullable|file|mimes:pdf|max:4096', // Diubah jadi nullable bray
         ], [
             'surat_kelulusan.mimes' => 'Dokumen kelulusan harus format PDF.',
             'surat_kelulusan.max' => 'Ukuran file surat kelulusan maksimal 4MB.',
@@ -75,31 +75,68 @@ class PanitiaApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Mahasantri tidak ditemukan.'], 404);
         }
 
-        // Trik Simpan File Ke Private Storage dengan penamaan Kaku (Anti Ubah Kolom DB)
-        $file = $request->file('surat_kelulusan');
-        $fileName = 'surat_lulus_' . $id_mahasantri . '.' . $file->getClientOriginalExtension();
-        
-        // Simpan ke folder private (storage/app/private/surat_kelulusan)
-        $path = $file->storeAs('private/surat_kelulusan', $fileName);
+        $fileName = 'surat_lulus_' . $id_mahasantri . '.pdf';
+        $path = 'private/surat_kelulusan/' . $fileName;
+
+        // OPSI A: JIKA PANITIA MENGUNGGAH FILE SECARA MANUAl BRAY
+        if ($request->hasFile('surat_kelulusan')) {
+            $file = $request->file('surat_kelulusan');
+            $path = $file->storeAs('private/surat_kelulusan', $fileName);
+        } 
+        // OPSI B: GENERATE PDF OTOMATIS DARI VIEW TEMPLATE (Sama seperti tombol Cetak Nilai bray!)
+        else {
+            $jadwal = \App\Models\JadwalTes::where('id_mahasantri', $id_mahasantri)
+                ->with('hasilTes', 'jadwalPenguji.panitia')
+                ->first();
+
+            if (!$jadwal || !$jadwal->hasilTes) {
+                return response()->json(['success' => false, 'message' => 'Hasil tes mahasantri belum lengkap.'], 400);
+            }
+
+            $hasilTes = collect([$jadwal->hasilTes]);
+            $suratMeta = $this->workflowService->buildSuratKelulusanMeta($mahasantri);
+
+            // Memanggil view cetak pdf yang sudah kamu sediakan bray
+            $html = view('menu.laporan.pdf-nilai-single', [
+                'mahasantri' => $mahasantri,
+                'hasilTes' => $hasilTes,
+                'jadwal' => $jadwal,
+                'date' => now()->format('d/m/Y H:i'),
+                'nomorSurat' => $suratMeta['nomor_surat'],
+                'tahunAjaran' => $suratMeta['tahun_ajaran'],
+                'tahunAjaranBerikutnya' => $suratMeta['tahun_ajaran_berikutnya'],
+                'labelTahunAjaran' => $suratMeta['label_tahun_ajaran'],
+            ])->render();
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', false);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Simpan langsung ke folder private storage bray
+            Storage::put($path, $dompdf->output());
+        }
 
         // Update status mahasantri utama menjadi Lulus
         $mahasantri->update(['status' => 'Lulus']);
 
-        // Update atau buat data baru di tabel hasil_tes menggunakan kolom bawaan ERD kamu saat ini
+        // Update atau buat data baru di tabel hasil_tes
         DB::table('hasil_tes')->updateOrInsert(
             ['id_mahasantri' => $id_mahasantri],
             [
                 'id_hasil' => 'HSL' . $id_mahasantri,
                 'status' => 'Lulus',
                 'tanggal_pengumuman' => now()->format('Y-m-d'),
-                // Jika di ERD tabel hasil kamu ada kolom nilai_akhir / sejenisnya, sesuaikan di bawah ini:
-                // 'nilai_akhir' => $request->total_nilai 
             ]
         );
 
         return response()->json([
             'success' => true,
-            'message' => 'Surat kelulusan berhasil diunggah dan status mahasantri diperbarui menjadi Lulus.',
+            'message' => 'Surat kelulusan berhasil diproses dan status mahasantri diperbarui menjadi Lulus bray.',
             'storage_path' => $path
         ], 200);
     }
