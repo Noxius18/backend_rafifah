@@ -12,7 +12,8 @@ class BerkasResource extends JsonResource
         return [
             'id_berkas' => $this->id_berkas,
             'tipe_berkas' => $this->tipe_berkas,
-            'status_verifikasi' => (bool) $this->status_verifikasi,
+            'status_verifikasi' => $this->status_verifikasi,
+            'catatan_revisi' => $this->catatan_revisi,
             'tanggal_upload' => $this->tanggal_upload,
             'file_available' => $this->file_exists,
             'download_status' => $this->riwayatUnduhan?->download_status,

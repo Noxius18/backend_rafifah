@@ -36,14 +36,8 @@ export function registerMahasantriShow(Alpine) {
         get isImageDoc() {
             return this.previewDoc.isImage || false;
         },
-        get currentLocalIsValid() {
-            return this.previewDoc.localIsValid ?? this.previewDoc.isValid ?? false;
-        },
         openPreview(index, nik, nisn) {
-            this.previewDocs = this.previewDocsSource.map((doc) => ({
-                ...doc,
-                localIsValid: doc.localIsValid ?? doc.isValid,
-            }));
+            this.previewDocs = this.previewDocsSource.map((doc) => ({ ...doc }));
             this.previewDocIndex = index;
             this.previewNik = nik || '';
             this.previewNisn = nisn || '';
@@ -54,12 +48,6 @@ export function registerMahasantriShow(Alpine) {
         },
         nextDoc() {
             if (this.previewDocIndex < this.previewDocs.length - 1) this.previewDocIndex += 1;
-        },
-        togglePreviewStatus() {
-            const doc = this.previewDocs[this.previewDocIndex];
-            if (doc) {
-                doc.localIsValid = !(doc.localIsValid ?? doc.isValid ?? false);
-            }
         },
         openDeleteModal() {
             document.getElementById('deleteModal-name').textContent = this.deleteName;
@@ -94,42 +82,28 @@ export function registerMahasantriShow(Alpine) {
                 return;
             }
 
-            const changed = this.previewDocs.filter((doc) => (doc.localIsValid ?? doc.isValid) !== doc.isValid);
-            if (changed.length === 0 && !this.previewNik && !this.previewNisn) {
+            if (!this.previewDocs[0]?.id) {
+                this.showToast('Dokumen tidak tersedia', 'error');
+                return;
+            }
+
+            if (!this.previewNik && !this.previewNisn) {
                 this.showToast('Tidak ada perubahan yang perlu disimpan', 'error');
                 return;
             }
 
             this.saving = true;
             try {
-                const requests = [];
-                for (const [index, doc] of changed.entries()) {
-                    const body = { status_verifikasi: doc.localIsValid ?? false };
-                    if (index === 0) {
-                        body.nik = this.previewNik || null;
-                        body.nisn = this.previewNisn || null;
-                    }
-                    requests.push(this.patchBerkas(doc.id, body, csrfToken));
-                }
+                const result = await this.patchBerkas(this.previewDocs[0].id, {
+                    nik: this.previewNik || null,
+                    nisn: this.previewNisn || null,
+                }, csrfToken);
 
-                if (changed.length === 0 && (this.previewNik || this.previewNisn)) {
-                    requests.push(this.patchBerkas(this.previewDocs[0]?.id, {
-                        status_verifikasi: this.previewDocs[0]?.isValid ?? false,
-                        nik: this.previewNik || null,
-                        nisn: this.previewNisn || null,
-                    }, csrfToken));
-                }
-
-                const results = await Promise.all(requests);
-                if (results.every((result) => result.message)) {
-                    changed.forEach((doc) => {
-                        doc.isValid = doc.localIsValid;
-                    });
-                    this.previewDocsSource = this.previewDocs.map((doc) => ({ ...doc, isValid: doc.localIsValid ?? doc.isValid }));
+                if (result.message) {
                     this.showToast('Semua perubahan berhasil disimpan');
                     setTimeout(() => window.location.reload(), 500);
                 } else {
-                    this.showToast('Beberapa perubahan gagal disimpan', 'error');
+                    this.showToast(result.message || 'Gagal menyimpan perubahan', 'error');
                     this.saving = false;
                 }
             } catch {

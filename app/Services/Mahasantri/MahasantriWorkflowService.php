@@ -133,9 +133,14 @@ class MahasantriWorkflowService
      */
     public function updateBerkas(Berkas $berkas, array $validated, array $input): array
     {
-        $berkas->update([
-            'status_verifikasi' => $validated['status_verifikasi'],
-        ]);
+        if (array_key_exists('status_verifikasi', $validated)) {
+            $berkas->update([
+                'status_verifikasi' => $validated['status_verifikasi'],
+                'catatan_revisi' => $validated['status_verifikasi'] === Berkas::STATUS_DITOLAK
+                    ? ($validated['catatan_revisi'] ?? $berkas->catatan_revisi)
+                    : null,
+            ]);
+        }
 
         $mahasantriData = [];
         foreach (['nik', 'nisn', 'tempat_lahir', 'tanggal_lahir'] as $field) {
@@ -149,29 +154,28 @@ class MahasantriWorkflowService
         }
 
         $mahasantri = $berkas->mahasantri;
-        if ($mahasantri && $mahasantri->status === 'Pendaftar Baru') {
-            // Auto-verifikasi hanya dilakukan bila semua dokumen yang berhasil
-            // diunduh sudah diverifikasi dan biodata inti lengkap.
-            $allBerkasValid = $mahasantri->berkas()
-                ->where('status_verifikasi', false)
-                ->whereHas('riwayatUnduhan', function ($query) {
-                    $query->where('download_status', 'success');
-                })
-                ->doesntExist();
-
-            $dataLengkap = !empty($mahasantri->nik)
-                && !empty($mahasantri->nisn)
-                && !empty($mahasantri->tempat_lahir)
-                && !empty($mahasantri->tanggal_lahir);
-
-            if ($allBerkasValid && $dataLengkap) {
-                $mahasantri->update(['status' => 'Terverifikasi']);
-            }
+        if ($mahasantri) {
+            $this->syncMahasantriVerificationStatus($mahasantri);
         }
 
         return [
-            'status_verifikasi' => (bool) $validated['status_verifikasi'],
+            'status_verifikasi' => $berkas->fresh()->status_verifikasi,
         ];
+    }
+
+    public function reviewBerkas(Berkas $berkas, string $status, ?string $catatanRevisi = null): Berkas
+    {
+        $berkas->update([
+            'status_verifikasi' => $status,
+            'catatan_revisi' => $status === Berkas::STATUS_DITOLAK ? $catatanRevisi : null,
+        ]);
+
+        $mahasantri = $berkas->mahasantri;
+        if ($mahasantri) {
+            $this->syncMahasantriVerificationStatus($mahasantri);
+        }
+
+        return $berkas->fresh();
     }
 
     /**
@@ -261,5 +265,32 @@ class MahasantriWorkflowService
         }
 
         return null;
+    }
+
+    private function syncMahasantriVerificationStatus(User $mahasantri): void
+    {
+        if (!in_array($mahasantri->status, ['Pendaftar Baru', 'Terverifikasi'], true)) {
+            return;
+        }
+
+        $hasPendingOrRejectedBerkas = $mahasantri->berkas()
+            ->whereHas('riwayatUnduhan', function ($query) {
+                $query->where('download_status', 'success');
+            })
+            ->where('status_verifikasi', '!=', Berkas::STATUS_DISETUJUI)
+            ->exists();
+
+        $dataLengkap = !empty($mahasantri->nik)
+            && !empty($mahasantri->nisn)
+            && !empty($mahasantri->tempat_lahir)
+            && !empty($mahasantri->tanggal_lahir);
+
+        $targetStatus = !$hasPendingOrRejectedBerkas && $dataLengkap
+            ? 'Terverifikasi'
+            : 'Pendaftar Baru';
+
+        if ($mahasantri->status !== $targetStatus) {
+            $mahasantri->update(['status' => $targetStatus]);
+        }
     }
 }

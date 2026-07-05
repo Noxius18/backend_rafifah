@@ -3,23 +3,32 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Berkas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User; // Mengacu pada model Mahasantri
 use Illuminate\Support\Facades\DB;
+use App\Services\Mahasantri\MahasantriWorkflowService;
+use Illuminate\Validation\Rule;
 
 class PanitiaApiController extends Controller
 {
+    public function __construct(private readonly MahasantriWorkflowService $workflowService)
+    {
+    }
+
     /**
      * FITUR 1: Review Berkas Spesifik
      */
-    public function reviewBerkas(Request $request, $id_berkas)
+    public function reviewBerkas(Request $request, Berkas $berkas)
     {
-        // Validasi input request
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:disetujui,ditolak',
-            'catatan_revisi' => 'required_if:status,ditolak|nullable|string|max:255',
+            'status' => ['required', Rule::in([
+                Berkas::STATUS_DISETUJUI,
+                Berkas::STATUS_DITOLAK,
+            ])],
+            'catatan_revisi' => 'required_if:status,' . Berkas::STATUS_DITOLAK . '|nullable|string|max:255',
         ], [
             'status.in' => 'Status harus berupa disetujui atau ditolak.',
             'catatan_revisi.required_if' => 'Catatan revisi wajib diisi jika berkas ditolak.',
@@ -29,26 +38,21 @@ class PanitiaApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        // Cari data berkas di DB menggunakan Query Builder
-        $berkas = DB::table('berkas')->where('id_berkas', $id_berkas)->first();
-
-        if (!$berkas) {
-            return response()->json(['success' => false, 'message' => 'Data berkas tidak ditemukan.'], 404);
-        }
-
-        // UPDATE DATA BERKAS: Masukkan status string verifikasi dan catatan revisi
-        DB::table('berkas')->where('id_berkas', $id_berkas)->update([
-            'status_verifikasi' => $request->status,
-            'catatan_revisi' => $request->status === 'ditolak' ? $request->catatan_revisi : null,
-        ]);
-
-        // FIX ENUM ERROR: Kita hapus perubahan status mahasantri ke 'Revisi Berkas' 
-        // agar tidak memicu SQLSTATE[01000] Data truncated di MariaDB lu.
-        // Sebagai gantinya, status mahasantri dibiarkan sesuai ENUM bawaan database lu saat ini.
+        $validated = $validator->validated();
+        $reviewed = $this->workflowService->reviewBerkas(
+            $berkas,
+            $validated['status'],
+            $validated['catatan_revisi'] ?? null
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Berkas ' . $berkas->tipe_berkas . ' berhasil di-review dengan status: ' . $request->status
+            'message' => 'Berkas ' . $reviewed->tipe_berkas . ' berhasil di-review dengan status: ' . $reviewed->status_verifikasi,
+            'data' => [
+                'id_berkas' => $reviewed->id_berkas,
+                'status_verifikasi' => $reviewed->status_verifikasi,
+                'catatan_revisi' => $reviewed->catatan_revisi,
+            ],
         ], 200);
     }
 

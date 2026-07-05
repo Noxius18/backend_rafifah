@@ -172,7 +172,7 @@
 
     async function executeReviewApi(idBerkas, statusValue, catatan = null) {
         try {
-            const targetUrl = window.location.origin + '/api/panitia/berkas/' + idBerkas + '/review';
+            const targetUrl = @js(route('panitia.berkas.review', ['berkas' => '__ID__'])).replace('__ID__', idBerkas);
             const response = await fetch(targetUrl, {
                 method: 'POST',
                 headers: {
@@ -202,7 +202,6 @@
         document.getElementById('approveBerkasModal').showModal();
     }
 
-     Kakakak
     function executeApproveBerkas() {
         const idBerkas = document.getElementById('submitApproveIdBerkas').value;
         document.getElementById('approveBerkasModal').close();

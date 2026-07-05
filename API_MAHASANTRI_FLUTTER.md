@@ -84,6 +84,31 @@ Arti umum:
 - `Lulus`: hasil seleksi lulus
 - `Tidak Lulus`: hasil seleksi tidak lulus
 
+### 3. Status Berkas
+
+Field:
+
+```text
+data.berkas[].status_verifikasi
+```
+
+Nilai yang mungkin:
+
+- `menunggu`
+- `disetujui`
+- `ditolak`
+
+Arti umum:
+
+- `menunggu`: berkas sedang menunggu review panitia
+- `disetujui`: berkas sudah diverifikasi panitia
+- `ditolak`: berkas ditolak dan mahasantri harus upload ulang
+
+Catatan tambahan:
+
+- jika `status_verifikasi = ditolak`, frontend harus menampilkan `data.berkas[].catatan_revisi`
+- saat file pengganti diupload lewat endpoint submit yang sama, status otomatis kembali ke `menunggu`
+
 ## Completion Flags
 
 Field ini ada di response `GET /api/mahasantri/status`:
@@ -341,7 +366,10 @@ berkas[pas_foto]            -> file JPG/JPEG/PNG
     ],
     "berkas": [
       {
+        "id_berkas": "BR001",
         "tipe_berkas": "KTP",
+        "status_verifikasi": "menunggu",
+        "catatan_revisi": null,
         "file_available": true
       }
     ]
@@ -444,6 +472,8 @@ Endpoint ini dipakai Flutter untuk:
 - jika `hasil = null`, berarti hasil seleksi belum tersedia
 - `mahasantri.status` tetap harus ditampilkan karena itu status utama user
 - `hasil.status` dipakai untuk detail hasil tes bila sudah ada
+- tampilkan status tiap item `berkas`
+- jika ada `status_verifikasi = ditolak`, tampilkan `catatan_revisi` dan minta user upload ulang file itu
 
 ### 6. Logout
 
@@ -512,6 +542,7 @@ Contoh:
 - wizard pendaftaran disubmit sekali di langkah evaluasi
 - kirim request submit final sebagai `multipart/form-data`
 - tampilkan `mahasantri.status`
+- tampilkan `berkas[].status_verifikasi` dan `berkas[].catatan_revisi` bila ada
 - tampilkan `jadwal.tanggal`, `jadwal.jam`, dan `jadwal.link_zoom` jika `jadwal` tidak null
 - tampilkan `hasil.status` dan `hasil.total_nilai` jika `hasil` tidak null
 - gunakan `profile_completed`, `orangtua_completed`, `documents_completed` untuk indikator progres
