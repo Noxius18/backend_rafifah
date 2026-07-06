@@ -198,34 +198,38 @@ class JadwalTesService
      * Edit ringan pada satu jadwal tetap mengembalikan status ke Menunggu.
      */
     public function updateSingleJadwal(JadwalTes $jadwalTes, array $validated, string $creatorId): void
-{
-    $jadwalTes->update(array_merge($validated, [
-        'status_jadwal' => 'Menunggu',
-        'catatan_ketua' => null,
-        'catatan_perubahan' => null,
-    ]));
-
-    $pembuat = Panitia::findOrFail($creatorId);
-    foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $ketua) {
-        if ($ketua->email) {
-            Mail::to($ketua->email)->send(new JadwalCreatedNotification(
-                $jadwalTes,
-                $pembuat,
-                1,
-                $ketua->nama_lengkap,
-                true
-            ));
+    {
+        if (Carbon::parse($jadwalTes->tanggal)->startOfDay()->lt(Carbon::today())) {
+            throw new \RuntimeException('Jadwal yang sudah lewat tidak bisa diedit.');
         }
-    }
 
-    // === HAPUS / KOMENTAR BAGIAN INI ===
-    // if ($jadwalTes->hasilTes && $jadwalTes->hasilTes->status === 'Pertimbangan') {
-    //     if ($jadwalTes->mahasantri && $jadwalTes->mahasantri->email) {
-    //         Mail::to($jadwalTes->mahasantri->email)->send(new \App\Mail\ZoomLinkReminder($jadwalTes, $jadwalTes->mahasantri, true));
-    //     }
-    // }
-    // ===================================
-}
+        $jadwalTes->update(array_merge($validated, [
+            'status_jadwal' => 'Menunggu',
+            'catatan_ketua' => null,
+            'catatan_perubahan' => null,
+        ]));
+
+        $pembuat = Panitia::findOrFail($creatorId);
+        foreach (Panitia::where('jabatan', 'Ketua Panitia')->get() as $ketua) {
+            if ($ketua->email) {
+                Mail::to($ketua->email)->send(new JadwalCreatedNotification(
+                    $jadwalTes,
+                    $pembuat,
+                    1,
+                    $ketua->nama_lengkap,
+                    true
+                ));
+            }
+        }
+
+        // === HAPUS / KOMENTAR BAGIAN INI ===
+        // if ($jadwalTes->hasilTes && $jadwalTes->hasilTes->status === 'Pertimbangan') {
+        //     if ($jadwalTes->mahasantri && $jadwalTes->mahasantri->email) {
+        //         Mail::to($jadwalTes->mahasantri->email)->send(new \App\Mail\ZoomLinkReminder($jadwalTes, $jadwalTes->mahasantri, true));
+        //     }
+        // }
+        // ===================================
+    }
         
 
    public function updateLinkZoomMassal(string $tanggal, string $linkZoom): int

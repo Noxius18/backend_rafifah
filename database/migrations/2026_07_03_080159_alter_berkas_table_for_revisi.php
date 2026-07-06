@@ -14,7 +14,7 @@ return new class extends Migration
             
             // 2. Ubah tipe data status_verifikasi dari boolean ke string/enum agar mendukung 3 kondisi
             // Kita pakai string biasa agar aman saat proses rollback/alter di beberapa jenis database
-            $table->string('status_verifikasi')->default('menunggu')->change();
+            $table->enum('status_verifikasi', ['menunggu', 'disetujui', 'ditolak'])->default('menunggu')->change();
         });
     }
 
