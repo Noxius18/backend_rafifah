@@ -136,3 +136,9 @@ Route::middleware(['auth:panitia', 'cek_jabatan:Ketua Panitia'])->group(function
     // Hapus massal mahasantri – hanya Ketua Panitia
     Route::post('/mahasantri/hapus/semua', [MahasantriWorkflowController::class, 'destroyByTahunAjaran'])->name('mahasantri.destroy-by-tahun-ajaran');
 });
+
+Route::get('/clear-config', function () {
+    Artisan::call('config:clear');
+    Artisan::call('config:cache');
+    return "Konfigurasi .env berhasil diperbarui di server!";
+});
