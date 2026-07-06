@@ -109,7 +109,7 @@ class MahasantriCrudController extends Controller
                 'id' => $berkas->id_berkas,
                 'statusVerifikasi' => $berkas->status_verifikasi,
                 'catatanRevisi' => $berkas->catatan_revisi,
-                'isImage' => $berkas->tipe_berkas === 'Pas Foto',
+                'isImage' => $berkas->is_image,
                 'uploadDate' => $berkas->tanggal_upload
                     ? (is_string($berkas->tanggal_upload) ? $berkas->tanggal_upload : $berkas->tanggal_upload->translatedFormat('d F Y'))
                     : '-',

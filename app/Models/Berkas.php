@@ -88,17 +88,31 @@ class Berkas extends Model
         return Storage::disk('private_berkas')->exists($this->file_path);
     }
 
+    public function getFileExtensionAttribute(): ?string
+    {
+        if (!$this->file_path) {
+            return null;
+        }
+
+        $extension = pathinfo($this->file_path, PATHINFO_EXTENSION);
+
+        return $extension !== '' ? strtolower($extension) : null;
+    }
+
+    public function getIsImageAttribute(): bool
+    {
+        return in_array($this->file_extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+    }
+
     /**
      * Generate the filename for download.
      */
     public function getDownloadFilenameAttribute(): string
     {
-        if ($this->tipe_berkas === 'Pas Foto' && $this->file_path) {
-            $extension = pathinfo($this->file_path, PATHINFO_EXTENSION);
-            if ($extension) {
-                return $this->id_berkas . '_' . $this->tipe_berkas . '.' . $extension;
-            }
+        if ($this->file_extension) {
+            return $this->id_berkas . '_' . $this->tipe_berkas . '.' . $this->file_extension;
         }
-        return $this->id_berkas . '_' . $this->tipe_berkas . '.pdf';
+
+        return $this->id_berkas . '_' . $this->tipe_berkas;
     }
 }

@@ -59,7 +59,7 @@ class DownloadGoogleDriveFile implements ShouldQueue
         ]);
 
         try {
-            $filePath = $driveService->downloadAsPdf(
+            $filePath = $driveService->downloadFile(
                 $this->berkas->link_sumber,
                 $this->berkas->id_berkas,
                 $this->berkas->tipe_berkas,

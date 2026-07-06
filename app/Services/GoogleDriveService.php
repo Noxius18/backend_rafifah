@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Google\Client as GoogleClient;
 use Google\Service\Drive;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -169,16 +168,7 @@ class GoogleDriveService
         return null;
     }
 
-    /**
-     * Download a file from Google Drive as PDF.
-     *
-     * @param string $url The Google Drive URL
-     * @param string $idBerkas The berkas ID for filename
-     * @param string $tipeBerkas The document type for filename
-     * @param string $idMahasantri The mahasantri ID for folder grouping
-     * @return string|null The relative path of the saved file, or null on failure
-     */
-    public function downloadAsPdf(string $url, string $idBerkas, string $tipeBerkas, string $idMahasantri): ?string
+    public function downloadFile(string $url, string $idBerkas, string $tipeBerkas, string $idMahasantri): ?string
     {
         $fileId = $this->extractFileId($url);
 
@@ -189,43 +179,35 @@ class GoogleDriveService
 
         try {
             $drive = $this->drive();
-            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
 
-            // First, get the file metadata to check if it's a Google Doc/Sheet/Slides
-            $file = $drive->files->get($fileId, ['fields' => 'mimeType, name']);
+            $file = $drive->files->get($fileId, ['fields' => 'mimeType, name, fileExtension']);
 
-            // Determine if we need to export (Google native formats) or download directly
-            $isGoogleNative = in_array($file->mimeType, [
-                'application/vnd.google-apps.document',
-                'application/vnd.google-apps.spreadsheet',
-                'application/vnd.google-apps.presentation',
-                'application/vnd.google-apps.drawing',
-            ]);
+            $mimeType = $file->mimeType ?? null;
+            $originalName = $file->name ?? null;
+            $originalExtension = $file->fileExtension ?? null;
+            $isGoogleNative = $this->isGoogleNativeMimeType($mimeType);
 
             if ($isGoogleNative) {
-                // Export Google Doc/Sheet/Slides as PDF
                 $content = $drive->files->export($fileId, 'application/pdf', [
                     'alt' => 'media',
                 ])->getBody()->getContents();
+                $extension = 'pdf';
             } else {
-                // Download the file directly
                 $content = $drive->files->get($fileId, [
                     'alt' => 'media',
                 ])->getBody()->getContents();
+                $extension = $this->resolveStoredExtension($originalName, $mimeType, $originalExtension, false);
             }
 
-            // Save to storage: private/berkas/{id_mahasantri}/{filename}
-            $relativePath = $idMahasantri . '/' . $filename;
-            Storage::disk('private_berkas')->put($relativePath, $content);
+            $relativePath = $this->storeDownloadedContent($idMahasantri, $idBerkas, $tipeBerkas, $extension, $content);
 
-            Log::info("Successfully downloaded file: {$filename} (ID: {$fileId}) for mahasantri: {$idMahasantri}");
+            Log::info("Successfully downloaded file: {$relativePath} (ID: {$fileId}) for mahasantri: {$idMahasantri}");
 
             return $relativePath;
         } catch (\Google\Service\Exception $e) {
             $errorMsg = $e->getMessage();
             Log::error("Google Drive API error for file ID {$fileId}: {$errorMsg}");
 
-            // Fallback: try direct public download using the export link
             try {
                 return $this->fallbackDownload($fileId, $idBerkas, $tipeBerkas, $idMahasantri);
             } catch (\Exception $fallbackEx) {
@@ -239,7 +221,6 @@ class GoogleDriveService
     }
 
     /**
-     * Fallback download using direct HTTP request with the export URL.
      */
     private function fallbackDownload(string $fileId, string $idBerkas, string $tipeBerkas, string $idMahasantri): ?string
     {
@@ -256,33 +237,125 @@ class GoogleDriveService
             return null;
         }
 
-        $exportUrl = "https://www.googleapis.com/drive/v3/files/{$fileId}/export?mimeType=application/pdf";
-
-        $response = Http::withToken($token)
+        $metadataResponse = Http::withToken($token)
             ->timeout(120)
-            ->get($exportUrl);
+            ->get("https://www.googleapis.com/drive/v3/files/{$fileId}", [
+                'fields' => 'mimeType,name,fileExtension',
+            ]);
 
-        if ($response->successful()) {
-            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
-            $relativePath = $idMahasantri . '/' . $filename;
-            Storage::disk('private_berkas')->put($relativePath, $response->body());
-            return $relativePath;
+        $mimeType = null;
+        $originalName = null;
+        $originalExtension = null;
+
+        if ($metadataResponse->successful()) {
+            $metadata = $metadataResponse->json();
+            $mimeType = $metadata['mimeType'] ?? null;
+            $originalName = $metadata['name'] ?? null;
+            $originalExtension = $metadata['fileExtension'] ?? null;
         }
 
-        // Try direct download as fallback
+        $isGoogleNative = $this->isGoogleNativeMimeType($mimeType);
+        $exportUrl = "https://www.googleapis.com/drive/v3/files/{$fileId}/export?mimeType=application/pdf";
+
+        if ($isGoogleNative) {
+            $response = Http::withToken($token)
+                ->timeout(120)
+                ->get($exportUrl);
+
+            if ($response->successful()) {
+                return $this->storeDownloadedContent($idMahasantri, $idBerkas, $tipeBerkas, 'pdf', $response->body());
+            }
+        }
+
         $downloadUrl = "https://www.googleapis.com/drive/v3/files/{$fileId}?alt=media";
         $response = Http::withToken($token)
             ->timeout(120)
             ->get($downloadUrl);
 
         if ($response->successful()) {
-            $filename = $idBerkas . '_' . $tipeBerkas . '.pdf';
-            $relativePath = $idMahasantri . '/' . $filename;
-            Storage::disk('private_berkas')->put($relativePath, $response->body());
-            return $relativePath;
+            $extension = $this->resolveStoredExtension(
+                $originalName,
+                $mimeType ?? $response->header('Content-Type'),
+                $originalExtension,
+                $isGoogleNative
+            );
+
+            return $this->storeDownloadedContent($idMahasantri, $idBerkas, $tipeBerkas, $extension, $response->body());
         }
 
         return null;
+    }
+
+    private function isGoogleNativeMimeType(?string $mimeType): bool
+    {
+        return in_array($mimeType, [
+            'application/vnd.google-apps.document',
+            'application/vnd.google-apps.spreadsheet',
+            'application/vnd.google-apps.presentation',
+            'application/vnd.google-apps.drawing',
+        ], true);
+    }
+
+    private function resolveStoredExtension(?string $originalName, ?string $mimeType, ?string $originalExtension, bool $forcePdf): string
+    {
+        if ($forcePdf) {
+            return 'pdf';
+        }
+
+        $nameExtension = $this->extractExtensionFromName($originalName);
+        if ($nameExtension !== null) {
+            return $nameExtension;
+        }
+
+        if (is_string($originalExtension) && $originalExtension !== '') {
+            return strtolower($originalExtension);
+        }
+
+        return $this->extensionFromMimeType($mimeType) ?? 'bin';
+    }
+
+    private function extractExtensionFromName(?string $name): ?string
+    {
+        if (!is_string($name) || $name === '') {
+            return null;
+        }
+
+        $extension = pathinfo($name, PATHINFO_EXTENSION);
+
+        return $extension !== '' ? strtolower($extension) : null;
+    }
+
+    private function extensionFromMimeType(?string $mimeType): ?string
+    {
+        if (!is_string($mimeType) || $mimeType === '') {
+            return null;
+        }
+
+        $cleanMimeType = strtolower(trim(explode(';', $mimeType)[0]));
+
+        return match ($cleanMimeType) {
+            'application/pdf' => 'pdf',
+            'image/jpeg', 'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            default => null,
+        };
+    }
+
+    private function storeDownloadedContent(
+        string $idMahasantri,
+        string $idBerkas,
+        string $tipeBerkas,
+        string $extension,
+        string $content
+    ): string {
+        $filename = $idBerkas . '_' . $tipeBerkas . '.' . strtolower($extension);
+        $relativePath = $idMahasantri . '/' . $filename;
+
+        Storage::disk('private_berkas')->put($relativePath, $content);
+
+        return $relativePath;
     }
 
     /**

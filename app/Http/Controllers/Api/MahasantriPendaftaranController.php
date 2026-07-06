@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\MahasantriResource;
 use App\Models\Berkas;
 use App\Models\Orangtua;
+use App\Services\Mahasantri\CompressedDocumentUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ class MahasantriPendaftaranController extends Controller
         'pas_foto' => 'Pas Foto',
     ];
 
-    public function submit(Request $request)
+    public function submit(Request $request, CompressedDocumentUploadService $documentUploadService)
     {
         $mahasantri = $request->user();
 
@@ -61,7 +62,7 @@ class MahasantriPendaftaranController extends Controller
         $storedPaths = [];
 
         try {
-            DB::transaction(function () use ($request, $mahasantri, $validated, $items, &$storedPaths) {
+            DB::transaction(function () use ($request, $mahasantri, $validated, $items, $documentUploadService, &$storedPaths) {
                 $mahasantri->update([
                     'nik' => $validated['nik'],
                     'nisn' => $validated['nisn'],
@@ -91,8 +92,14 @@ class MahasantriPendaftaranController extends Controller
                     $file = $request->file("berkas.{$field}");
                     $berkas = $mahasantri->berkas()->where('tipe_berkas', $tipeBerkas)->first();
                     $idBerkas = $berkas?->id_berkas ?? 'BR' . str_pad($nextBerkasNumber++, 3, '0', STR_PAD_LEFT);
-                    $extension = $file->getClientOriginalExtension();
-                    $path = $file->storeAs($mahasantri->id_mahasantri, "{$idBerkas}.{$extension}", 'private_berkas');
+                    $storedFile = $documentUploadService->store(
+                        $file,
+                        $mahasantri->id_mahasantri,
+                        $idBerkas,
+                        'private_berkas',
+                        $field
+                    );
+                    $path = $storedFile['path'];
                     $storedPaths[] = $path;
                     $oldPath = $berkas?->file_path;
 

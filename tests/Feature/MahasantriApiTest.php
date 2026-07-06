@@ -161,6 +161,13 @@ class MahasantriApiTest extends TestCase
         $this->assertDatabaseCount('orangtua', 2);
         $this->assertDatabaseCount('berkas', 5);
         $this->assertDatabaseCount('job_statuses', 5);
+
+        $pasFoto = Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'Pas Foto')
+            ->firstOrFail();
+
+        $this->assertSame('jpg', pathinfo($pasFoto->file_path, PATHINFO_EXTENSION));
+        Storage::disk('private_berkas')->assertExists($pasFoto->file_path);
     }
 
     public function test_pendaftaran_submit_requires_ayah_and_ibu(): void
@@ -285,6 +292,45 @@ class MahasantriApiTest extends TestCase
             'status_verifikasi' => Berkas::STATUS_MENUNGGU,
             'catatan_revisi' => null,
         ]);
+    }
+
+    public function test_document_images_are_reencoded_to_jpeg(): void
+    {
+        Storage::fake('private_berkas');
+        $token = $this->registerAndLogin();
+
+        $payload = $this->pendaftaranSubmitPayload([
+            'berkas' => [
+                'ktp' => UploadedFile::fake()->image('ktp.png', 2400, 1600),
+                'kk' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+                'ijazah' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+                'surat_izin_orangtua' => UploadedFile::fake()->create('izin.pdf', 100, 'application/pdf'),
+                'pas_foto' => UploadedFile::fake()->image('foto.png', 1800, 2400),
+            ],
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/mahasantri/pendaftaran/submit', $payload)
+            ->assertOk();
+
+        $ktp = Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'KTP')
+            ->firstOrFail();
+        $pasFoto = Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'Pas Foto')
+            ->firstOrFail();
+        $kk = Berkas::where('id_mahasantri', '260101')
+            ->where('tipe_berkas', 'KK')
+            ->firstOrFail();
+
+        $this->assertSame('jpg', pathinfo($ktp->file_path, PATHINFO_EXTENSION));
+        $this->assertSame('jpg', pathinfo($pasFoto->file_path, PATHINFO_EXTENSION));
+        $this->assertSame('pdf', pathinfo($kk->file_path, PATHINFO_EXTENSION));
+
+        Storage::disk('private_berkas')->assertExists($ktp->file_path);
+        Storage::disk('private_berkas')->assertExists($pasFoto->file_path);
+        Storage::disk('private_berkas')->assertExists($kk->file_path);
     }
 
     public function test_status_returns_jadwal_seleksi_and_zoom_link_for_mahasantri(): void
