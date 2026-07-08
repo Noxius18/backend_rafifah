@@ -10,6 +10,8 @@ class JadwalTesResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
+            'kode_jadwal' => $this->kode_jadwal,
             'id_jadwal' => $this->id_jadwal,
             'tanggal' => $this->tanggal,
             'jam' => $this->jam,

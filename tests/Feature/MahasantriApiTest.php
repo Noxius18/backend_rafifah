@@ -251,7 +251,7 @@ class MahasantriApiTest extends TestCase
         ])->assertOk();
 
         $response->assertJsonFragment([
-            'id_berkas' => Berkas::where('id_mahasantri', '260101')->where('tipe_berkas', 'KTP')->value('id_berkas'),
+            'id_berkas' => Berkas::where('id_mahasantri', '260101')->where('tipe_berkas', 'KTP')->value('id'),
             'status_verifikasi' => Berkas::STATUS_DITOLAK,
             'catatan_revisi' => 'File buram, mohon upload ulang.',
         ]);
@@ -288,7 +288,7 @@ class MahasantriApiTest extends TestCase
             ->assertOk();
 
         $this->assertDatabaseHas('berkas', [
-            'id_berkas' => $berkas->id_berkas,
+            'id' => $berkas->id,
             'status_verifikasi' => Berkas::STATUS_MENUNGGU,
             'catatan_revisi' => null,
         ]);
@@ -337,8 +337,8 @@ class MahasantriApiTest extends TestCase
     {
         $token = $this->registerAndLogin();
 
-        JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+        $jadwal = JadwalTes::create([
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => '260101',
             'tanggal' => '2026-07-10',
             'jam' => '08:30',
@@ -350,7 +350,7 @@ class MahasantriApiTest extends TestCase
         $this->getJson('/api/mahasantri/status', [
             'Authorization' => 'Bearer '.$token,
         ])->assertOk()
-            ->assertJsonPath('data.jadwal.id_jadwal', 'JDS01')
+            ->assertJsonPath('data.jadwal.id_jadwal', 'J260101')
             ->assertJsonPath('data.jadwal.tanggal', '2026-07-10')
             ->assertJsonPath('data.jadwal.jam', '08:30')
             ->assertJsonPath('data.jadwal.link_zoom', 'https://zoom.us/j/123456789')
@@ -366,8 +366,8 @@ class MahasantriApiTest extends TestCase
             'status' => 'Lulus',
         ]);
 
-        JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+        $jadwal = JadwalTes::create([
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => '260101',
             'tanggal' => '2026-07-10',
             'jam' => '08:30',
@@ -377,8 +377,7 @@ class MahasantriApiTest extends TestCase
         ]);
 
         HasilTes::create([
-            'id_hasil' => 'HSL01',
-            'id_jadwal' => 'JDS01',
+            'jadwal_id' => $jadwal->id,
             'total_nilai' => 88,
             'status' => 'Lulus',
         ]);
@@ -387,7 +386,7 @@ class MahasantriApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ])->assertOk()
             ->assertJsonPath('data.mahasantri.status', 'Lulus')
-            ->assertJsonPath('data.hasil.id_hasil', 'HSL01')
+            ->assertJsonPath('data.hasil.id_hasil', 1)
             ->assertJsonPath('data.hasil.total_nilai', 88)
             ->assertJsonPath('data.hasil.status', 'Lulus');
     }

@@ -13,13 +13,9 @@ class Berkas extends Model
     public const STATUS_DITOLAK = 'ditolak';
 
     protected $table = 'berkas';
-    protected $primaryKey = 'id_berkas';
-    public $incrementing = false;
-    protected $keyType = 'string';
     public $timestamps = false;
 
     protected $fillable = [
-        'id_berkas',
         'id_mahasantri',
         'tipe_berkas',
         'file_path',
@@ -28,6 +24,11 @@ class Berkas extends Model
         'status_verifikasi',
         'tanggal_upload'
     ];
+
+    public function getIdBerkasAttribute(): int
+    {
+        return $this->id;
+    }
 
     protected function casts(): array
     {
@@ -62,7 +63,7 @@ class Berkas extends Model
      */
     public function riwayatUnduhan()
     {
-        return $this->hasOne(RiwayatUnduhan::class, 'id_berkas', 'id_berkas')
+        return $this->hasOne(RiwayatUnduhan::class, 'berkas_id', 'id')
             ->latestOfMany('attempted_at');
     }
 

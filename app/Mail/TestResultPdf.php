@@ -27,9 +27,9 @@ class TestResultPdf extends Mailable implements ShouldQueue
     public function build()
     {
         // 1. Tarik data jadwal beserta nilai dari pengujinya (relasi jadwalPenguji)
-        // Kita cocokan berdasarkan id_jadwal yang ada di tabel hasil_seleksi
+        // Kita cocokan berdasarkan relasi jadwal_id yang ada di tabel hasil_seleksi
         $jadwal = JadwalTes::with('jadwalPenguji.panitia')
-            ->where('id_jadwal', $this->hasil->id_jadwal)
+            ->whereKey($this->hasil->jadwal_id)
             ->first();
 
         $suratMeta = $this->buildSuratKelulusanMeta();

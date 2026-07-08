@@ -77,21 +77,14 @@ class JadwalTesService
 
         $jamMulai = Carbon::createFromFormat('H:i', $validated['jam_mulai']);
         $interval = (int) $validated['interval'];
-        $urut = ((int) JadwalTes::query()
-            ->pluck('id_jadwal')
-            ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
-            ->max()) + 1;
         $pengujiList = $this->extractPengujiList($validated);
 
         $count = 0;
         $newJadwal = null;
 
         foreach ($verifiedMahasantri as $mhs) {
-            $idJadwal = 'JDS' . str_pad((string) $urut, 2, '0', STR_PAD_LEFT);
-            $urut++;
-
             $newJadwal = JadwalTes::create([
-                'id_jadwal' => $idJadwal,
+                'kode_jadwal' => $this->generateKodeJadwal($gelombang),
                 'id_mahasantri' => $mhs->id_mahasantri,
                 'tanggal' => $validated['tanggal'],
                 'jam' => $jamMulai->format('H:i'),
@@ -103,7 +96,7 @@ class JadwalTesService
 
             foreach ($pengujiList as $penguji) {
                 JadwalPenguji::create([
-                    'id_jadwal' => $idJadwal,
+                    'jadwal_id' => $newJadwal->id,
                     'id_panitia' => $penguji['id_panitia'],
                     'aspek_penguji' => $penguji['aspek'],
                 ]);
@@ -161,14 +154,14 @@ class JadwalTesService
             $jamMulai->addMinutes((int) $validated['interval']);
         }
 
-        $jadwalIds = $jadwals->pluck('id_jadwal');
-        JadwalPenguji::whereIn('id_jadwal', $jadwalIds)->delete();
+        $jadwalIds = $jadwals->pluck('id');
+        JadwalPenguji::whereIn('jadwal_id', $jadwalIds)->delete();
 
         foreach ($jadwalIds as $idJadwal) {
             foreach ($this->aspectFieldMap() as $field => $aspek) {
                 if (!empty($validated[$field])) {
                     JadwalPenguji::create([
-                        'id_jadwal' => $idJadwal,
+                        'jadwal_id' => $idJadwal,
                         'id_panitia' => $validated[$field],
                         'aspek_penguji' => $aspek,
                     ]);
@@ -251,7 +244,7 @@ class JadwalTesService
     public function sendUpdateNotification(JadwalTes $jadwalTes): void
     {
         ScheduleStatus::updateOrCreate(
-            ['id_jadwal' => $jadwalTes->id_jadwal],
+            ['jadwal_id' => $jadwalTes->id],
             ['zoom_reminder_sent' => false, 'sent_at' => null]
         );
 
@@ -397,7 +390,7 @@ class JadwalTesService
         $data = [];
         foreach ($jadwals as $jadwal) {
             foreach ($jadwal->jadwalPenguji as $jp) {
-                $data[$jadwal->id_jadwal][$jp->aspek_penguji] = [
+                $data[$jadwal->kode_jadwal][$jp->aspek_penguji] = [
                     'nilai' => $jp->nilai,
                     'catatan' => $jp->catatan_penguji,
                     'penguji' => $jp->panitia?->nama_lengkap,
@@ -411,7 +404,7 @@ class JadwalTesService
     private function buildTableColumns(): array
     {
         return [
-            ['label' => 'ID', 'field' => 'id_jadwal', 'html' => 'id_html'],
+            ['label' => 'ID', 'field' => 'kode_jadwal', 'html' => 'id_html'],
             ['label' => 'Mahasantri', 'field' => 'mhs_nama', 'html' => 'mhs_html'],
             ['label' => 'Gelombang', 'field' => 'gelombang', 'html' => 'gelombang_html'],
             ['label' => 'Tanggal', 'field' => 'tanggal', 'html' => 'tgl_html'],
@@ -419,7 +412,7 @@ class JadwalTesService
             ['label' => 'Status', 'field' => 'status_jadwal', 'html' => 'status_konfirmasi_html'],
             ['label' => 'Hasil', 'field' => 'hasil', 'html' => 'hasil_html'],
             ['label' => 'Link Zoom', 'field' => 'link_zoom', 'html' => 'link_html', 'class' => 'hidden lg:table-cell'],
-            ['label' => 'Aksi', 'field' => 'id_jadwal', 'html' => 'aksi_html', 'class' => 'text-right'],
+            ['label' => 'Aksi', 'field' => 'kode_jadwal', 'html' => 'aksi_html', 'class' => 'text-right'],
         ];
     }
 
@@ -433,7 +426,7 @@ class JadwalTesService
             $statusHasil = $hasil ? $hasil->status : 'Belum Tes';
 
             $editPayload = htmlspecialchars(json_encode([
-                'id' => $jadwal->id_jadwal,
+                'id' => $jadwal->kode_jadwal,
                 'jam' => $jadwal->jam ? Carbon::parse($jadwal->jam)->format('H:i') : '',
                 'link_zoom' => $jadwal->link_zoom ?? '',
                 'tanggal' => $jadwal->tanggal,
@@ -441,7 +434,7 @@ class JadwalTesService
             ]), ENT_QUOTES, 'UTF-8');
 
             $aksiHtml = "<div class='flex items-center justify-end gap-0.5'>";
-            $aksiHtml .= "<a href='" . route('seleksi.nilai', $jadwal->id_jadwal) . "' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Detail Nilai'>
+            $aksiHtml .= "<a href='" . route('seleksi.nilai', $jadwal) . "' class='inline-flex items-center justify-center rounded-md p-2 text-black transition hover:text-indigo-600 hover:bg-indigo-50' title='Detail Nilai'>
                             <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'/></svg>
                           </a>";
 
@@ -453,11 +446,12 @@ class JadwalTesService
             $aksiHtml .= '</div>';
 
             return [
-                'id_jadwal' => $jadwal->id_jadwal,
+                'id_jadwal' => $jadwal->kode_jadwal,
+                'kode_jadwal' => $jadwal->kode_jadwal,
                 'gelombang' => $jadwal->mahasantri ? User::extractGelombangNama($jadwal->mahasantri->id_mahasantri) : '-',
                 'status_jadwal' => $jadwal->status_jadwal ?? 'Menunggu',
-                'search' => strtolower("{$jadwal->id_jadwal} {$jadwal->mahasantri?->nama_lengkap} {$jadwal->tanggal} {$jadwal->status_jadwal}"),
-                'id_html' => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$jadwal->id_jadwal}</code>",
+                'search' => strtolower("{$jadwal->kode_jadwal} {$jadwal->mahasantri?->nama_lengkap} {$jadwal->tanggal} {$jadwal->status_jadwal}"),
+                'id_html' => "<code class='rounded bg-black/[0.05] px-1.5 py-0.5 text-xs text-black'>{$jadwal->kode_jadwal}</code>",
                 'mhs_html' => $jadwal->mahasantri
                     ? "<span class='font-medium text-black'>" . e($jadwal->mahasantri->nama_lengkap) . "</span><br><span class='text-[10px] text-black/60'>" . e($jadwal->mahasantri->id_mahasantri) . '</span>'
                     : "<span class='text-black/50 text-xs'>-</span>",
@@ -476,6 +470,19 @@ class JadwalTesService
                 'aksi_html' => $aksiHtml,
             ];
         })->toArray();
+    }
+
+    private function generateKodeJadwal(Gelombang $gelombang): string
+    {
+        $prefix = 'J' . $gelombang->tahunPrefix() . str_pad((string) $gelombang->id, 2, '0', STR_PAD_LEFT);
+
+        $last = JadwalTes::where('kode_jadwal', 'like', $prefix . '%')
+            ->orderByDesc('kode_jadwal')
+            ->first();
+
+        $urut = $last ? ((int) substr($last->kode_jadwal, -2)) + 1 : 1;
+
+        return $prefix . str_pad((string) $urut, 2, '0', STR_PAD_LEFT);
     }
 
     private function formatLinkZoom(?string $link): ?string

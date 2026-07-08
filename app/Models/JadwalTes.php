@@ -9,12 +9,9 @@ use App\Models\User as Mahasantri;
 class JadwalTes extends Model
 {
     protected $table = "jadwal_seleksi";
-    protected $primaryKey = "id_jadwal";
-    protected $keyType = "string";
-    public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
-        'id_jadwal',
+        'kode_jadwal',
         'id_mahasantri',
         'tanggal',
         'jam',
@@ -27,8 +24,18 @@ class JadwalTes extends Model
         'diproses_oleh',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'kode_jadwal';
+    }
+
+    public function getIdJadwalAttribute(): string
+    {
+        return $this->kode_jadwal;
+    }
+
     public function hasilTes() {
-        return $this->hasOne(Hasil::class, 'id_jadwal', 'id_jadwal');
+        return $this->hasOne(Hasil::class, 'jadwal_id', 'id');
     }
 
     public function penanggungJawab() {
@@ -41,11 +48,11 @@ class JadwalTes extends Model
 
     // Relasi ke jadwal_penguji (hasil normalisasi)
     public function jadwalPenguji() {
-        return $this->hasMany(JadwalPenguji::class, 'id_jadwal', 'id_jadwal');
+        return $this->hasMany(JadwalPenguji::class, 'jadwal_id', 'id');
     }
 
     public function scheduleStatus() {
-        return $this->hasOne(ScheduleStatus::class, 'id_jadwal', 'id_jadwal');
+        return $this->hasOne(ScheduleStatus::class, 'jadwal_id', 'id');
     }
 
     // Helper: ambil panitia penguji berdasarkan aspek tertentu

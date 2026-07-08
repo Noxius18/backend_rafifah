@@ -9,7 +9,7 @@ class ScheduleStatus extends Model
     protected $table = 'schedule_statuses';
 
     protected $fillable = [
-        'id_jadwal',
+        'jadwal_id',
         'zoom_reminder_sent',
         'sent_at',
     ];
@@ -23,6 +23,6 @@ class ScheduleStatus extends Model
 
     public function jadwalTes()
     {
-        return $this->belongsTo(JadwalTes::class, 'id_jadwal', 'id_jadwal');
+        return $this->belongsTo(JadwalTes::class, 'jadwal_id', 'id');
     }
 }

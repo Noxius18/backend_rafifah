@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jadwal_seleksi', function (Blueprint $table) {
-            $table->char('id_jadwal', 5)->primary();
+            $table->id();
+            $table->char('kode_jadwal', 7)->unique();
 
             // Kolom baru sesuai restructure
             $table->char('id_mahasantri', 6);

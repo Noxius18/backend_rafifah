@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('schedule_statuses', function (Blueprint $table) {
             $table->id();
-            $table->char('id_jadwal', 5)->unique();
+            $table->foreignId('jadwal_id')->unique();
             $table->boolean('zoom_reminder_sent')->default(false);
             $table->timestamp('sent_at')->nullable();
 
-            $table->foreign('id_jadwal')
-                ->references('id_jadwal')
+            $table->foreign('jadwal_id')
+                ->references('id')
                 ->on('jadwal_seleksi')
                 ->onDelete('cascade')
                 ->onUpdate('cascade');

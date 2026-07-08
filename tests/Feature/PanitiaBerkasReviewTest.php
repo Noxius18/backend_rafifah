@@ -40,7 +40,6 @@ class PanitiaBerkasReviewTest extends TestCase
         ]);
 
         $berkas = Berkas::create([
-            'id_berkas' => 'BR001',
             'id_mahasantri' => '260101',
             'tipe_berkas' => 'KTP',
             'status_verifikasi' => $status,
@@ -48,7 +47,7 @@ class PanitiaBerkasReviewTest extends TestCase
         ]);
 
         RiwayatUnduhan::create([
-            'id_berkas' => $berkas->id_berkas,
+            'berkas_id' => $berkas->id,
             'download_status' => 'success',
         ]);
 
@@ -70,7 +69,7 @@ class PanitiaBerkasReviewTest extends TestCase
             ->assertJsonPath('data.catatan_revisi', 'Dokumen salah upload.');
 
         $this->assertDatabaseHas('berkas', [
-            'id_berkas' => $berkas->id_berkas,
+            'id' => $berkas->id,
             'status_verifikasi' => Berkas::STATUS_DITOLAK,
             'catatan_revisi' => 'Dokumen salah upload.',
         ]);

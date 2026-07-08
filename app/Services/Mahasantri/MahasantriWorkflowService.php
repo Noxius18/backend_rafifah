@@ -78,15 +78,10 @@ class MahasantriWorkflowService
 
         $interval = $lastJadwal->interval ?? 30;
         $newJam = Carbon::parse($lastJadwal->jam)->addMinutes($interval)->format('H:i:s');
-        $nextJadwalNum = ((int) JadwalTes::query()
-            ->pluck('id_jadwal')
-            ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
-            ->max()) + 1;
-        $newId = 'JDS' . str_pad((string) $nextJadwalNum, 2, '0', STR_PAD_LEFT);
 
         // Buat data jadwal baru status 'Menunggu'
         $newJadwal = JadwalTes::create([
-            'id_jadwal' => $newId,
+            'kode_jadwal' => $this->generateKodeJadwalForMahasantri($mahasantri),
             'id_mahasantri' => $mahasantri->id_mahasantri,
             'tanggal' => $lastJadwal->tanggal,
             'jam' => $newJam,
@@ -96,9 +91,9 @@ class MahasantriWorkflowService
             'status_jadwal' => 'Menunggu',
         ]);
 
-        foreach (JadwalPenguji::where('id_jadwal', $lastJadwal->id_jadwal)->get() as $pengujiRow) {
+        foreach (JadwalPenguji::where('jadwal_id', $lastJadwal->id)->get() as $pengujiRow) {
             JadwalPenguji::create([
-                'id_jadwal' => $newId,
+                'jadwal_id' => $newJadwal->id,
                 'id_panitia' => $pengujiRow->id_panitia,
                 'aspek_penguji' => $pengujiRow->aspek_penguji,
             ]);
@@ -292,5 +287,18 @@ class MahasantriWorkflowService
         if ($mahasantri->status !== $targetStatus) {
             $mahasantri->update(['status' => $targetStatus]);
         }
+    }
+
+    private function generateKodeJadwalForMahasantri(User $mahasantri): string
+    {
+        $prefix = 'J' . substr($mahasantri->id_mahasantri, 0, 4);
+
+        $last = JadwalTes::where('kode_jadwal', 'like', $prefix . '%')
+            ->orderByDesc('kode_jadwal')
+            ->first();
+
+        $urut = $last ? ((int) substr($last->kode_jadwal, -2)) + 1 : 1;
+
+        return $prefix . str_pad((string) $urut, 2, '0', STR_PAD_LEFT);
     }
 }

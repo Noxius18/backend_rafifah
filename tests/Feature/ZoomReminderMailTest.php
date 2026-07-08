@@ -23,7 +23,7 @@ class ZoomReminderMailTest extends TestCase
         ]);
 
         $jadwal = JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => $mahasantri->id_mahasantri,
             'tanggal' => '2026-07-10',
             'jam' => '08:30',

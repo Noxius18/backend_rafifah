@@ -91,15 +91,15 @@ class JadwalTesApprovalService
             ->whereIn('status_jadwal', ['Menunggu', 'Revisi'])
             ->get();
         
-        $updatedIds = $jadwalsToApprove->pluck('id_jadwal');
+        $updatedIds = $jadwalsToApprove->pluck('id');
 
-        JadwalTes::whereIn('id_jadwal', $updatedIds)->update([
+        JadwalTes::whereIn('id', $updatedIds)->update([
             'status_jadwal' => 'Disetujui',
             'diproses_oleh' => $ketuaId,
         ]);
 
         $tanggalLabel = $this->tanggalLabel(
-            JadwalTes::whereIn('id_jadwal', $updatedIds)
+            JadwalTes::whereIn('id', $updatedIds)
         );
         $ketua = Panitia::findOrFail($ketuaId);
 

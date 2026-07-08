@@ -31,7 +31,9 @@ class HasilTesInputController extends Controller
         abort_unless(auth()->user()->jabatan === 'Panitia', 403, 'Hanya panitia yang bisa input nilai');
 
         $validated = $this->validateNilaiPayload($request);
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+        $jadwal = JadwalTes::with('jadwalPenguji')
+            ->where('kode_jadwal', $validated['id_jadwal'])
+            ->firstOrFail();
 
         if ($jadwal->status_jadwal !== 'Disetujui') {
             if ($request->wantsJson() || $request->ajax()) {
@@ -52,7 +54,9 @@ class HasilTesInputController extends Controller
 
     public function previewHasil(Request $request)
     {
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($request->id_jadwal);
+        $jadwal = JadwalTes::with('jadwalPenguji')
+            ->where('kode_jadwal', $request->id_jadwal)
+            ->firstOrFail();
         if (auth()->user()->id_panitia !== $jadwal->penanggung_jawab) {
             return response()->json(['error' => 'Hanya pembuat jadwal yang bisa menghitung hasil'], 403);
         }
@@ -71,7 +75,9 @@ class HasilTesInputController extends Controller
         abort_unless(auth()->user()->jabatan === 'Panitia', 403);
 
         $validated = $this->validateNilaiPayload($request);
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+        $jadwal = JadwalTes::with('jadwalPenguji')
+            ->where('kode_jadwal', $validated['id_jadwal'])
+            ->firstOrFail();
 
         if ($jadwal->status_jadwal !== 'Disetujui') {
             return response()->json(['error' => 'Jadwal belum disetujui Ketua Panitia'], 403);
@@ -99,7 +105,7 @@ class HasilTesInputController extends Controller
     {
         return $request->validate([
             'id_mahasantri' => 'required|exists:mahasantri,id_mahasantri',
-            'id_jadwal' => 'required|exists:jadwal_seleksi,id_jadwal',
+            'id_jadwal' => 'required|exists:jadwal_seleksi,kode_jadwal',
             'nilai_bacaan_al_quran' => 'nullable|integer|min:0|max:100',
             'nilai_tajwid_tahsin' => 'nullable|integer|min:0|max:100',
             'nilai_hafalan' => 'nullable|integer|min:0|max:100',

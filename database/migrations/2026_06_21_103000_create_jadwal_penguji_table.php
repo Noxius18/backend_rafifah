@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id('id_jadwal_penguji');
 
             // Relasi ke jadwal_tes
-            $table->char('id_jadwal', 5);
-            $table->foreign('id_jadwal')
-                  ->references('id_jadwal')
+            $table->foreignId('jadwal_id');
+            $table->foreign('jadwal_id')
+                  ->references('id')
                   ->on('jadwal_seleksi')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->integer('nilai')->nullable();
 
             // Unique constraint agar tidak duplikasi (1 penguji hanya 1 aspek per jadwal)
-            $table->unique(['id_jadwal', 'id_panitia', 'aspek_penguji']);
+            $table->unique(['jadwal_id', 'id_panitia', 'aspek_penguji']);
         });
     }
 

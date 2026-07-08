@@ -26,8 +26,8 @@ class SendZoomRemindersCommandTest extends TestCase
         $alreadySent = $this->createUser('260104', 'already-sent@example.com');
         $missingEmail = $this->createUser('260105', '');
 
-        JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+        $eligibleJadwal = JadwalTes::create([
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => $eligible->id_mahasantri,
             'tanggal' => '2026-07-09',
             'jam' => '08:30',
@@ -37,7 +37,7 @@ class SendZoomRemindersCommandTest extends TestCase
         ]);
 
         JadwalTes::create([
-            'id_jadwal' => 'JDS02',
+            'kode_jadwal' => 'J260102',
             'id_mahasantri' => $missingLink->id_mahasantri,
             'tanggal' => '2026-07-09',
             'jam' => '09:00',
@@ -47,7 +47,7 @@ class SendZoomRemindersCommandTest extends TestCase
         ]);
 
         JadwalTes::create([
-            'id_jadwal' => 'JDS03',
+            'kode_jadwal' => 'J260103',
             'id_mahasantri' => $wrongStatus->id_mahasantri,
             'tanggal' => '2026-07-09',
             'jam' => '09:30',
@@ -56,8 +56,8 @@ class SendZoomRemindersCommandTest extends TestCase
             'status_jadwal' => 'Menunggu',
         ]);
 
-        JadwalTes::create([
-            'id_jadwal' => 'JDS04',
+        $alreadySentJadwal = JadwalTes::create([
+            'kode_jadwal' => 'J260104',
             'id_mahasantri' => $alreadySent->id_mahasantri,
             'tanggal' => '2026-07-09',
             'jam' => '10:00',
@@ -67,13 +67,13 @@ class SendZoomRemindersCommandTest extends TestCase
         ]);
 
         ScheduleStatus::create([
-            'id_jadwal' => 'JDS04',
+            'jadwal_id' => $alreadySentJadwal->id,
             'zoom_reminder_sent' => true,
             'sent_at' => now()->subMinute(),
         ]);
 
-        JadwalTes::create([
-            'id_jadwal' => 'JDS05',
+        $missingEmailJadwal = JadwalTes::create([
+            'kode_jadwal' => 'J260105',
             'id_mahasantri' => $missingEmail->id_mahasantri,
             'tanggal' => '2026-07-09',
             'jam' => '10:30',
@@ -90,22 +90,22 @@ class SendZoomRemindersCommandTest extends TestCase
         Mail::assertQueued(ZoomLinkReminder::class, 1);
         Mail::assertQueued(ZoomLinkReminder::class, function (ZoomLinkReminder $mail) use ($eligible) {
             return $mail->mahasantri->is($eligible)
-                && $mail->jadwalTes->id_jadwal === 'JDS01'
+                && $mail->jadwalTes->id_jadwal === 'J260101'
                 && $mail->isUpdate === false;
         });
 
         $this->assertDatabaseHas('schedule_statuses', [
-            'id_jadwal' => 'JDS01',
+            'jadwal_id' => $eligibleJadwal->id,
             'zoom_reminder_sent' => true,
         ]);
 
         $this->assertDatabaseHas('schedule_statuses', [
-            'id_jadwal' => 'JDS04',
+            'jadwal_id' => $alreadySentJadwal->id,
             'zoom_reminder_sent' => true,
         ]);
 
         $this->assertDatabaseMissing('schedule_statuses', [
-            'id_jadwal' => 'JDS05',
+            'jadwal_id' => $missingEmailJadwal->id,
         ]);
 
         Carbon::setTestNow();

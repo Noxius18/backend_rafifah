@@ -41,14 +41,6 @@ class MahasantriImportService
         $skippedDuplicates = [];
         $allPendingBerkas = [];
 
-        $counterOrt = DB::table('orangtua')->orderBy('id_orangtua', 'desc')->first();
-        $counterOrtVal = $counterOrt ? (int) substr($counterOrt->id_orangtua, 3) + 1 : 1;
-        $counterBerkasVal = DB::table('berkas')
-            ->pluck('id_berkas')
-            ->map(fn($id) => (int) preg_replace('/^\D+/', '', $id))
-            ->max();
-        $counterBerkasVal = ($counterBerkasVal ?? 0) + 1;
-
         DB::beginTransaction();
 
         try {
@@ -71,11 +63,7 @@ class MahasantriImportService
                     // Insert entity turunan dilakukan setelah mahasantri berhasil dibuat
                     // agar foreign key dan urutan ID tetap sinkron.
                     foreach ($rowPayload['orangtua'] as $ort) {
-                        $idOrt = 'ORT' . str_pad($counterOrtVal, 2, '0', STR_PAD_LEFT);
-                        $counterOrtVal++;
-
                         Orangtua::create([
-                            'id_orangtua' => $idOrt,
                             'id_mahasantri' => $rowPayload['mahasantri']['id_mahasantri'],
                             'tipe_hubungan' => $ort['tipe_hubungan'],
                             'nama_lengkap' => $ort['nama_lengkap'],
@@ -86,11 +74,7 @@ class MahasantriImportService
                     }
 
                     foreach ($rowPayload['berkas'] as $berkasDefinition) {
-                        $idBerkas = 'BR' . str_pad($counterBerkasVal, 3, '0', STR_PAD_LEFT);
-                        $counterBerkasVal++;
-
                         $berkas = Berkas::create([
-                            'id_berkas' => $idBerkas,
                             'id_mahasantri' => $rowPayload['mahasantri']['id_mahasantri'],
                             'tipe_berkas' => $berkasDefinition['tipe_berkas'],
                             'link_sumber' => $berkasDefinition['link_sumber'],

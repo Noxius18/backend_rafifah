@@ -13,17 +13,17 @@ return new class extends Migration
     {
         Schema::create('job_statuses', function (Blueprint $table) {
             $table->id();
-            $table->char('id_berkas', 5);
+            $table->foreignId('berkas_id');
             $table->enum('download_status', ['pending', 'processing', 'success', 'failed'])->default('pending');
             $table->text('error_message')->nullable();
             $table->timestamp('attempted_at')->useCurrent();
 
-            $table->foreign('id_berkas')
-                  ->references('id_berkas')
+            $table->foreign('berkas_id')
+                  ->references('id')
                   ->on('berkas')
                   ->onDelete('cascade');
 
-            $table->index('id_berkas');
+            $table->index('berkas_id');
         });
     }
 

@@ -9,20 +9,24 @@ class JadwalPenguji extends Model
 {
     protected $table = "jadwal_penguji";
     protected $primaryKey = "id_jadwal_penguji";
-    protected $keyType = "string";
     public $incrementing = true;
     public $timestamps = false;
     protected $fillable = [
         'id_jadwal_penguji',
-        'id_jadwal',
+        'jadwal_id',
         'id_panitia',
         'aspek_penguji',
         'catatan_penguji',
         'nilai',
     ];
 
+    public function getIdJadwalAttribute(): ?string
+    {
+        return $this->jadwalTes?->kode_jadwal;
+    }
+
     public function jadwalTes() {
-        return $this->belongsTo(Jadwal::class, 'id_jadwal', 'id_jadwal');
+        return $this->belongsTo(Jadwal::class, 'jadwal_id', 'id');
     }
 
     public function panitia() {

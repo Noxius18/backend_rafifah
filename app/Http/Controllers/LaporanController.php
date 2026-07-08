@@ -21,8 +21,10 @@ class LaporanController extends Controller
         $idJadwal = $request->get('id_jadwal');
 
         if ($idJadwal) {
-            $jadwal = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia'])->findOrFail($idJadwal);
-            $hasilTes = HasilTes::where('id_jadwal', $idJadwal)
+            $jadwal = JadwalTes::with(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia'])
+                ->where('kode_jadwal', $idJadwal)
+                ->firstOrFail();
+            $hasilTes = HasilTes::where('jadwal_id', $jadwal->id)
                 ->with(['mahasantri', 'jadwalTes.mahasantri', 'jadwalTes.penanggungJawab', 'jadwalTes.jadwalPenguji.panitia'])
                 ->get();
         } else {
@@ -46,7 +48,7 @@ class LaporanController extends Controller
         $dompdf->render();
 
         $filename = $jadwal
-            ? 'nilai-' . str_replace(' ', '-', $jadwal->id_jadwal) . '.pdf'
+            ? 'nilai-' . str_replace(' ', '-', $jadwal->kode_jadwal) . '.pdf'
             : 'nilai-semua-mahasantri.pdf';
 
         return response($dompdf->output(), 200)
@@ -70,7 +72,7 @@ class LaporanController extends Controller
             ->whereNotIn('id_mahasantri', function($query) {
                 $query->select('js.id_mahasantri')
                     ->from('hasil_seleksi as hs')
-                    ->join('jadwal_seleksi as js', 'hs.id_jadwal', '=', 'js.id_jadwal');
+                    ->join('jadwal_seleksi as js', 'hs.jadwal_id', '=', 'js.id');
             })
             ->get();
 

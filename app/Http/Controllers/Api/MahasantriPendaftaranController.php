@@ -73,16 +73,13 @@ class MahasantriPendaftaranController extends Controller
 
                 $mahasantri->orangtuas()->delete();
 
-                $nextOrangtuaNumber = $this->nextNumericId(Orangtua::query()->pluck('id_orangtua')->all());
                 foreach ($items as $item) {
                     Orangtua::create([
-                        'id_orangtua' => 'ORT' . str_pad($nextOrangtuaNumber++, 2, '0', STR_PAD_LEFT),
                         'id_mahasantri' => $mahasantri->id_mahasantri,
                         ...$item,
                     ]);
                 }
 
-                $nextBerkasNumber = $this->nextNumericId(Berkas::query()->pluck('id_berkas')->all());
                 foreach (self::DOCUMENT_FIELDS as $field => $tipeBerkas) {
                     // JIKA FILE TIDAK DIUPLOAD, LEWATI (Keep file lama)
                     if (!$request->hasFile("berkas.{$field}")) {
@@ -91,11 +88,12 @@ class MahasantriPendaftaranController extends Controller
 
                     $file = $request->file("berkas.{$field}");
                     $berkas = $mahasantri->berkas()->where('tipe_berkas', $tipeBerkas)->first();
-                    $idBerkas = $berkas?->id_berkas ?? 'BR' . str_pad($nextBerkasNumber++, 3, '0', STR_PAD_LEFT);
                     $storedFile = $documentUploadService->store(
                         $file,
                         $mahasantri->id_mahasantri,
-                        $idBerkas,
+                        $berkas?->file_path
+                            ? pathinfo($berkas->file_path, PATHINFO_FILENAME)
+                            : $mahasantri->id_mahasantri . '-' . $field,
                         'private_berkas',
                         $field
                     );
@@ -109,7 +107,6 @@ class MahasantriPendaftaranController extends Controller
                             'tipe_berkas' => $tipeBerkas,
                         ],
                         [
-                            'id_berkas' => $idBerkas,
                             'link_sumber' => null,
                             'file_path' => $path,
                             'status_verifikasi' => Berkas::STATUS_MENUNGGU,
@@ -207,15 +204,4 @@ class MahasantriPendaftaranController extends Controller
         return preg_replace('/^(\+?62)/', '0', $cleaned);
     }
 
-    /**
-     * @param  array<int, string>  $ids
-     */
-    private function nextNumericId(array $ids): int
-    {
-        $max = collect($ids)
-            ->map(fn (string $id) => (int) preg_replace('/^\D+/', '', $id))
-            ->max();
-
-        return ($max ?? 0) + 1;
-    }
 }

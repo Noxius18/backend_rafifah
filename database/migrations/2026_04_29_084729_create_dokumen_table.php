@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('berkas', function (Blueprint $table) {
-            $table->char('id_berkas', 5)->primary();
+            $table->id();
             $table->char('id_mahasantri', 6);
             $table->enum('tipe_berkas', ['KTP', 'KK', 'Ijazah', 'Surat Izin Orangtua', 'Pas Foto']);
             $table->text('link_sumber')->nullable();
@@ -25,6 +25,8 @@ return new class extends Migration
                   ->on('mahasantri')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');
+
+            $table->unique(['id_mahasantri', 'tipe_berkas']);
         });
     }
 

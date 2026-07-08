@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Berkas;
+use App\Models\HasilTes;
+use App\Models\JadwalTes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User; // Mengacu pada model Mahasantri
-use Illuminate\Support\Facades\DB;
 use App\Services\Mahasantri\MahasantriWorkflowService;
 use Illuminate\Validation\Rule;
 
@@ -85,7 +86,7 @@ class PanitiaApiController extends Controller
         } 
         // OPSI B: GENERATE PDF OTOMATIS DARI VIEW TEMPLATE (Sama seperti tombol Cetak Nilai bray!)
         else {
-            $jadwal = \App\Models\JadwalTes::where('id_mahasantri', $id_mahasantri)
+            $jadwal = JadwalTes::where('id_mahasantri', $id_mahasantri)
                 ->with('hasilTes', 'jadwalPenguji.panitia')
                 ->first();
 
@@ -124,15 +125,15 @@ class PanitiaApiController extends Controller
         // Update status mahasantri utama menjadi Lulus
         $mahasantri->update(['status' => 'Lulus']);
 
-        // Update atau buat data baru di tabel hasil_tes
-        DB::table('hasil_tes')->updateOrInsert(
-            ['id_mahasantri' => $id_mahasantri],
-            [
-                'id_hasil' => 'HSL' . $id_mahasantri,
-                'status' => 'Lulus',
-                'tanggal_pengumuman' => now()->format('Y-m-d'),
-            ]
-        );
+        if ($jadwal) {
+            HasilTes::updateOrCreate(
+                ['jadwal_id' => $jadwal->id],
+                [
+                    'status' => 'Lulus',
+                    'total_nilai' => (int) $request->input('total_nilai'),
+                ]
+            );
+        }
 
         return response()->json([
             'success' => true,

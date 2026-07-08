@@ -20,7 +20,7 @@ class HasilTesService
     public function nilaiViewData(JadwalTes $jadwalTes): array
     {
         $jadwalTes->load(['penanggungJawab', 'mahasantri', 'jadwalPenguji.panitia']);
-        $hasilTes = HasilTes::where('id_jadwal', $jadwalTes->id_jadwal)->first();
+        $hasilTes = HasilTes::where('jadwal_id', $jadwalTes->id)->first();
         $user = auth()->user();
         $userId = $user->id_panitia;
         $isCreator = $jadwalTes->penanggung_jawab == $userId;
@@ -90,7 +90,9 @@ class HasilTesService
      */
     public function storeNilai(array $validated, array $input, string $userId): void
     {
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+        $jadwal = JadwalTes::with('jadwalPenguji')
+            ->where('kode_jadwal', $validated['id_jadwal'])
+            ->firstOrFail();
         $isCreator = $jadwal->penanggung_jawab == $userId;
 
         foreach ($this->fieldToAspek() as $field => $map) {
@@ -147,7 +149,9 @@ class HasilTesService
      */
     public function simpanHasil(array $validated, array $input): array
     {
-        $jadwal = JadwalTes::with('jadwalPenguji')->findOrFail($validated['id_jadwal']);
+        $jadwal = JadwalTes::with('jadwalPenguji')
+            ->where('kode_jadwal', $validated['id_jadwal'])
+            ->firstOrFail();
         $nilaiList = [];
 
         foreach ($this->fieldToAspek() as $field => $map) {
@@ -162,7 +166,7 @@ class HasilTesService
                     $updateData['catatan_penguji'] = $input[$catatanField];
                 }
 
-                JadwalPenguji::where('id_jadwal', $jadwal->id_jadwal)
+                JadwalPenguji::where('jadwal_id', $jadwal->id)
                     ->where('aspek_penguji', $aspek)
                     ->update($updateData);
             } else {
@@ -180,7 +184,7 @@ class HasilTesService
         // Tabel hasil_seleksi diperlakukan sebagai agregat dari jadwal_penguji,
         // bukan sumber kebenaran utama untuk nilai per aspek.
         $summary = $this->calculateSummary($nilaiList);
-        $hasil = HasilTes::where('id_jadwal', $jadwal->id_jadwal)->first();
+        $hasil = HasilTes::where('jadwal_id', $jadwal->id)->first();
 
         if ($hasil) {
             $hasil->update([
@@ -188,11 +192,8 @@ class HasilTesService
                 'status' => $summary['status'],
             ]);
         } else {
-            $last = HasilTes::where('id_hasil', 'LIKE', 'HSL%')->orderBy('id_hasil', 'desc')->first();
-            $urut = $last ? (int) substr($last->id_hasil, 3) + 1 : 1;
             HasilTes::create([
-                'id_hasil' => 'HSL' . str_pad((string) $urut, 2, '0', STR_PAD_LEFT),
-                'id_jadwal' => $jadwal->id_jadwal,
+                'jadwal_id' => $jadwal->id,
                 'total_nilai' => $summary['total_nilai'],
                 'status' => $summary['status'],
             ]);
@@ -213,7 +214,7 @@ class HasilTesService
         $nilaiExisting = [];
         $catatanExisting = [];
         foreach (array_values($this->fieldToAspek()) as $map) {
-            $jp = JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+            $jp = JadwalPenguji::where('jadwal_id', $hasilTes->jadwal_id)
                 ->where('aspek_penguji', $map['aspek'])
                 ->first();
             $nilaiExisting[$map['aspek']] = $jp?->nilai;
@@ -236,13 +237,13 @@ class HasilTesService
             }
 
             if ($updateData !== []) {
-                JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+                JadwalPenguji::where('jadwal_id', $hasilTes->jadwal_id)
                     ->where('aspek_penguji', $map['aspek'])
                     ->update($updateData);
             }
         }
 
-        $jpReload = JadwalPenguji::where('id_jadwal', $hasilTes->id_jadwal)
+        $jpReload = JadwalPenguji::where('jadwal_id', $hasilTes->jadwal_id)
             ->whereNotNull('nilai')
             ->pluck('nilai')
             ->toArray();

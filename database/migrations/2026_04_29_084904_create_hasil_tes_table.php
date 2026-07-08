@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('hasil_seleksi', function (Blueprint $table) {
-            $table->char('id_hasil', 5)->primary();
+            $table->id();
             $table->enum('status', ['Belum Tes', 'Pertimbangan', 'Lulus', 'Tidak Lulus'])->default('Belum Tes');
             $table->integer('total_nilai')->nullable();
-            $table->char('id_jadwal', 5)->unique();
+            $table->foreignId('jadwal_id')->unique();
 
-            $table->foreign('id_jadwal')
-                  ->references('id_jadwal')
+            $table->foreign('jadwal_id')
+                  ->references('id')
                   ->on('jadwal_seleksi')
                   ->onDelete('cascade')
                   ->onUpdate('cascade');

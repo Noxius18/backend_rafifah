@@ -10,6 +10,7 @@ class BerkasResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
             'id_berkas' => $this->id_berkas,
             'tipe_berkas' => $this->tipe_berkas,
             'status_verifikasi' => $this->status_verifikasi,

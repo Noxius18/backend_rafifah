@@ -50,7 +50,7 @@ class JadwalTesApprovalReminderTest extends TestCase
         ]);
 
         $jadwal = JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => $mahasantri->id_mahasantri,
             'tanggal' => now()->addDays(3)->toDateString(),
             'jam' => '08:30',
@@ -66,13 +66,13 @@ class JadwalTesApprovalReminderTest extends TestCase
         $this->assertSame(1, $result['jumlah']);
 
         $this->assertDatabaseHas('jadwal_seleksi', [
-            'id_jadwal' => 'JDS01',
+            'kode_jadwal' => 'J260101',
             'status_jadwal' => 'Disetujui',
             'diproses_oleh' => $ketua->id_panitia,
         ]);
 
         $this->assertDatabaseCount('schedule_statuses', 0);
-        $this->assertNull(ScheduleStatus::where('id_jadwal', 'JDS01')->first());
+        $this->assertNull(ScheduleStatus::where('jadwal_id', $jadwal->id)->first());
 
         Mail::assertNotQueued(ZoomLinkReminder::class);
         Mail::assertQueued(JadwalApprovedNotification::class, 1);

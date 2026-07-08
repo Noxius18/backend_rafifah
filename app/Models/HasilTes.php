@@ -8,32 +8,38 @@ use App\Models\{JadwalTes as Jadwal, User as Mahasantri, JadwalPenguji as Penguj
 class HasilTes extends Model
 {
     protected $table = "hasil_seleksi";
-    protected $primaryKey = "id_hasil";
-    protected $keyType = "string";
-    public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
-        'id_hasil',
         'status',
         'total_nilai',
-        'id_jadwal',
+        'jadwal_id',
     ];
 
+    public function getIdHasilAttribute(): int
+    {
+        return $this->id;
+    }
+
+    public function getIdJadwalAttribute(): ?string
+    {
+        return $this->jadwalTes?->kode_jadwal;
+    }
+
     public function jadwalTes() {
-        return $this->belongsTo(Jadwal::class, 'id_jadwal', 'id_jadwal');
+        return $this->belongsTo(Jadwal::class, 'jadwal_id', 'id');
     }
 
     public function jadwalPenguji() {
-        return $this->hasMany(Penguji::class, 'id_jadwal', 'id_jadwal');
+        return $this->hasMany(Penguji::class, 'jadwal_id', 'jadwal_id');
     }
 
     public function mahasantri() {
         return $this->hasOneThrough(
             Mahasantri::class,
             Jadwal::class,
-            'id_jadwal',   // Foreign key on jadwal_tes
+            'id',   // Foreign key on jadwal_tes
             'id_mahasantri', // Foreign key on users/mahasantri
-            'id_jadwal',    // Local key on hasil_tes
+            'jadwal_id',    // Local key on hasil_tes
             'id_mahasantri' // Local key on jadwal_tes
         );
     }

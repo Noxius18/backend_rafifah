@@ -48,7 +48,7 @@ class JadwalTesUpdateSingleTest extends TestCase
         ]);
 
         $jadwal = JadwalTes::create([
-            'id_jadwal' => 'JDS01',
+            'kode_jadwal' => 'J260101',
             'id_mahasantri' => $mahasantri->id_mahasantri,
             'tanggal' => now()->subDay()->toDateString(),
             'jam' => '08:30',
@@ -74,7 +74,7 @@ class JadwalTesUpdateSingleTest extends TestCase
         }
 
         $this->assertDatabaseHas('jadwal_seleksi', [
-            'id_jadwal' => 'JDS01',
+            'kode_jadwal' => 'J260101',
             'tanggal' => now()->subDay()->toDateString(),
             'jam' => '08:30',
             'link_zoom' => 'https://zoom.us/j/123456789',

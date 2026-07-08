@@ -35,7 +35,7 @@ class SendZoomReminders extends Command
             if ($mahasantri && $mahasantri->email) {
                 Mail::to($mahasantri->email)->send(new ZoomLinkReminder($jadwal, $mahasantri));
                 ScheduleStatus::updateOrCreate(
-                    ['id_jadwal' => $jadwal->id_jadwal],
+                    ['jadwal_id' => $jadwal->id],
                     ['zoom_reminder_sent' => true, 'sent_at' => now()]
                 );
                 $sent++;

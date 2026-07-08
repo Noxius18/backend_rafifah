@@ -9,7 +9,7 @@ class RiwayatUnduhan extends Model
     protected $table = 'job_statuses';
 
     protected $fillable = [
-        'id_berkas',
+        'berkas_id',
         'download_status',
         'error_message',
         'attempted_at',
@@ -22,6 +22,6 @@ class RiwayatUnduhan extends Model
      */
     public function berkas()
     {
-        return $this->belongsTo(Berkas::class, 'id_berkas', 'id_berkas');
+        return $this->belongsTo(Berkas::class, 'berkas_id', 'id');
     }
 }
