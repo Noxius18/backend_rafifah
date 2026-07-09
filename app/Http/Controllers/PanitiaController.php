@@ -10,13 +10,27 @@ use Illuminate\Http\Request;
 class PanitiaController extends Controller
 {
     /**
+     * Get panitia ordered with Ketua Panitia first.
+     */
+    private function orderedPanitias()
+    {
+        $ketua = Panitia::where('jabatan', 'Ketua Panitia')
+            ->orderBy('id_panitia')
+            ->get();
+
+        $lainnya = Panitia::where('jabatan', '!=', 'Ketua Panitia')
+            ->orderBy('id_panitia')
+            ->get();
+
+        return $ketua->concat($lainnya)->values();
+    }
+
+    /**
      * Display a listing of all panitia
      */
     public function index()
     {
-        $panitias = Panitia::orderByRaw("CASE WHEN jabatan = 'Ketua Panitia' THEN 0 ELSE 1 END")
-            ->orderBy('id_panitia')
-            ->get();
+        $panitias = $this->orderedPanitias();
         
         return view('menu.panitia.index', [
             'panitias' => $panitias
@@ -28,9 +42,7 @@ class PanitiaController extends Controller
      */
     public function cetakPdf()
     {
-        $panitias = Panitia::orderByRaw("CASE WHEN jabatan = 'Ketua Panitia' THEN 0 ELSE 1 END")
-            ->orderBy('id_panitia')
-            ->get();
+        $panitias = $this->orderedPanitias();
 
         $html = view('menu.panitia.pdf', [
             'panitias' => $panitias,
