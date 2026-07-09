@@ -212,7 +212,7 @@
         <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('editModal').close()">Batal</button><button type="submit" form="editModal-form" class="btn btn-success btn-sm">Perbarui</button></x-slot>
     </x-ui.modal-form>
 
-    <x-ui.modal-form id="importModal" title="Upload Data Mahasantri">
+    <x-ui.modal-form id="importModal" title="Import Data Mahasantri">
         <x-slot name="body">
             <div class="space-y-4">
                 @if($errors->any() && old('_form') === 'import-excel')
@@ -243,7 +243,7 @@
                 </form>
             </div>
         </x-slot>
-        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('importModal').close()">Batal</button><button type="submit" form="importModal-form" class="btn btn-success btn-sm">Upload</button></x-slot>
+        <x-slot name="footer"><button type="button" class="btn btn-ghost btn-sm text-black hover:bg-black/[0.05]" onclick="document.getElementById('importModal').close()">Batal</button><button type="submit" form="importModal-form" class="btn btn-success btn-sm">Import</button></x-slot>
     </x-ui.modal-form>
 
     <x-ui.modal-confirm id="deleteModal" title="Konfirmasi Hapus" body-text="Apakah Anda yakin ingin menghapus data mahasantri" confirm-label="Hapus" />
