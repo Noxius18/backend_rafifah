@@ -1,3 +1,7 @@
+@php
+    $hasPendingReview = $totalMenunggu > 0;
+@endphp
+
 <x-ui.modal id="reviewModal" size="xl">
     <x-slot name="header">
         <div class="flex items-center gap-3">
@@ -7,15 +11,19 @@
                 </svg>
             </div>
             <div>
-                <h3 class="text-lg font-semibold text-slate-800" x-show="reviewStep === 'info'">Review & Tindak Lanjut Jadwal</h3>
-                <h3 class="text-lg font-semibold text-slate-800" x-show="reviewStep === 'reject_form'">Ajukan Perubahan Jadwal</h3>
+                @foreach ([
+                    'info' => 'Review & Tindak Lanjut Jadwal',
+                    'reject_form' => 'Ajukan Perubahan Jadwal',
+                ] as $step => $title)
+                    <h3 class="text-lg font-semibold text-slate-800" x-show="reviewStep === '{{ $step }}'">{{ $title }}</h3>
+                @endforeach
                 <p class="mt-0.5 text-xs text-slate-500">Ketua Panitia — review data jadwal sebelum memutuskan</p>
             </div>
         </div>
     </x-slot>
     <x-slot name="body">
         <div x-show="reviewStep === 'info'">
-            @if($totalMenunggu > 0)
+            @if($hasPendingReview)
                 <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
                     <strong class="font-bold">{{ $totalMenunggu }}</strong> jadwal menunggu persetujuan dari <strong class="font-bold">{{ count($jadwalsByTanggal) }}</strong> tanggal berbeda.
                 </div>
@@ -74,7 +82,7 @@
         <template x-if="reviewStep === 'info'">
             <div class="flex w-full items-center justify-between gap-2">
                 <button type="button" class="btn btn-ghost btn-sm" x-on:click="document.getElementById('reviewModal').close()">Tutup</button>
-                @if($totalMenunggu > 0)
+                @if($hasPendingReview)
                     <div class="flex items-center gap-2">
                         <button type="button" x-on:click="showRejectForm()" class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3.5 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 active:scale-95 shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>

@@ -1,3 +1,14 @@
+@php
+    $userJabatan = auth()->user()->jabatan;
+    $isKetuaPanitia = $userJabatan === 'Ketua Panitia';
+    $isPanitia = $userJabatan === 'Panitia';
+    $canPrintLaporan = ($isPanitia || $isKetuaPanitia) && $activeGelombang;
+    $ketuaAlerts = [
+        ['count' => $totalMenunggu, 'label' => 'jadwal menunggu persetujuan'],
+        ['count' => $totalPerluReview, 'label' => 'hasil perlu direview'],
+    ];
+@endphp
+
 <div class="flex items-center justify-between">
     <div class="flex items-start gap-3">
         <div class="mt-1 h-7 w-1 rounded-full bg-emerald-500"></div>
@@ -8,12 +19,7 @@
     </div>
 
     <div class="flex items-center gap-2">
-        @php
-            $isKetuaPanitia = auth()->user()->jabatan === 'Ketua Panitia';
-            $isPanitia = auth()->user()->jabatan === 'Panitia';
-        @endphp
-
-        @if(($isPanitia || $isKetuaPanitia) && $activeGelombang)
+        @if($canPrintLaporan)
             <a href="{{ route('laporan.panitia.seleksi', $activeGelombang->id_gelombang ?? $activeGelombang->id) }}" target="_blank" rel="noopener"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -45,19 +51,14 @@
         @endif
 
         @if($isKetuaPanitia)
-            @if($totalMenunggu > 0)
-                <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
-                    <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                    <span><strong class="font-bold">{{ $totalMenunggu }}</strong> jadwal menunggu persetujuan</span>
-                </div>
-            @endif
-
-            @if($totalPerluReview > 0)
-                <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
-                    <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                    <span><strong class="font-bold">{{ $totalPerluReview }}</strong> hasil perlu direview</span>
-                </div>
-            @endif
+            @foreach($ketuaAlerts as $alert)
+                @if($alert['count'] > 0)
+                    <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        <span><strong class="font-bold">{{ $alert['count'] }}</strong> {{ $alert['label'] }}</span>
+                    </div>
+                @endif
+            @endforeach
 
             <button type="button" x-on:click="openReviewModal()"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 active:scale-95 shadow-sm">

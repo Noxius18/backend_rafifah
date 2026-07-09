@@ -1,3 +1,12 @@
+@php
+    $pengujiFields = [
+        'penguji_bacaan_al_quran' => 'Bacaan Al-Quran',
+        'penguji_tajwid_tahsin' => 'Tajwid/Tahsin',
+        'penguji_hafalan' => 'Hafalan',
+        'penguji_wawancara' => 'Wawancara',
+    ];
+@endphp
+
 <x-ui.modal id="editByDateSelectModal" size="md">
     <x-slot name="header">
         <div class="flex items-center gap-3">
@@ -57,32 +66,31 @@
         <form id="editByDateForm" action="" method="POST" class="space-y-4" x-on:submit="validateEditByDateForm($event)">
             @csrf
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div class="form-control md:col-span-2">
-                    <label class="label"><span class="label-text text-sm font-semibold">Tanggal Ujian / Seleksi</span></label>
-                    <input type="date" name="tanggal_baru" x-model="editRevisi.selectedTanggal" class="input input-bordered input-sm w-full" required />
-                </div>
-                <div class="form-control">
-                    <label class="label"><span class="label-text text-sm font-semibold">Jam Mulai</span></label>
-                    <input type="time" name="jam_mulai" x-model="editRevisi.jamMulai" class="input input-bordered input-sm" required />
-                </div>
-                <div class="form-control">
-                    <label class="label"><span class="label-text text-sm font-semibold">Interval (menit)</span></label>
-                    <input type="number" name="interval" x-model="editRevisi.interval" min="5" max="120" class="input input-bordered input-sm" required />
-                </div>
-                <div class="form-control md:col-span-2">
-                    <label class="label"><span class="label-text text-sm font-semibold">Link Zoom</span></label>
-                    <input type="text" name="link_zoom" x-model="editRevisi.linkZoom" placeholder="https://zoom.us/j/..." class="input input-bordered input-sm" />
-                </div>
+                @foreach ([
+                    ['name' => 'tanggal_baru', 'label' => 'Tanggal Ujian / Seleksi', 'type' => 'date', 'model' => 'editRevisi.selectedTanggal', 'class' => 'md:col-span-2', 'required' => true],
+                    ['name' => 'jam_mulai', 'label' => 'Jam Mulai', 'type' => 'time', 'model' => 'editRevisi.jamMulai', 'required' => true],
+                    ['name' => 'interval', 'label' => 'Interval (menit)', 'type' => 'number', 'model' => 'editRevisi.interval', 'min' => 5, 'max' => 120, 'required' => true],
+                    ['name' => 'link_zoom', 'label' => 'Link Zoom', 'type' => 'text', 'model' => 'editRevisi.linkZoom', 'class' => 'md:col-span-2', 'placeholder' => 'https://zoom.us/j/...'],
+                ] as $field)
+                    <div class="form-control {{ $field['class'] ?? '' }}">
+                        <label class="label"><span class="label-text text-sm font-semibold">{{ $field['label'] }}</span></label>
+                        <input
+                            type="{{ $field['type'] }}"
+                            name="{{ $field['name'] }}"
+                            x-model="{{ $field['model'] }}"
+                            @if(!empty($field['min'])) min="{{ $field['min'] }}" @endif
+                            @if(!empty($field['max'])) max="{{ $field['max'] }}" @endif
+                            @if(!empty($field['placeholder'])) placeholder="{{ $field['placeholder'] }}" @endif
+                            class="input input-bordered input-sm {{ ($field['class'] ?? '') === 'md:col-span-2' ? 'w-full' : '' }}"
+                            @if(!empty($field['required'])) required @endif
+                        />
+                    </div>
+                @endforeach
             </div>
             <div class="border-t border-slate-100 pt-3">
                 <p class="mb-2 text-sm font-semibold text-black">Penguji</p>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    @foreach ([
-                        'penguji_bacaan_al_quran' => 'Bacaan Al-Quran',
-                        'penguji_tajwid_tahsin' => 'Tajwid/Tahsin',
-                        'penguji_hafalan' => 'Hafalan',
-                        'penguji_wawancara' => 'Wawancara',
-                    ] as $field => $label)
+                    @foreach ($pengujiFields as $field => $label)
                         <div class="form-control">
                             <label class="label"><span class="label-text text-sm">{{ $label }}</span></label>
                             <select name="{{ $field }}" x-model="editRevisi.penguji.{{ $field }}" class="select select-bordered select-sm">

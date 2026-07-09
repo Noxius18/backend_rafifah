@@ -1,3 +1,10 @@
+@php
+    $editFields = [
+        ['name' => 'jam', 'label' => 'Jam Mulai', 'type' => 'time', 'required' => true],
+        ['name' => 'link_zoom', 'label' => 'Link Zoom', 'type' => 'text', 'placeholder' => 'https://zoom.us/j/...'],
+    ];
+@endphp
+
 <x-ui.modal-form id="editModal" title="Edit Jadwal Seleksi" size="lg">
     <x-slot name="body">
         <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -18,23 +25,22 @@
             </div>
         </div>
 
-        {{-- Tambahkan x-init untuk memastikan form memiliki objek state penampung jika belum ada --}}
         <form id="editModal-form" action="" method="POST" class="space-y-4" x-init="$keyframe = { jam: '', link_zoom: '' }">
             @csrf
             @method('PUT')
-            
-            {{-- Menggunakan div pembungkus input standar Tailwind agar selector JavaScript bawaan JS kamu dijamin tembus --}}
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-600">Jam Mulai</label>
-                <input type="time" name="jam" required
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm text-slate-700 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
-            </div>
 
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-600">Link Zoom</label>
-                <input type="text" name="link_zoom" placeholder="https://zoom.us/j/..."
-                    class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm text-slate-700 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
-            </div>
+            @foreach($editFields as $field)
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-600">{{ $field['label'] }}</label>
+                    <input
+                        type="{{ $field['type'] }}"
+                        name="{{ $field['name'] }}"
+                        @if(!empty($field['placeholder'])) placeholder="{{ $field['placeholder'] }}" @endif
+                        @if(!empty($field['required'])) required @endif
+                        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                    />
+                </div>
+            @endforeach
 
             <div class="border-t border-slate-100 pt-3">
                 <p class="text-sm text-slate-500">*Tanggal pelaksanaan tidak dapat diubah dari modal edit tunggal ini.</p>
