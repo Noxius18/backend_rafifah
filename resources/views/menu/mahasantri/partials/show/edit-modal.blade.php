@@ -1,5 +1,15 @@
 @php
     /** @var \App\Models\User $m */
+    $editFields = [
+        ['component' => 'input', 'name' => 'nama_lengkap', 'label' => 'Nama Lengkap', 'placeholder' => 'Masukkan nama lengkap', 'maxlength' => 35, 'required' => true, 'value' => old('nama_lengkap', $m->nama_lengkap)],
+        ['component' => 'input', 'name' => 'email', 'label' => 'Email', 'placeholder' => 'Masukkan email', 'maxlength' => 100, 'type' => 'email', 'value' => old('email', $m->email)],
+        ['component' => 'input', 'name' => 'tempat_lahir', 'label' => 'Tempat Lahir', 'placeholder' => 'Masukkan tempat lahir', 'maxlength' => 50, 'value' => old('tempat_lahir', $m->tempat_lahir)],
+        ['component' => 'input', 'name' => 'tanggal_lahir', 'label' => 'Tanggal Lahir', 'type' => 'date', 'value' => old('tanggal_lahir', $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '')],
+        ['component' => 'input', 'name' => 'nik', 'label' => 'NIK', 'placeholder' => '16 digit NIK', 'maxlength' => 16, 'value' => old('nik', $m->nik)],
+        ['component' => 'input', 'name' => 'nisn', 'label' => 'NISN', 'placeholder' => '10 digit NISN', 'maxlength' => 10, 'value' => old('nisn', $m->nisn)],
+        ['component' => 'input', 'name' => 'alamat', 'label' => 'Alamat Tempat Tinggal', 'placeholder' => 'Masukkan alamat', 'maxlength' => 255, 'value' => old('alamat', $m->alamat)],
+        ['component' => 'select', 'name' => 'status', 'label' => 'Status', 'selected' => old('status', $m->status)],
+    ];
 @endphp
 <x-ui.modal-form id="editModal" title="Edit Mahasantri">
     <x-slot name="body">
@@ -20,14 +30,21 @@
                 <input type="text" value="{{ $m->id_mahasantri }}" class="input input-bordered input-sm bg-base-200" disabled />
                 <label class="label"><span class="label-text-alt text-base-content/50">KD tidak dapat diubah</span></label>
             </div>
-            <x-ui.form-input name="nama_lengkap" label="Nama Lengkap" placeholder="Masukkan nama lengkap" maxlength="35" required value="{{ old('nama_lengkap', $m->nama_lengkap) }}" />
-            <x-ui.form-input name="email" label="Email" placeholder="Masukkan email" maxlength="100" type="email" value="{{ old('email', $m->email) }}" />
-            <x-ui.form-input name="tempat_lahir" label="Tempat Lahir" placeholder="Masukkan tempat lahir" maxlength="50" value="{{ old('tempat_lahir', $m->tempat_lahir) }}" />
-            <x-ui.form-input name="tanggal_lahir" label="Tanggal Lahir" type="date" value="{{ old('tanggal_lahir', $m->tanggal_lahir ? (is_string($m->tanggal_lahir) ? $m->tanggal_lahir : $m->tanggal_lahir->format('Y-m-d')) : '') }}" />
-            <x-ui.form-input name="nik" label="NIK" placeholder="16 digit NIK" maxlength="16" value="{{ old('nik', $m->nik) }}" />
-            <x-ui.form-input name="nisn" label="NISN" placeholder="10 digit NISN" maxlength="10" value="{{ old('nisn', $m->nisn) }}" />
-            <x-ui.form-input name="alamat" label="Alamat Tempat Tinggal" placeholder="Masukkan alamat" maxlength="255" value="{{ old('alamat', $m->alamat) }}" />
-            <x-ui.form-select name="status" label="Status" :options="$statusOptions" :selected="old('status', $m->status)" />
+            @foreach($editFields as $field)
+                @if($field['component'] === 'select')
+                    <x-ui.form-select name="{{ $field['name'] }}" label="{{ $field['label'] }}" :options="$statusOptions" :selected="$field['selected']" />
+                @else
+                    <x-ui.form-input
+                        name="{{ $field['name'] }}"
+                        label="{{ $field['label'] }}"
+                        placeholder="{{ $field['placeholder'] ?? '' }}"
+                        maxlength="{{ $field['maxlength'] ?? '' }}"
+                        type="{{ $field['type'] ?? 'text' }}"
+                        :required="$field['required'] ?? false"
+                        value="{{ $field['value'] }}"
+                    />
+                @endif
+            @endforeach
         </form>
     </x-slot>
     <x-slot name="footer">

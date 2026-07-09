@@ -1,5 +1,17 @@
 @php
     /** @var \App\Models\User $m */
+    $downloadStatusBadges = [
+        'success' => 'rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200',
+        'processing' => 'rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200',
+        'failed' => 'rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200',
+        'default' => 'rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200',
+    ];
+    $downloadStatusLabels = [
+        'success' => 'Berhasil',
+        'processing' => 'Mengunduh...',
+        'failed' => 'Gagal',
+        'default' => 'Menunggu',
+    ];
 @endphp
 
 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -21,7 +33,14 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach($m->berkas as $doc)
-                            @php($previewIndex = collect($previewDocs)->search(fn($previewDoc) => $previewDoc['id'] === $doc->id_berkas))
+                            @php
+                                $previewIndex = collect($previewDocs)->search(fn($previewDoc) => $previewDoc['id'] === $doc->id_berkas);
+                                $downloadStatus = $doc->riwayatUnduhan?->download_status ?? 'default';
+                                $verificationStatus = strtolower($doc->status_verifikasi);
+                                $canDownload = $downloadStatus === 'success' && $doc->file_path;
+                                $canRetry = $downloadStatus === 'failed';
+                                $canPreview = $canDownload;
+                            @endphp
                             <tr class="transition hover:bg-slate-50" data-berkas-id="{{ $doc->id_berkas }}">
                                 <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-700">
                                     <div class="flex items-center gap-2">
@@ -30,60 +49,49 @@
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                    @switch($doc->riwayatUnduhan?->download_status)
-                                        @case('success')
-                                            <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">Berhasil</span>
-                                            @break
-                                        @case('processing')
-                                            <span class="rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-200">Mengunduh...</span>
-                                            @break
-                                        @case('failed')
-                                            <span class="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200">Gagal</span>
-                                            @break
-                                        @default
-                                            <span class="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">Menunggu</span>
-                                    @endswitch
+                                    <span class="{{ $downloadStatusBadges[$downloadStatus] ?? $downloadStatusBadges['default'] }}">
+                                        {{ $downloadStatusLabels[$downloadStatus] ?? $downloadStatusLabels['default'] }}
+                                    </span>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                        @if($previewIndex !== false)
-                                            <span :class="statusBadgeClass(getDisplayStatus('{{ $doc->id_berkas }}', '{{ strtolower($doc->status_verifikasi) }}'))"
-                                                x-text="statusLabel(getDisplayStatus('{{ $doc->id_berkas }}', '{{ strtolower($doc->status_verifikasi) }}'))"></span>
-                                            <div x-show="isDraftDirtyById('{{ $doc->id_berkas }}')" class="mt-1 text-[10px] font-semibold text-sky-600">
-                                                Perubahan belum disimpan
-                                            </div>
-                                            <div x-show="getDisplayStatus('{{ $doc->id_berkas }}', '{{ strtolower($doc->status_verifikasi) }}') === 'ditolak' && getDisplayCatatan('{{ $doc->id_berkas }}', @js($doc->catatan_revisi ?? ''))"
-                                                class="mt-1 max-w-[180px] whitespace-normal text-[10px] font-medium italic text-rose-600"
-                                                x-text="`Catatan: ${getDisplayCatatan('{{ $doc->id_berkas }}', @js($doc->catatan_revisi ?? ''))}`"></div>
-                                        @elseif(strtolower($doc->status_verifikasi) === 'disetujui')
-                                            <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">✅ Disetujui</span>
-                                        @elseif(strtolower($doc->status_verifikasi) === 'ditolak')
-                                            <span class="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200">❌ Ditolak</span>
-                                            @if($doc->catatan_revisi)
-                                                <div class="text-[10px] text-rose-600 mt-1 italic font-medium max-w-[180px] whitespace-normal">Catatan: {{ $doc->catatan_revisi }}</div>
-                                            @endif
-                                        @else
-                                            <span class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">⏳ Menunggu</span>
+                                    @if($previewIndex !== false)
+                                        <span :class="statusBadgeClass(getDisplayStatus('{{ $doc->id_berkas }}', '{{ $verificationStatus }}'))"
+                                            x-text="statusLabel(getDisplayStatus('{{ $doc->id_berkas }}', '{{ $verificationStatus }}'))"></span>
+                                        <div x-show="isDraftDirtyById('{{ $doc->id_berkas }}')" class="mt-1 text-[10px] font-semibold text-sky-600">
+                                            Perubahan belum disimpan
+                                        </div>
+                                        <div x-show="getDisplayStatus('{{ $doc->id_berkas }}', '{{ $verificationStatus }}') === 'ditolak' && getDisplayCatatan('{{ $doc->id_berkas }}', @js($doc->catatan_revisi ?? ''))"
+                                            class="mt-1 max-w-[180px] whitespace-normal text-[10px] font-medium italic text-rose-600"
+                                            x-text="`Catatan: ${getDisplayCatatan('{{ $doc->id_berkas }}', @js($doc->catatan_revisi ?? ''))}`"></div>
+                                    @elseif($verificationStatus === 'disetujui')
+                                        <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">✅ Disetujui</span>
+                                    @elseif($verificationStatus === 'ditolak')
+                                        <span class="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200">❌ Ditolak</span>
+                                        @if($doc->catatan_revisi)
+                                            <div class="mt-1 max-w-[180px] whitespace-normal text-[10px] font-medium italic text-rose-600">Catatan: {{ $doc->catatan_revisi }}</div>
                                         @endif
+                                    @else
+                                        <span class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">⏳ Menunggu</span>
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-500">{{ $doc->tanggal_upload ? (is_string($doc->tanggal_upload) ? $doc->tanggal_upload : $doc->tanggal_upload->translatedFormat('d F Y')) : '-' }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-1.5">
-                                        {{-- BUTTON REVISI DI SINI SUDAH DIHAPUS BERSIH SESUAI REQUEST --}}
-                                        @if($doc->riwayatUnduhan?->download_status === 'success' && $doc->file_path)
+                                        @if($canDownload)
                                             <a href="{{ route('berkas.download', $doc->id_berkas) }}"
                                                 class="inline-flex items-center justify-center rounded-md p-2 text-emerald-600 transition hover:bg-emerald-50"
                                                 title="Unduh">
                                                 <x-heroicon-s-arrow-down-tray class="h-4 w-4" />
                                             </a>
                                         @endif
-                                        @if($doc->riwayatUnduhan?->download_status === 'failed')
+                                        @if($canRetry)
                                             <button type="button" x-on:click="retryDownload('{{ $doc->id_berkas }}')"
                                                 class="inline-flex items-center justify-center rounded-md p-2 text-amber-600 transition hover:bg-amber-50"
                                                 title="Ulangi">
                                                 <x-heroicon-s-arrow-path class="h-4 w-4" />
                                             </button>
                                         @endif
-                                        @if($doc->riwayatUnduhan?->download_status === 'success' && $doc->file_path)
+                                        @if($canPreview)
                                             <button type="button" x-on:click="openPreview({{ $previewIndex !== false ? $previewIndex : 0 }})"
                                                 class="inline-flex items-center justify-center rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50"
                                                 title="Lihat">
@@ -128,7 +136,6 @@
     </div>
 </dialog>
 
-{{-- MODAL CUSTOM 2: INPUT CATATAN REVISI --}}
 <dialog id="rejectBerkasModal" class="modal">
     <div class="modal-box max-w-sm rounded-xl border border-slate-100 shadow-xl bg-white">
         <div class="flex items-center gap-3 text-rose-600">
