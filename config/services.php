@@ -39,4 +39,8 @@ return [
         'credentials_b64' => env('FIREBASE_SERVICE_ACCOUNT_CREDENTIALS_B64'),
     ],
 
+    'google_drive' => [
+        'credentials_b64' => env('GOOGLE_DRIVE_SERVICE_ACCOUNT_CREDENTIALS_B64'),
+    ],
+
 ];

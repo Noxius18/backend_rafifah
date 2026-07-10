@@ -22,41 +22,23 @@ class GoogleDriveService
             return $this->client;
         }
 
-        $credentialsEnv = env('GOOGLE_DRIVE_SERVICE_ACCOUNT_CREDENTIALS');
+        $credentialsBase64 = config('services.google_drive.credentials_b64');
 
-        if (empty($credentialsEnv)) {
+        if (!is_string($credentialsBase64) || trim($credentialsBase64) === '') {
             throw new \RuntimeException(
                 'Google Drive Service Account credentials not found. '
-                . 'Set GOOGLE_DRIVE_SERVICE_ACCOUNT_CREDENTIALS in .env'
+                . 'Set GOOGLE_DRIVE_SERVICE_ACCOUNT_CREDENTIALS_B64 in .env'
             );
         }
 
-        // Try to decode as JSON string first
-        $credentials = json_decode($credentialsEnv, true);
+        $credentialsJson = base64_decode($credentialsBase64, true);
+        if ($credentialsJson === false) {
+            throw new \RuntimeException('Google Drive credentials base64 is not valid.');
+        }
 
-        // If not valid JSON, treat as file path
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $filePath = $this->resolveCredentialsPath($credentialsEnv);
-
-            if (!file_exists($filePath)) {
-                throw new \RuntimeException(
-                    'Google Drive credentials file not found at: ' . $filePath
-                );
-            }
-
-            $content = file_get_contents($filePath);
-            if ($content === false) {
-                throw new \RuntimeException(
-                    'Could not read Google Drive credentials file at: ' . $filePath
-                );
-            }
-
-            $credentials = json_decode($content, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \RuntimeException(
-                    'Google Drive credentials file is not valid JSON: ' . $filePath
-                );
-            }
+        $credentials = json_decode($credentialsJson, true);
+        if (!is_array($credentials) || $credentials === []) {
+            throw new \RuntimeException('Google Drive credentials JSON is not valid.');
         }
 
         $client = new GoogleClient();
@@ -66,49 +48,6 @@ class GoogleDriveService
 
         $this->client = $client;
         return $client;
-    }
-
-    /**
-     * Resolve the credentials file path with multiple fallback strategies.
-     */
-    private function resolveCredentialsPath(string $path): string
-    {
-        // If it's already an absolute path, return as-is
-        if (str_starts_with($path, '/')) {
-            return $path;
-        }
-
-        // Remove 'storage/' prefix if present
-        if (str_starts_with($path, 'storage/')) {
-            $path = substr($path, 8);
-        }
-
-        // Try storage_path first (Laravel helper)
-        $resolved = storage_path($path);
-        if (file_exists($resolved)) {
-            return $resolved;
-        }
-
-        // Try base_path (project root)
-        $resolved = base_path($path);
-        if (file_exists($resolved)) {
-            return $resolved;
-        }
-
-        // Try with 'storage/' prefix
-        $resolved = base_path('storage/' . $path);
-        if (file_exists($resolved)) {
-            return $resolved;
-        }
-
-        // Try with 'storage/app/' prefix
-        $resolved = base_path('storage/app/' . $path);
-        if (file_exists($resolved)) {
-            return $resolved;
-        }
-
-        // Return the storage_path result as default (even if not found)
-        return storage_path($path);
     }
 
     /**
