@@ -46,12 +46,17 @@ class FcmHelper
             return $accessToken;
         }
 
-        $credentialsPath = storage_path('app/private/credentials.json');
-        if (!file_exists($credentialsPath)) {
-            throw new RuntimeException('Firebase credentials tidak ditemukan di storage/app/private/credentials.json.');
+        $credentialsBase64 = config('services.firebase.credentials_b64');
+        if (!is_string($credentialsBase64) || trim($credentialsBase64) === '') {
+            throw new RuntimeException('Firebase credentials tidak ditemukan. Set FIREBASE_SERVICE_ACCOUNT_CREDENTIALS_B64 di environment.');
         }
 
-        $credentials = json_decode(file_get_contents($credentialsPath), true);
+        $credentialsJson = base64_decode($credentialsBase64, true);
+        if ($credentialsJson === false) {
+            throw new RuntimeException('Firebase credentials base64 tidak valid.');
+        }
+
+        $credentials = json_decode($credentialsJson, true);
         if (!is_array($credentials) || $credentials === []) {
             throw new RuntimeException('Firebase credentials tidak valid.');
         }
