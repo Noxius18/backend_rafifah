@@ -9,7 +9,6 @@ export function registerMahasantriShow(Alpine) {
         previewDocs: [],
         previewDocIndex: 0,
         savingReview: false,
-        savingIdentity: false,
         previewNik: config.nik ?? '',
         previewNisn: config.nisn ?? '',
         originalNik: config.nik ?? '',
@@ -184,18 +183,42 @@ export function registerMahasantriShow(Alpine) {
                 return;
             }
 
-            if (!this.hasDirtyReviewChanges) {
+            if (!this.previewDocs[0]?.id) {
+                this.showToast('Dokumen tidak tersedia', 'error');
+                return;
+            }
+
+            if (!this.hasDirtyReviewChanges && !this.hasIdentityChanges) {
                 this.showToast('Tidak ada perubahan yang perlu disimpan', 'error');
                 return;
             }
 
             this.savingReview = true;
             const changedDocs = this.previewDocs.filter((doc) => this.isReviewDirty(doc));
+            const hadReviewChanges = changedDocs.length > 0;
+            const hadIdentityChanges = this.hasIdentityChanges;
+            const identityPayload = {
+                nik: this.previewNik || null,
+                nisn: this.previewNisn || null,
+            };
+            const reviewPayloadBase = hadIdentityChanges ? identityPayload : {};
             const failedDocs = [];
+            let identitySaved = !hadIdentityChanges;
 
             try {
-                for (const doc of changedDocs) {
+                if (!hadReviewChanges && hadIdentityChanges) {
+                    const result = await this.patchBerkas(this.previewDocs[0].id, identityPayload, csrfToken);
+
+                    if (result.ok) {
+                        identitySaved = true;
+                    } else {
+                        failedDocs.push(result.data?.message || 'Data identitas gagal disimpan');
+                    }
+                }
+
+                for (const [index, doc] of changedDocs.entries()) {
                     const result = await this.patchBerkas(doc.id, {
+                        ...(index === 0 ? reviewPayloadBase : {}),
                         status_verifikasi: doc.draftStatusVerifikasi,
                         catatan_revisi: doc.draftStatusVerifikasi === 'ditolak'
                             ? doc.draftCatatanRevisi
@@ -207,15 +230,28 @@ export function registerMahasantriShow(Alpine) {
                         doc.originalCatatanRevisi = doc.draftStatusVerifikasi === 'ditolak'
                             ? doc.draftCatatanRevisi
                             : '';
+                        if (index === 0 && hadIdentityChanges) {
+                            identitySaved = true;
+                        }
                     } else {
                         failedDocs.push(result.data?.message ? `${doc.title} (${result.data.message})` : doc.title);
                     }
                 }
 
+                if (identitySaved) {
+                    this.originalNik = this.previewNik;
+                    this.originalNisn = this.previewNisn;
+                }
+
                 this.previewDocsSource = this.previewDocs.map((doc) => ({ ...doc }));
 
                 if (failedDocs.length === 0) {
-                    this.showToast('Semua perubahan verifikasi berhasil disimpan');
+                    const successMessage = hadReviewChanges && hadIdentityChanges
+                        ? 'Perubahan verifikasi dan identitas berhasil disimpan'
+                        : hadReviewChanges
+                            ? 'Perubahan verifikasi berhasil disimpan'
+                            : 'Perubahan data identitas berhasil disimpan';
+                    this.showToast(successMessage);
                     return;
                 }
 
@@ -224,43 +260,6 @@ export function registerMahasantriShow(Alpine) {
                 this.showToast('Gagal menghubungi server', 'error');
             } finally {
                 this.savingReview = false;
-            }
-        },
-        async saveIdentityData() {
-            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-            if (!csrfToken) {
-                this.showToast('CSRF token tidak ditemukan', 'error');
-                return;
-            }
-
-            if (!this.previewDocs[0]?.id) {
-                this.showToast('Dokumen tidak tersedia', 'error');
-                return;
-            }
-
-            if (!this.hasIdentityChanges) {
-                this.showToast('Tidak ada perubahan identitas yang perlu disimpan', 'error');
-                return;
-            }
-
-            this.savingIdentity = true;
-            try {
-                const result = await this.patchBerkas(this.previewDocs[0].id, {
-                    nik: this.previewNik || null,
-                    nisn: this.previewNisn || null,
-                }, csrfToken);
-
-                if (result.ok) {
-                    this.originalNik = this.previewNik;
-                    this.originalNisn = this.previewNisn;
-                    this.showToast(result.data.message || 'Data NIK & NISN berhasil disimpan');
-                } else {
-                    this.showToast(result.data?.message || 'Gagal menyimpan perubahan', 'error');
-                }
-            } catch {
-                this.showToast('Gagal menghubungi server', 'error');
-            } finally {
-                this.savingIdentity = false;
             }
         },
         async patchBerkas(id, body, csrfToken) {

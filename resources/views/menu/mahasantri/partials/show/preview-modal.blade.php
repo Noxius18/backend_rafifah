@@ -6,13 +6,13 @@
     $verificationActions = [
         [
             'label' => 'Setujui Berkas',
-            'icon' => '✅',
+            'icon' => '',
             'click' => "document.getElementById('previewModal').close(); openApproveModal(previewDoc.id, previewDoc.title)",
             'class' => 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
         ],
         [
             'label' => 'Tolak & Minta Catatan Revisi',
-            'icon' => '❌',
+            'icon' => '',
             'click' => "document.getElementById('previewModal').close(); openRejectModal(previewDoc.id, previewDoc.title)",
             'class' => 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
         ],
@@ -20,19 +20,11 @@
     $saveButtons = [
         [
             'click' => 'saveReviewChanges()',
-            'disabled' => 'savingReview || !hasDirtyReviewChanges',
+            'disabled' => 'savingReview || (!hasDirtyReviewChanges && !hasIdentityChanges)',
             'loading' => 'savingReview',
             'class' => 'bg-emerald-600 hover:bg-emerald-700',
             'loading_text' => 'Menyimpan Verifikasi...',
             'default_text' => 'Simpan Perubahan Verifikasi',
-        ],
-        [
-            'click' => 'saveIdentityData()',
-            'disabled' => 'savingIdentity || !hasIdentityChanges',
-            'loading' => 'savingIdentity',
-            'class' => 'bg-indigo-600 hover:bg-indigo-700',
-            'loading_text' => 'Menyimpan Data...',
-            'default_text' => 'Simpan Data NIK & NISN',
         ],
     ];
 @endphp

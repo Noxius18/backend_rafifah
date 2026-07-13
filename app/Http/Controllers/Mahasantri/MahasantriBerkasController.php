@@ -72,8 +72,6 @@ class MahasantriBerkasController extends Controller
             'catatan_revisi' => 'required_if:status_verifikasi,' . Berkas::STATUS_DITOLAK . '|nullable|string|max:255',
             'nik' => 'nullable|size:16|unique:mahasantri,nik,' . $berkas->id_mahasantri . ',id_mahasantri',
             'nisn' => 'nullable|size:10|unique:mahasantri,nisn,' . $berkas->id_mahasantri . ',id_mahasantri',
-            'tempat_lahir' => 'nullable|string|max:50',
-            'tanggal_lahir' => 'nullable|date',
         ], [
             'status_verifikasi.in' => 'Status verifikasi harus berupa disetujui atau ditolak.',
             'catatan_revisi.required_if' => 'Catatan revisi wajib diisi saat berkas ditolak.',
@@ -81,8 +79,6 @@ class MahasantriBerkasController extends Controller
             'nik.unique' => 'NIK sudah terdaftar.',
             'nisn.size' => 'NISN harus 10 karakter.',
             'nisn.unique' => 'NISN sudah terdaftar.',
-            'tempat_lahir.max' => 'Tempat lahir maksimal 50 karakter.',
-            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
         ]);
 
         $result = $this->workflowService->updateBerkas($berkas, $validated, $request->all());
